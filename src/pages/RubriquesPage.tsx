@@ -30,7 +30,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
-// --- COMPOSANT ITEM (CASE DE RUBRIQUE) ---
+// --- COMPOSANT ITEM (ALIGNEMENT VERTICAL PARFAIT) ---
 const SortableItem = ({ id, titre, hasQuestions, onDelete, onEdit }: any) => {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
   const [editValue, setEditValue] = useState(titre);
@@ -47,69 +47,77 @@ const SortableItem = ({ id, titre, hasQuestions, onDelete, onEdit }: any) => {
     <Card 
       ref={setNodeRef} 
       style={style} 
-      className={`group flex items-center justify-between p-5 mb-4 bg-white border-l-[12px] border-l-[#FFD700] rounded-2xl shadow-sm hover:shadow-md hover:translate-x-2 transition-all duration-300 ${isDragging ? "shadow-2xl ring-2 ring-[#FFD700]" : ""}`}
+      className={`group relative flex items-center p-0 mb-4 bg-white border-l-[12px] border-l-[#FFD700] rounded-2xl shadow-sm hover:shadow-md hover:translate-x-2 transition-all duration-300 min-h-[100px] ${isDragging ? "shadow-2xl ring-2 ring-[#FFD700]" : ""}`}
     >
-      <div className="flex items-center gap-5">
-        <div {...attributes} {...listeners} className="cursor-grab text-slate-300 hover:text-[#FFD700] transition-colors p-1">
-          <GripVertical size={24} />
-        </div>
-        <div className="flex flex-col text-slate-900">
-          <div className="flex items-center gap-2">
-            {/* POLICE AGRANDIE ICI (text-lg) */}
-            <span className="font-black text-lg uppercase tracking-tight leading-none">{titre}</span>
-            {hasQuestions && (
-              <span className="bg-green-100 text-green-700 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-widest">Actif</span>
-            )}
-          </div>
-          {/* POLICE SECONDAIRE AJUSTÉE (text-xs) */}
-          <span className="text-xs text-slate-400 font-bold uppercase tracking-widest mt-1 opacity-80">Ressource Standard</span>
-        </div>
+      {/* 1. L'ICÔNE DE DRAG : Centrage mathématique absolu */}
+      <div 
+        {...attributes} 
+        {...listeners} 
+        className="absolute left-6 top-1/2 -translate-y-1/2 cursor-grab text-slate-300 hover:text-[#FFD700] transition-colors p-1"
+      >
+        <GripVertical size={28} />
       </div>
 
-      <div className="flex items-center gap-3">
-        <div className="flex gap-2 border-l pl-4 border-slate-100 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-          {/* MODIFIER */}
-          <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-            <DialogTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-10 w-10 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors">
-                <Edit3 size={18} />
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="rounded-3xl border-t-[15px] border-t-[#FFD700] bg-white shadow-2xl">
-              <DialogHeader><DialogTitle className="text-2xl font-black uppercase italic text-slate-900">Mise à jour</DialogTitle></DialogHeader>
-              <div className="py-6">
-                <Input value={editValue} onChange={(e) => setEditValue(e.target.value)} className="h-12 border-slate-200 rounded-xl font-bold uppercase focus-visible:ring-[#FFD700]" />
-              </div>
-              <DialogFooter>
-                <Button className="w-full h-12 bg-[#FFD700] text-black font-black rounded-xl hover:bg-black hover:text-white transition-all" onClick={() => { onEdit(id, editValue); setIsEditOpen(false); }}>METTRE À JOUR</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-
-          {/* SUPPRIMER (GRISÉ SI QUESTIONS LIÉES) */}
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span>
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    disabled={hasQuestions} 
-                    onClick={() => onDelete(id)}
-                    className={`h-10 w-10 rounded-xl transition-all ${hasQuestions ? "opacity-20 text-slate-300" : "text-slate-400 hover:text-red-600 hover:bg-red-50"}`}
-                  >
-                    <Trash2 size={18} />
-                  </Button>
-                </span>
-              </TooltipTrigger>
-              {hasQuestions && (
-                <TooltipContent className="bg-red-600 text-white font-black text-[9px] uppercase border-none shadow-xl">
-                  <p>Suppression bloquée : Contient des questions</p>
-                </TooltipContent>
-              )}
-            </Tooltip>
-          </TooltipProvider>
+      {/* 2. LE CONTENU TEXTUEL : Décalé pour laisser la place à l'icône */}
+      <div className="flex flex-col ml-20 py-4">
+        <div className="flex items-center gap-3">
+          <span className="font-black text-slate-900 text-lg uppercase tracking-tight leading-none">
+            {titre}
+          </span>
+          {hasQuestions && (
+            <span className="bg-green-100 text-green-700 text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-widest">
+              Actif
+            </span>
+          )}
         </div>
+        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1 opacity-80">
+          Ressource Standard
+        </span>
+      </div>
+
+      {/* 3. LES ACTIONS : Alignées à droite et centrées verticalement */}
+      <div className="absolute right-6 top-1/2 -translate-y-1/2 flex gap-2 border-l pl-4 border-slate-100 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+        <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+          <DialogTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-10 w-10 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors">
+              <Edit3 size={18} />
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="rounded-3xl border-t-[15px] border-t-[#FFD700] bg-white shadow-2xl">
+            <DialogHeader><DialogTitle className="text-2xl font-black uppercase italic text-slate-900">Mise à jour</DialogTitle></DialogHeader>
+            <div className="py-6">
+              <Input value={editValue} onChange={(e) => setEditValue(e.target.value)} className="h-12 border-slate-200 rounded-xl font-bold uppercase focus-visible:ring-[#FFD700]" />
+            </div>
+            <DialogFooter>
+              <Button className="w-full h-12 bg-[#FFD700] text-black font-black rounded-xl hover:bg-black hover:text-white transition-all" onClick={() => { onEdit(id, editValue); setIsEditOpen(false); }}>
+                METTRE À JOUR
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  disabled={hasQuestions} 
+                  onClick={() => onDelete(id)}
+                  className={`h-10 w-10 rounded-xl transition-all ${hasQuestions ? "opacity-20 text-slate-300" : "text-slate-400 hover:text-red-600 hover:bg-red-50"}`}
+                >
+                  <Trash2 size={18} />
+                </Button>
+              </span>
+            </TooltipTrigger>
+            {hasQuestions && (
+              <TooltipContent className="bg-red-600 text-white font-black text-[9px] uppercase border-none shadow-xl">
+                <p>Suppression bloquée : Contient des questions</p>
+              </TooltipContent>
+            )}
+          </Tooltip>
+        </TooltipProvider>
       </div>
     </Card>
   );
@@ -160,7 +168,6 @@ export default function RubriquesPage() {
     { id: '37', titre: "Présentation orale", hasQuestions: true },
   ]);
 
-  // Tri automatique au démarrage
   useEffect(() => {
     setRubriques(prev => [...prev].sort((a, b) => a.titre.localeCompare(b.titre)));
   }, []);
