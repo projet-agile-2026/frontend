@@ -1,36 +1,19 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Search, Plus, Trash2, Edit3, ChevronLeft, ChevronRight, Inbox } from 'lucide-react';
+import { Search, Plus, Trash2, Edit3, ChevronLeft, ChevronRight, Inbox, Loader2 } from 'lucide-react';
 import { Input } from "../components/ui/input";
 import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
+import { questionService } from '../services/questionService';
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogFooter,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter,
 } from "../components/ui/dialog";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "../components/ui/select";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "../components/ui/alert-dialog";
 
-// --- LISTE DES QUALIFICATIFS ---
 const LISTE_QUALIFICATIFS = [
   { id: '1', max: 'Fort', min: 'Faible' },
   { id: '2', max: 'Suffisant', min: 'Insuffisant' },
@@ -47,111 +30,113 @@ const LISTE_QUALIFICATIFS = [
   { id: '13', max: 'Simple', min: 'Complexe' },
 ];
 
-// --- JEU DE DONNÉES INITIAL ---
-const LISTE_QUESTIONS_INITIALES = [
-  { id: '1', intitule: 'Contenu', idQualificatif: '1' },
-  { id: '2', intitule: 'Interet', idQualificatif: '2' },
-  { id: '3', intitule: 'Assimilite (Ce cours est-il facile e assimiler ?)', idQualificatif: '8' },
-  { id: '4', intitule: 'Support de cours', idQualificatif: '3' },
-  { id: '5', intitule: 'Rythme', idQualificatif: '4' },
-  { id: '6', intitule: 'Nombre de seances', idQualificatif: '13' },
-  { id: '7', intitule: 'Attention, participation des etudiants', idQualificatif: '5' },
-  { id: '8', intitule: 'Clarte de lenseignant', idQualificatif: '6' },
-  { id: '9', intitule: 'Competence de lenseignant (vis-e-vis) du domaine)', idQualificatif: '7' },
-  { id: '10', intitule: 'Utilitte des TD pour assimiler le cours', idQualificatif: '7' },
-  { id: '11', intitule: 'Niveau des exercices', idQualificatif: '6' },
-  { id: '12', intitule: 'Clarte des enonces', idQualificatif: '6' },
-  { id: '13', intitule: 'Utilite des TPpour assimiler le cours', idQualificatif: '10' },
-  { id: '14', intitule: 'Explications individuelles', idQualificatif: '9' },
-  { id: '15', intitule: 'Difficulte du sujet', idQualificatif: '8' },
-  { id: '16', intitule: 'Utilite du projet pour assimiler le cours', idQualificatif: '10' },
-  { id: '17', intitule: 'Interet personnel', idQualificatif: '2' },
-  { id: '18', intitule: 'Impression generale', idQualificatif: '11' },
-  { id: '19', intitule: 'Investissement personnel', idQualificatif: '2' },
-  { id: '20', intitule: 'Interet e priori pour cet enseignement', idQualificatif: '2' },
-  { id: '21', intitule: 'Interet e posteriori pour cet enseignement', idQualificatif: '2' },
-  { id: '22', intitule: 'Volume global horaire', idQualificatif: '12' },
-];
-
 export default function QuestionsPage() {
-  const [questions, setQuestions] = useState(LISTE_QUESTIONS_INITIALES);
+  const [questions, setQuestions] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 6;
 
-  useEffect(() => {
-    setQuestions(prev => [...prev].sort((a, b) => a.intitule.localeCompare(b.intitule)));
-  }, []);
+  // Chargement des données depuis l'API Oracle
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      const data = await questionService.getAll();
+      setQuestions(data.sort((a, b) => a.intitule.localeCompare(b.intitule)));
+    } catch (err) {
+      console.error("Erreur de chargement", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { loadData(); }, []);
 
   const filteredQuestions = useMemo(() => {
     return questions
-      .filter(q => q.intitule.includes(search))
+      .filter(q => q.intitule.toLowerCase().includes(search.toLowerCase()))
       .sort((a, b) => a.intitule.localeCompare(b.intitule));
   }, [questions, search]);
 
   const totalPages = Math.ceil(filteredQuestions.length / itemsPerPage);
   const currentData = filteredQuestions.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
-  const handleAdd = (intitule: string, idQualif: string) => {
-    const newQuestion = {
-      id: Math.random().toString(36).substr(2, 9),
-      intitule: intitule,
-      idQualificatif: idQualif
-    };
-    setQuestions(prev => [...prev, newQuestion].sort((a, b) => a.intitule.localeCompare(b.intitule)));
+  const handleAdd = async (intitule, idQualif) => {
+    try {
+      // On envoie le format attendu par l'entité Question (TYPE par défaut 'QUS')
+      const newQ = await questionService.create({ 
+        intitule, 
+        idQualificatif: idQualif,
+        type: 'QUS',
+        noEnseignant: null
+      });
+      setQuestions(prev => [...prev, newQ].sort((a, b) => a.intitule.localeCompare(b.intitule)));
+    } catch (err) { alert(err.message); }
   };
 
-  const handleUpdate = (id: string, updatedIntitule: string, updatedIdQualif: string) => {
-    setQuestions(prev => 
-      prev.map(q => q.id === id ? { ...q, intitule: updatedIntitule, idQualificatif: updatedIdQualif } : q)
-          .sort((a, b) => a.intitule.localeCompare(b.intitule))
-    );
-    alert("Mise à jour réussie !");
+  const handleUpdate = async (id, updatedIntitule, updatedIdQualif) => {
+    try {
+      const updated = await questionService.update(id, { 
+        idQuestion: id,
+        intitule: updatedIntitule, 
+        idQualificatif: updatedIdQualif,
+        type: 'QUS',
+        noEnseignant: null
+      });
+      setQuestions(prev => prev.map(q => q.idQuestion === id ? updated : q));
+    } catch (err) { alert("Erreur lors de la modification"); }
   };
 
-  const handleDelete = (id: string) => {
-    setQuestions(prev => prev.filter(q => q.id !== id));
-    alert("Suppression réussie !");
+  const handleDelete = async (id) => {
+    try {
+      await questionService.delete(id);
+      setQuestions(prev => prev.filter(q => q.idQuestion !== id));
+    } catch (err) {
+      alert(err.message); // Affiche l'erreur de contrainte d'intégrité ORA-02292
+    }
   };
+
+  if (loading) return (
+    <div className="flex flex-col items-center justify-center h-screen bg-slate-50">
+      <Loader2 className="h-12 w-12 animate-spin text-[#FFD700] mb-4" />
+      <p className="font-black uppercase tracking-widest text-xs">Chargement UBO Resources...</p>
+    </div>
+  );
 
   return (
     <div className="max-w-5xl mx-auto py-12 px-8 bg-slate-50/50 min-h-screen font-sans">
-      {/* HEADER */}
       <div className="flex justify-between items-center mb-12">
         <div>
           <h1 className="text-5xl font-black text-slate-900 uppercase tracking-tighter italic leading-none mb-2">Questions</h1>
           <div className="h-2 w-24 bg-[#FFD700] rounded-full"></div>
-          <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.3em] mt-3 italic text-slate-900">UBO Institutional Resources</p>
+          <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.3em] mt-3 italic">UBO Institutional Resources</p>
         </div>
         <AddQuestionDialog onAdd={handleAdd} />
       </div>
 
-      {/* SEARCH BAR */}
       <div className="relative mb-12 group">
         <Search className="absolute left-6 top-5 h-6 w-6 text-slate-300 group-focus-within:text-[#FFD700] transition-all" />
         <Input 
-          placeholder="Rechercher" 
+          placeholder="Rechercher une question..." 
           className="pl-16 h-16 bg-white border-none shadow-sm rounded-[2rem] focus-visible:ring-2 focus-visible:ring-[#FFD700] font-black text-xs uppercase tracking-widest text-slate-900"
           value={search}
           onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
         />
       </div>
 
-      {/* LISTE DES QUESTIONS : LARGEUR RÉDUITE ICI */}
       <div className="max-w-2xl mx-auto space-y-4 mb-12">
         {currentData.length > 0 ? (
           currentData.map((q) => (
-            <QuestionCard key={q.id} question={q} onDelete={handleDelete} onUpdate={handleUpdate} />
+            <QuestionCard key={q.idQuestion} question={q} onDelete={handleDelete} onUpdate={handleUpdate} />
           ))
         ) : (
           <div className="flex flex-col items-center py-20 text-slate-200 uppercase font-black tracking-[0.5em] text-xs">
             <Inbox size={64} className="opacity-10 mb-4" />
-            <p>Aucun résultat trouvé</p>
+            <p>Aucun résultat en base</p>
           </div>
         )}
       </div>
 
-      {/* PAGINATION */}
       {totalPages > 1 && (
         <div className="flex justify-center items-center gap-4 mt-10">
           <Button variant="outline" onClick={() => setCurrentPage(p => Math.max(p - 1, 1))} disabled={currentPage === 1} className="rounded-xl border-2 h-12 w-12 border-slate-200">
@@ -169,11 +154,10 @@ export default function QuestionsPage() {
   );
 }
 
-// --- CARD QUESTION ---
-function QuestionCard({ question, onDelete, onUpdate }: any) {
-  const qualif = LISTE_QUALIFICATIFS.find(c => c.id === question.idQualificatif);
+function QuestionCard({ question, onDelete, onUpdate }) {
+  const qualif = LISTE_QUALIFICATIFS.find(c => c.id === String(question.idQualificatif));
   const [editIntitule, setEditIntitule] = useState(question.intitule);
-  const [editIdQualif, setEditIdQualif] = useState(question.idQualificatif);
+  const [editIdQualif, setEditIdQualif] = useState(String(question.idQualificatif));
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
   return (
@@ -196,45 +180,27 @@ function QuestionCard({ question, onDelete, onUpdate }: any) {
               <Edit3 size={18} />
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl rounded-[2.5rem] border-t-[20px] border-t-blue-500 bg-white shadow-2xl p-8">
+          <DialogContent className="max-w-2xl rounded-[2.5rem] border-t-[20px] border-t-blue-500 bg-white p-8">
             <DialogHeader>
-              <DialogTitle className="text-3xl font-black uppercase italic tracking-tighter text-slate-900">Modifier la Question</DialogTitle>
+              <DialogTitle className="text-3xl font-black uppercase italic tracking-tighter">Modifier</DialogTitle>
             </DialogHeader>
-            <div className="flex gap-4 py-8 items-end text-slate-900">
-              <div className="flex-1 space-y-2 text-left">
-                <label className="text-[10px] font-black uppercase tracking-widest ml-1 text-slate-400">Intitulé</label>
-                <Input 
-                  value={editIntitule}
-                  onChange={(e) => setEditIntitule(e.target.value)}
-                  className="h-14 border-2 border-slate-100 rounded-2xl font-black uppercase text-xs focus-visible:ring-blue-500"
-                />
+            <div className="flex gap-4 py-8 items-end">
+              <div className="flex-1 space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Intitulé</label>
+                <Input value={editIntitule} onChange={(e) => setEditIntitule(e.target.value)} className="h-14 border-2 rounded-2xl font-black uppercase text-xs" />
               </div>
-              <div className="w-64 space-y-2 text-left">
-                <label className="text-[10px] font-black uppercase tracking-widest ml-1 text-slate-400">Qualificatif</label>
+              <div className="w-64 space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Qualificatif</label>
                 <Select onValueChange={setEditIdQualif} value={editIdQualif}>
-                  <SelectTrigger className="h-14 border-2 border-slate-100 rounded-2xl font-black uppercase text-[10px] text-slate-900">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="rounded-xl">
-                    {LISTE_QUALIFICATIFS.map(c => (
-                      <SelectItem key={c.id} value={c.id} className="font-black uppercase text-[10px] py-3 text-slate-900">
-                        {c.min} / {c.max}
-                      </SelectItem>
-                    ))}
+                  <SelectTrigger className="h-14 border-2 rounded-2xl font-black uppercase text-[10px]"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {LISTE_QUALIFICATIFS.map(c => <SelectItem key={c.id} value={c.id} className="font-black uppercase text-[10px]">{c.min} / {c.max}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
             </div>
             <DialogFooter>
-              <Button 
-                className="w-full h-14 bg-blue-600 text-white font-black rounded-2xl hover:bg-blue-800 transition-all uppercase tracking-widest text-sm"
-                onClick={() => {
-                  onUpdate(question.id, editIntitule, editIdQualif);
-                  setIsEditDialogOpen(false);
-                }}
-              >
-                Mettre à jour
-              </Button>
+              <Button className="w-full h-14 bg-blue-600 text-white font-black rounded-2xl uppercase" onClick={() => { onUpdate(question.idQuestion, editIntitule, editIdQualif); setIsEditDialogOpen(false); }}>Mettre à jour</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -247,19 +213,12 @@ function QuestionCard({ question, onDelete, onUpdate }: any) {
           </AlertDialogTrigger>
           <AlertDialogContent className="rounded-[2rem] border-t-[15px] border-t-red-500 bg-white">
             <AlertDialogHeader>
-              <AlertDialogTitle className="text-xl font-black uppercase italic text-slate-900">Confirmation</AlertDialogTitle>
-              <AlertDialogDescription className="font-bold text-slate-500">
-                Êtes-vous sûr de vouloir supprimer cette question ?
-              </AlertDialogDescription>
+              <AlertDialogTitle className="text-xl font-black uppercase italic">Attention</AlertDialogTitle>
+              <AlertDialogDescription className="font-bold text-slate-500">Confirmer la suppression de cette question de la base Oracle ?</AlertDialogDescription>
             </AlertDialogHeader>
-            <AlertDialogFooter className="gap-2 mt-4">
-              <AlertDialogCancel className="rounded-xl font-black uppercase text-xs border-2">Annuler</AlertDialogCancel>
-              <AlertDialogAction 
-                onClick={() => onDelete(question.id)}
-                className="bg-red-500 text-white hover:bg-red-700 rounded-xl font-black uppercase text-xs shadow-lg"
-              >
-                Supprimer
-              </AlertDialogAction>
+            <AlertDialogFooter>
+              <AlertDialogCancel className="rounded-xl font-black uppercase text-xs">Annuler</AlertDialogCancel>
+              <AlertDialogAction onClick={() => onDelete(question.idQuestion)} className="bg-red-500 text-white hover:bg-red-700 rounded-xl font-black uppercase text-xs">Supprimer</AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
@@ -268,8 +227,7 @@ function QuestionCard({ question, onDelete, onUpdate }: any) {
   );
 }
 
-// --- DIALOG AJOUT ---
-function AddQuestionDialog({ onAdd }: any) {
+function AddQuestionDialog({ onAdd }) {
   const [intitule, setIntitule] = useState("");
   const [idQualif, setIdQualif] = useState("");
   const [open, setOpen] = useState(false);
@@ -278,55 +236,29 @@ function AddQuestionDialog({ onAdd }: any) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="bg-black text-[#FFD700] hover:bg-[#FFD700] hover:text-black font-black rounded-2xl h-14 px-10 shadow-xl transition-all active:scale-95">
+        <Button className="bg-black text-[#FFD700] hover:bg-[#FFD700] hover:text-black font-black rounded-2xl h-14 px-10 shadow-xl transition-all">
           <Plus className="mr-2 h-6 w-6" strokeWidth={4} /> AJOUTER
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-2xl rounded-[2.5rem] border-t-[20px] border-t-[#FFD700] bg-white shadow-2xl p-8 text-slate-900">
-        <DialogHeader>
-          <DialogTitle className="text-3xl font-black uppercase italic tracking-tighter">Nouvelle Question</DialogTitle>
-        </DialogHeader>
+      <DialogContent className="max-w-2xl rounded-[2.5rem] border-t-[20px] border-t-[#FFD700] bg-white p-8">
+        <DialogHeader><DialogTitle className="text-3xl font-black uppercase italic tracking-tighter">Nouvelle Question</DialogTitle></DialogHeader>
         <div className="flex gap-4 py-8 items-end">
           <div className="flex-1 space-y-2">
-            <label className="text-[10px] font-black uppercase tracking-widest ml-1 text-slate-400">Intitulé</label>
-            <Input 
-              placeholder="SAISIR L'INTITULÉ..." 
-              value={intitule}
-              onChange={(e) => setIntitule(e.target.value)}
-              className="h-14 border-2 border-slate-100 rounded-2xl font-black uppercase text-xs focus-visible:ring-[#FFD700]"
-            />
+            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Intitulé</label>
+            <Input placeholder="SAISIR..." value={intitule} onChange={(e) => setIntitule(e.target.value)} className="h-14 border-2 rounded-2xl font-black uppercase text-xs" />
           </div>
           <div className="w-64 space-y-2">
-            <label className="text-[10px] font-black uppercase tracking-widest ml-1 text-slate-400">Qualificatif</label>
+            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Qualificatif</label>
             <Select onValueChange={setIdQualif} value={idQualif}>
-              <SelectTrigger className="h-14 border-2 border-slate-100 rounded-2xl font-black uppercase text-[10px] bg-white text-slate-900">
-                <SelectValue placeholder="SÉLECTIONNER..." />
-              </SelectTrigger>
-              <SelectContent className="rounded-xl">
-                {LISTE_QUALIFICATIFS.map(c => (
-                  <SelectItem key={c.id} value={c.id} className="font-black uppercase text-[10px] py-3">
-                    {c.min} / {c.max}
-                  </SelectItem>
-                ))}
+              <SelectTrigger className="h-14 border-2 rounded-2xl font-black uppercase text-[10px]"><SelectValue placeholder="SÉLECTIONNER..." /></SelectTrigger>
+              <SelectContent>
+                {LISTE_QUALIFICATIFS.map(c => <SelectItem key={c.id} value={c.id} className="font-black uppercase text-[10px]">{c.min} / {c.max}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
         </div>
         <DialogFooter>
-          <Button 
-            disabled={!isValid} 
-            className={`w-full h-14 font-black rounded-2xl transition-all uppercase tracking-widest text-sm ${
-              isValid ? "bg-black text-[#FFD700] hover:bg-[#FFD700] hover:text-black shadow-lg" : "bg-slate-100 text-slate-300 cursor-not-allowed border-none"
-            }`}
-            onClick={() => {
-              onAdd(intitule, idQualif);
-              setOpen(false);
-              setIntitule("");
-              setIdQualif("");
-            }}
-          >
-            {isValid ? "Valider l'Ajout" : "Remplir tous les champs"}
-          </Button>
+          <Button disabled={!isValid} className={`w-full h-14 font-black rounded-2xl uppercase ${isValid ? "bg-black text-[#FFD700] hover:bg-[#FFD700]" : "bg-slate-100 text-slate-300"}`} onClick={() => { onAdd(intitule, idQualif); setOpen(false); setIntitule(""); setIdQualif(""); }}>Valider l'Ajout</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
