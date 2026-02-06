@@ -1,3 +1,5 @@
+import axios from "axios";
+
 export type Couple = {
     id: number;
     mot1: string;
@@ -5,45 +7,78 @@ export type Couple = {
     count: number;
 };
 
-const BASE = "http://localhost:8083";
+// Instance Axios centralisée
+const api = axios.create({
+    baseURL: import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8080",
+    headers: {
+        "Content-Type": "application/json",
+    },
+});
 
-async function request<T>(path: string, options?: RequestInit): Promise<T> {
-    const res = await fetch(`${BASE}${path}`, {
-        headers: { "Content-Type": "application/json" },
-        ...options,
-    });
-
-    if (!res.ok) {
-        const txt = await res.text().catch(() => "");
-        throw new Error(txt || `Erreur HTTP ${res.status}`);
-    }
-
-    if (res.status === 204) return undefined as T;
-    return (await res.json()) as T;
-}
+/* ============================
+   SERVICE COUPLES
+============================ */
 
 export const apiCouples = {
-    lister(): Promise<Couple[]> {
-        return request<Couple[]>("/api/qualificatifs");
+    lister: async (): Promise<Couple[]> => {
+        const { data } = await api.get<Couple[]>("/api/qualificatifs");
+        return data;
     },
 
-    creer(payload: { mot1: string; mot2: string }): Promise<void> {
-        return request<void>("/api/qualificatifs", {
-            method: "POST",
-            body: JSON.stringify(payload),
-        });
+    creer: async (payload: { mot1: string; mot2: string }): Promise<void> => {
+        await api.post("/api/qualificatifs", payload);
     },
 
-    modifier(id: number, payload: { mot1: string; mot2: string }): Promise<void> {
-        return request<void>(`/api/qualificatifs/${id}`, {
-            method: "PUT",
-            body: JSON.stringify(payload),
-        });
+    modifier: async (
+        id: number,
+        payload: { mot1: string; mot2: string }
+    ): Promise<void> => {
+        await api.put(`/api/qualificatifs/${id}`, payload);
     },
 
-    supprimer(id: number): Promise<void> {
-        return request<void>(`/api/qualificatifs/${id}`, {
-            method: "DELETE",
-        });
+    supprimer: async (id: number): Promise<void> => {
+        await api.delete(`/api/qualificatifs/${id}`);
     },
 };
+
+/* ============================
+   SERVICE RUBRIQUES
+============================ */
+
+export interface Rubrique {
+    id: string;
+    titre: string;
+    hasQuestions: boolean;
+    ordre: number;
+}
+
+export const rubriquesService = {
+    getAll: async (): Promise<Rubrique[]> => {
+        const { data } = await api.get<Rubrique[]>("/rubriques");
+        return data.sort((a, b) => a.ordre - b.ordre);
+    },
+
+    create: async (titre: string): Promise<Rubrique> => {
+        const { data } = await api.post<Rubrique>("/rubriques", {
+            titre: titre.toUpperCase(),
+        });
+        return data;
+    },
+
+    update: async (
+        id: string,
+        updates: Partial<Rubrique>
+    ): Promise<Rubrique> => {
+        const { data } = await api.put<Rubrique>(
+            `/rubriques/${id}`,
+            updates
+        );
+        return data;
+    },
+
+    delete: async (id: string): Promise<void> => {
+        await api.delete(`/rubriques/${id}`);
+    },
+};
+
+export default api;
