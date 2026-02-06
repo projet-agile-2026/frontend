@@ -2,7 +2,6 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { Search, Plus, Trash2, Edit3, ChevronLeft, ChevronRight, Inbox, Loader2 } from 'lucide-react';
 import { Input } from "../components/ui/input";
 import { Button } from "../components/ui/button";
-import { Card } from "../components/ui/card";
 import { questionService } from '../services/questionService';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter,
@@ -35,16 +34,15 @@ export default function QuestionsPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 6;
+  const itemsPerPage = 8;
 
-  // Chargement des données depuis l'API Oracle
   const loadData = async () => {
     try {
       setLoading(true);
       const data = await questionService.getAll();
       setQuestions(data.sort((a, b) => a.intitule.localeCompare(b.intitule)));
     } catch (err) {
-      console.error("Erreur de chargement", err);
+      console.error("Erreur Oracle", err);
     } finally {
       setLoading(false);
     }
@@ -61,173 +59,182 @@ export default function QuestionsPage() {
   const totalPages = Math.ceil(filteredQuestions.length / itemsPerPage);
   const currentData = filteredQuestions.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
-  const handleAdd = async (intitule, idQualif) => {
+  const handleAdd = async (intitule: string, idQualif: string) => {
     try {
-      // On envoie le format attendu par l'entité Question (TYPE par défaut 'QUS')
-      const newQ = await questionService.create({ 
-        intitule, 
-        idQualificatif: idQualif,
-        type: 'QUS',
-        noEnseignant: null
-      });
+      const newQ = await questionService.create({ intitule, idQualificatif: idQualif, type: 'QUS', noEnseignant: null });
       setQuestions(prev => [...prev, newQ].sort((a, b) => a.intitule.localeCompare(b.intitule)));
-    } catch (err) { alert(err.message); }
+    } catch (err) { alert("Erreur lors de l'ajout"); }
   };
 
-  const handleUpdate = async (id, updatedIntitule, updatedIdQualif) => {
+  const handleUpdate = async (id: any, updatedIntitule: string, updatedIdQualif: string) => {
     try {
-      const updated = await questionService.update(id, { 
-        idQuestion: id,
-        intitule: updatedIntitule, 
-        idQualificatif: updatedIdQualif,
-        type: 'QUS',
-        noEnseignant: null
-      });
+      const updated = await questionService.update(id, { idQuestion: id, intitule: updatedIntitule, idQualificatif: updatedIdQualif, type: 'QUS' });
       setQuestions(prev => prev.map(q => q.idQuestion === id ? updated : q));
     } catch (err) { alert("Erreur lors de la modification"); }
   };
 
-  const handleDelete = async (id) => {
+  const handleDelete = async (id: any) => {
     try {
       await questionService.delete(id);
       setQuestions(prev => prev.filter(q => q.idQuestion !== id));
-    } catch (err) {
-      alert(err.message); // Affiche l'erreur de contrainte d'intégrité ORA-02292
-    }
+    } catch (err) { alert(err.message); }
   };
 
   if (loading) return (
-    <div className="flex flex-col items-center justify-center h-screen bg-slate-50">
-      <Loader2 className="h-12 w-12 animate-spin text-[#FFD700] mb-4" />
-      <p className="font-black uppercase tracking-widest text-xs">Chargement UBO Resources...</p>
+    <div className="flex items-center justify-center h-screen bg-white">
+      <Loader2 className="h-10 w-10 animate-spin text-[#FFD700]" />
     </div>
   );
 
   return (
-    <div className="max-w-5xl mx-auto py-12 px-8 bg-slate-50/50 min-h-screen font-sans">
-      <div className="flex justify-between items-center mb-12">
-        <div>
-          <h1 className="text-5xl font-black text-slate-900 uppercase tracking-tighter italic leading-none mb-2">Questions</h1>
-          <div className="h-2 w-24 bg-[#FFD700] rounded-full"></div>
-          <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.3em] mt-3 italic">UBO Institutional Resources</p>
+    <div className="w-full min-h-screen bg-white font-sans text-slate-900 py-12">
+      <div className="max-w-[70%] mx-auto">
+        
+        {/* HEADER */}
+        <div className="flex justify-between items-center mb-10">
+          <h1 className="text-3xl font-bold tracking-tight uppercase italic">Questions</h1>
+          <AddQuestionDialog onAdd={handleAdd} />
         </div>
-        <AddQuestionDialog onAdd={handleAdd} />
-      </div>
 
-      <div className="relative mb-12 group">
-        <Search className="absolute left-6 top-5 h-6 w-6 text-slate-300 group-focus-within:text-[#FFD700] transition-all" />
-        <Input 
-          placeholder="Rechercher une question..." 
-          className="pl-16 h-16 bg-white border-none shadow-sm rounded-[2rem] focus-visible:ring-2 focus-visible:ring-[#FFD700] font-black text-xs uppercase tracking-widest text-slate-900"
-          value={search}
-          onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
-        />
-      </div>
+        {/* RECHERCHE */}
+        <div className="bg-white border rounded-2xl p-6 mb-8 shadow-sm">
+          <div className="relative">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+            <Input 
+              placeholder="Filtrer les questions..." 
+              className="pl-12 h-12 bg-white border-slate-200 rounded-xl font-medium text-sm focus-visible:ring-1 focus-visible:ring-black"
+              value={search}
+              onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
+            />
+          </div>
+        </div>
 
-      <div className="max-w-2xl mx-auto space-y-4 mb-12">
-        {currentData.length > 0 ? (
-          currentData.map((q) => (
-            <QuestionCard key={q.idQuestion} question={q} onDelete={handleDelete} onUpdate={handleUpdate} />
-          ))
-        ) : (
-          <div className="flex flex-col items-center py-20 text-slate-200 uppercase font-black tracking-[0.5em] text-xs">
-            <Inbox size={64} className="opacity-10 mb-4" />
-            <p>Aucun résultat en base</p>
+        {/* TABLEAU */}
+        <div className="bg-white border rounded-2xl shadow-sm overflow-hidden">
+          <div className="grid grid-cols-12 bg-slate-50 border-b py-4 px-8 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+            <div className="col-span-8 italic">Questions</div>
+            <div className="col-span-3 text-center italic">Couple Qualificatif</div>
+            <div className="col-span-1 text-right italic">Actions</div>
+          </div>
+
+          <div className="divide-y divide-slate-100">
+            {currentData.length > 0 ? (
+              currentData.map((q) => (
+                <QuestionRow 
+                  key={q.idQuestion} 
+                  question={q} 
+                  onDelete={handleDelete} 
+                  onUpdate={handleUpdate} 
+                />
+              ))
+            ) : (
+              <div className="py-20 text-center text-slate-300 font-medium uppercase text-xs tracking-widest">
+                Aucun enregistrement en base Oracle
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* PAGINATION */}
+        {totalPages > 1 && (
+          <div className="flex justify-between items-center mt-6 px-2">
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest italic opacity-60">
+              {filteredQuestions.length} entrée(s) trouvée(s)
+            </p>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setCurrentPage(p => Math.max(p - 1, 1))} disabled={currentPage === 1} className="h-10 rounded-xl font-bold text-xs uppercase border-slate-200 shadow-sm hover:bg-black hover:text-[#FFD700] transition-colors">
+                <ChevronLeft className="h-4 w-4 mr-2" /> Précédent
+              </Button>
+              <Button variant="outline" onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))} disabled={currentPage === totalPages} className="h-10 rounded-xl font-bold text-xs uppercase border-slate-200 shadow-sm hover:bg-black hover:text-[#FFD700] transition-colors">
+                Suivant <ChevronRight className="h-4 w-4 ml-2" />
+              </Button>
+            </div>
           </div>
         )}
       </div>
-
-      {totalPages > 1 && (
-        <div className="flex justify-center items-center gap-4 mt-10">
-          <Button variant="outline" onClick={() => setCurrentPage(p => Math.max(p - 1, 1))} disabled={currentPage === 1} className="rounded-xl border-2 h-12 w-12 border-slate-200">
-            <ChevronLeft size={20} />
-          </Button>
-          <span className="font-black text-xs uppercase tracking-widest bg-white px-6 py-3 rounded-full shadow-sm border border-slate-100 text-slate-900">
-            Page {currentPage} / {totalPages}
-          </span>
-          <Button variant="outline" onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))} disabled={currentPage === totalPages} className="rounded-xl border-2 h-12 w-12 border-slate-200">
-            <ChevronRight size={20} />
-          </Button>
-        </div>
-      )}
     </div>
   );
 }
 
-function QuestionCard({ question, onDelete, onUpdate }) {
+// --- LIGNE DU TABLEAU ---
+function QuestionRow({ question, onDelete, onUpdate }: any) {
   const qualif = LISTE_QUALIFICATIFS.find(c => c.id === String(question.idQualificatif));
   const [editIntitule, setEditIntitule] = useState(question.intitule);
   const [editIdQualif, setEditIdQualif] = useState(String(question.idQualificatif));
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
   return (
-    <Card className="group flex items-center justify-between p-6 bg-white border-l-[12px] border-l-[#FFD700] rounded-2xl shadow-sm hover:shadow-md hover:translate-x-2 transition-all duration-300">
-      <div className="flex flex-col gap-1">
-        <h3 className="text-sm font-black text-slate-900 uppercase tracking-tight">{question.intitule}</h3>
+    <div className="grid grid-cols-12 items-center py-5 px-8 hover:bg-slate-50 transition-colors bg-white border-l-4 border-l-transparent hover:border-l-[#FFD700]">
+      <div className="col-span-8">
+        <span className="text-sm font-bold text-slate-800 leading-tight uppercase">
+          {question.intitule}
+        </span>
+      </div>
+
+      <div className="col-span-3 flex justify-center">
         {qualif && (
-          <div className="flex gap-2 mt-1">
-            <span className="bg-slate-100 text-slate-500 text-[9px] font-black px-2 py-0.5 rounded-md uppercase tracking-tighter italic">
-              {qualif.min} / {qualif.max}
+          <div className="inline-flex items-center gap-3">
+            {/* POLICE DES COUPLES AGRANDIE ICI : text-[11px] */}
+            <span className="text-[11px] font-bold text-slate-400 uppercase italic tracking-wider">
+              {qualif.min}
+            </span>
+            <div className="h-1 w-3 bg-slate-200 rounded-full"></div>
+            <span className="text-[11px] font-bold text-slate-900 uppercase italic tracking-wider">
+              {qualif.max}
             </span>
           </div>
         )}
       </div>
-      <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-2 border-l pl-4 border-slate-50">
-        
+
+      <div className="col-span-1 flex justify-end gap-2">
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
           <DialogTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-10 w-10 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl">
-              <Edit3 size={18} />
-            </Button>
+            <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-blue-600 rounded-lg border border-slate-100 shadow-sm"><Edit3 size={14} /></Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl rounded-[2.5rem] border-t-[20px] border-t-blue-500 bg-white p-8">
-            <DialogHeader>
-              <DialogTitle className="text-3xl font-black uppercase italic tracking-tighter">Modifier</DialogTitle>
-            </DialogHeader>
-            <div className="flex gap-4 py-8 items-end">
-              <div className="flex-1 space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Intitulé</label>
-                <Input value={editIntitule} onChange={(e) => setEditIntitule(e.target.value)} className="h-14 border-2 rounded-2xl font-black uppercase text-xs" />
+          <DialogContent className="rounded-3xl border-t-[10px] border-t-blue-500 p-10 bg-white">
+            <DialogHeader><DialogTitle className="text-xl font-bold uppercase italic tracking-tighter">Édition Oracle</DialogTitle></DialogHeader>
+            <div className="space-y-6 py-6">
+              <div className="space-y-2 text-left text-slate-900">
+                <label className="text-[10px] font-bold uppercase text-slate-400 ml-1 italic tracking-widest">Désignation</label>
+                <Input value={editIntitule} onChange={(e) => setEditIntitule(e.target.value)} className="h-12 border-2 rounded-xl font-bold text-sm uppercase" />
               </div>
-              <div className="w-64 space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Qualificatif</label>
+              <div className="space-y-2 text-left">
+                <label className="text-[10px] font-bold uppercase text-slate-400 ml-1 italic tracking-widest">Type Qualificatif</label>
                 <Select onValueChange={setEditIdQualif} value={editIdQualif}>
-                  <SelectTrigger className="h-14 border-2 rounded-2xl font-black uppercase text-[10px]"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {LISTE_QUALIFICATIFS.map(c => <SelectItem key={c.id} value={c.id} className="font-black uppercase text-[10px]">{c.min} / {c.max}</SelectItem>)}
+                  <SelectTrigger className="h-12 border-2 rounded-xl font-bold text-xs uppercase text-slate-900"><SelectValue /></SelectTrigger>
+                  <SelectContent className="rounded-xl">
+                    {LISTE_QUALIFICATIFS.map(c => <SelectItem key={c.id} value={c.id} className="text-xs font-bold uppercase">{c.min} / {c.max}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
             </div>
             <DialogFooter>
-              <Button className="w-full h-14 bg-blue-600 text-white font-black rounded-2xl uppercase" onClick={() => { onUpdate(question.idQuestion, editIntitule, editIdQualif); setIsEditDialogOpen(false); }}>Mettre à jour</Button>
+              <Button className="w-full h-12 bg-blue-600 text-white font-bold rounded-xl text-[10px] uppercase tracking-widest shadow-lg" onClick={() => { onUpdate(question.idQuestion, editIntitule, editIdQualif); setIsEditDialogOpen(false); }}>Mise à jour</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
 
         <AlertDialog>
           <AlertDialogTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-10 w-10 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl">
-              <Trash2 size={18} />
-            </Button>
+            <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-red-600 rounded-lg border border-slate-100 shadow-sm"><Trash2 size={14} /></Button>
           </AlertDialogTrigger>
-          <AlertDialogContent className="rounded-[2rem] border-t-[15px] border-t-red-500 bg-white">
+          <AlertDialogContent className="rounded-3xl border-t-[10px] border-t-red-500 p-10 bg-white shadow-2xl">
             <AlertDialogHeader>
-              <AlertDialogTitle className="text-xl font-black uppercase italic">Attention</AlertDialogTitle>
-              <AlertDialogDescription className="font-bold text-slate-500">Confirmer la suppression de cette question de la base Oracle ?</AlertDialogDescription>
+              <AlertDialogTitle className="text-xl font-bold uppercase italic tracking-tighter">Confirmation</AlertDialogTitle>
+              <AlertDialogDescription className="font-bold text-slate-500 text-sm italic">Supprimer définitivement cet enregistrement de la base Oracle ?</AlertDialogDescription>
             </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel className="rounded-xl font-black uppercase text-xs">Annuler</AlertDialogCancel>
-              <AlertDialogAction onClick={() => onDelete(question.idQuestion)} className="bg-red-500 text-white hover:bg-red-700 rounded-xl font-black uppercase text-xs">Supprimer</AlertDialogAction>
+            <AlertDialogFooter className="mt-10 gap-3">
+              <AlertDialogCancel className="rounded-xl font-bold uppercase text-[9px] h-11 border-2">Annuler</AlertDialogCancel>
+              <AlertDialogAction onClick={() => onDelete(question.idQuestion)} className="bg-red-500 text-white hover:bg-red-700 rounded-xl font-bold uppercase text-[9px] h-11 shadow-lg px-8 transition-colors">Supprimer</AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
       </div>
-    </Card>
+    </div>
   );
 }
 
-function AddQuestionDialog({ onAdd }) {
+function AddQuestionDialog({ onAdd }: any) {
   const [intitule, setIntitule] = useState("");
   const [idQualif, setIdQualif] = useState("");
   const [open, setOpen] = useState(false);
@@ -236,29 +243,29 @@ function AddQuestionDialog({ onAdd }) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="bg-black text-[#FFD700] hover:bg-[#FFD700] hover:text-black font-black rounded-2xl h-14 px-10 shadow-xl transition-all">
-          <Plus className="mr-2 h-6 w-6" strokeWidth={4} /> AJOUTER
+        <Button className="bg-black text-[#FFD700] hover:bg-slate-800 font-bold rounded-xl h-11 px-6 shadow-sm text-xs uppercase tracking-widest italic transition-all active:scale-95">
+          <Plus className="mr-2 h-4 w-4" strokeWidth={3} /> Nouveau
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-2xl rounded-[2.5rem] border-t-[20px] border-t-[#FFD700] bg-white p-8">
-        <DialogHeader><DialogTitle className="text-3xl font-black uppercase italic tracking-tighter">Nouvelle Question</DialogTitle></DialogHeader>
-        <div className="flex gap-4 py-8 items-end">
-          <div className="flex-1 space-y-2">
-            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Intitulé</label>
-            <Input placeholder="SAISIR..." value={intitule} onChange={(e) => setIntitule(e.target.value)} className="h-14 border-2 rounded-2xl font-black uppercase text-xs" />
+      <DialogContent className="max-w-xl rounded-3xl border-t-[10px] border-t-[#FFD700] p-10 bg-white shadow-2xl">
+        <DialogHeader><DialogTitle className="text-2xl font-bold uppercase italic tracking-tighter text-slate-900">Insertion Oracle</DialogTitle></DialogHeader>
+        <div className="space-y-6 py-8 text-slate-900">
+          <div className="space-y-2 text-left">
+            <label className="text-[10px] font-bold uppercase text-slate-400 ml-1 italic tracking-widest">Intitulé de la question</label>
+            <Input placeholder="Saisir..." value={intitule} onChange={(e) => setIntitule(e.target.value)} className="h-12 border-2 border-slate-100 rounded-2xl font-bold text-sm uppercase" />
           </div>
-          <div className="w-64 space-y-2">
-            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Qualificatif</label>
+          <div className="space-y-2 text-left">
+            <label className="text-[10px] font-bold uppercase text-slate-400 ml-1 italic tracking-widest">Type Qualificatif</label>
             <Select onValueChange={setIdQualif} value={idQualif}>
-              <SelectTrigger className="h-14 border-2 rounded-2xl font-black uppercase text-[10px]"><SelectValue placeholder="SÉLECTIONNER..." /></SelectTrigger>
-              <SelectContent>
-                {LISTE_QUALIFICATIFS.map(c => <SelectItem key={c.id} value={c.id} className="font-black uppercase text-[10px]">{c.min} / {c.max}</SelectItem>)}
+              <SelectTrigger className="h-12 border-2 border-slate-100 rounded-2xl font-bold text-xs uppercase bg-white shadow-sm"><SelectValue placeholder="Choisir dans la liste..." /></SelectTrigger>
+              <SelectContent className="rounded-xl">
+                {LISTE_QUALIFICATIFS.map(c => <SelectItem key={c.id} value={c.id} className="font-bold text-[10px] py-3 uppercase">{c.min} / {c.max}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
         </div>
         <DialogFooter>
-          <Button disabled={!isValid} className={`w-full h-14 font-black rounded-2xl uppercase ${isValid ? "bg-black text-[#FFD700] hover:bg-[#FFD700]" : "bg-slate-100 text-slate-300"}`} onClick={() => { onAdd(intitule, idQualif); setOpen(false); setIntitule(""); setIdQualif(""); }}>Valider l'Ajout</Button>
+          <Button disabled={!isValid} className={`w-full h-12 font-bold rounded-xl uppercase tracking-widest text-xs transition-all ${isValid ? "bg-black text-[#FFD700] hover:bg-slate-800 shadow-xl" : "bg-slate-50 text-slate-200 cursor-not-allowed border-none"}`} onClick={() => { onAdd(intitule, idQualif); setOpen(false); setIntitule(""); setIdQualif(""); }}>Valider l'insertion</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
