@@ -1,20 +1,42 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Eye, EyeOff } from "lucide-react"
+import { login } from "@/services/authService"
 
 export function LoginPage() {
-  const [username, setUsername] = useState("")
+  const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const navigate = useNavigate()
 
-  const handleSubmit = (e: React.FormEvent) => {
+  
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    navigate("/")
+
+    try {
+      const res = await login({
+        email: email,
+        motPasse: password,
+      })
+
+      localStorage.setItem("token", res.token)
+
+      navigate("/")
+    } catch (error: any) {
+      alert(error.message)
+    }
   }
+
+  useEffect(() => {
+    const token = localStorage.getItem("token")
+    if (token) {
+      navigate("/")
+    }
+  }, [])
+
 
   const now = new Date().toLocaleString("fr-FR", {
     weekday: "long",
@@ -48,10 +70,10 @@ export function LoginPage() {
         {/* FORM */}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="text-sm font-medium">Username:*</label>
+            <label className="text-sm font-medium">Email:*</label>
             <Input
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               className="bg-yellow-100 border-yellow-400 focus-visible:ring-yellow-400"
             />
           </div>

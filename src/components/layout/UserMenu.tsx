@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button"
 import { User } from "lucide-react"
+import { logout } from "@/services/authService"
 
 const DEFAULT_USER_NAME = "Achraf El Aidi Idrissi"
 
@@ -18,7 +19,9 @@ interface UserMenuProps {
 export function UserMenu({ userName = DEFAULT_USER_NAME }: UserMenuProps) {
   const navigate = useNavigate()
 
+  
   const handleLogout = () => {
+    logout()
     navigate("/login")
   }
 
