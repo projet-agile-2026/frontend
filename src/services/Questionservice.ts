@@ -1,9 +1,23 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8083/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8083/v1/api';
 
-export interface QuestionDTO {
-  idQuestion?: number;
+export interface Question {
+  idQuestion: number;
+  type: string;
+  noEnseignant: string | null;
+  idQualificatif: string;
+  intitule: string;
+}
+
+export interface CreateQuestionRequest {
   type?: string;
-  noEnseignant: number | null;
+  noEnseignant: string | null;
+  idQualificatif: number;
+  intitule: string;
+}
+
+export interface UpdateQuestionRequest {
+  type?: string;
+  noEnseignant: string | null;
   idQualificatif: number;
   intitule: string;
 }
@@ -11,43 +25,49 @@ export interface QuestionDTO {
 class QuestionService {
   private baseUrl = `${API_BASE_URL}/questions`;
 
-  async getAllQuestions(): Promise<any[]> {
+  async getAll(): Promise<Question[]> {
     const response = await fetch(this.baseUrl);
-    if (!response.ok) throw new Error('Failed to fetch questions');
+    if (!response.ok) throw new Error('Erreur réseau');
     return response.json();
   }
 
-  async getQuestionById(id: number): Promise<any> {
-    const response = await fetch(`${this.baseUrl}/${id}`);
-    if (!response.ok) throw new Error('Failed to fetch question');
-    return response.json();
-  }
-
-  async createQuestion(question: QuestionDTO): Promise<any> {
-    const response = await fetch(this.baseUrl, {
+  async create(data: CreateQuestionRequest): Promise<Question> {
+    const response = await fetch(`${this.baseUrl}/create`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(question)
+      body: JSON.stringify({
+        ...data,
+        type: data.type || 'QST'
+      }),
     });
-    if (!response.ok) throw new Error('Failed to create question');
+    if (!response.ok) throw new Error('Erreur lors de la création');
     return response.json();
   }
 
-  async updateQuestion(id: number, question: QuestionDTO): Promise<any> {
-    const response = await fetch(`${this.baseUrl}/${id}`, {
+  async update(id: number, data: UpdateQuestionRequest): Promise<Question> {
+    const response = await fetch(`${this.baseUrl}/update/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(question)
+      body: JSON.stringify({
+        ...data,
+        type: data.type || 'QST'
+      }),
     });
-    if (!response.ok) throw new Error('Failed to update question');
+    if (!response.ok) throw new Error('Erreur lors de la mise à jour');
     return response.json();
   }
 
-  async deleteQuestion(id: number): Promise<void> {
-    const response = await fetch(`${this.baseUrl}/${id}`, {
+  async delete(id: number): Promise<boolean> {
+    const response = await fetch(`${this.baseUrl}/delete/${id}`, {
       method: 'DELETE'
     });
-    if (!response.ok) throw new Error('Failed to delete question');
+
+    if (response.status === 409) {
+      const error = await response.json();
+      throw new Error(error.message);
+    }
+    if (!response.ok) throw new Error('Erreur lors de la suppression');
+    return true;
   }
 }
 

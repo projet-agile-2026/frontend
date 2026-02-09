@@ -1,27 +1,49 @@
-import axios from "axios"
+import axios from "axios";
 
-// Ta configuration existante
+export type Couple = {
+  id: number;
+  mot1: string;
+  mot2: string;
+  count: number;
+};
+
+// Instance Axios centralisée
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8083",
   headers: {
     "Content-Type": "application/json",
   },
-})
+});
 
-api.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    const message =
-      error.response?.data?.message ||
-      error.response?.data?.error ||
-      error.message ||
-      "Une erreur est survenue."
+/* ============================
+   SERVICE COUPLES
+============================ */
 
-    return Promise.reject(new Error(message))
-  }
-)
+export const apiCouples = {
+  lister: async (): Promise<Couple[]> => {
+    const { data } = await api.get<Couple[]>("/api/qualificatifs");
+    return data;
+  },
 
-// --- AJOUT DU SERVICE RUBRIQUES ---
+  creer: async (payload: { mot1: string; mot2: string }): Promise<void> => {
+    await api.post("/api/qualificatifs", payload);
+  },
+
+  modifier: async (
+      id: number,
+      payload: { mot1: string; mot2: string }
+  ): Promise<void> => {
+    await api.put(`/api/qualificatifs/${id}`, payload);
+  },
+
+  supprimer: async (id: number): Promise<void> => {
+    await api.delete(`/api/qualificatifs/${id}`);
+  },
+};
+
+/* ============================
+   SERVICE RUBRIQUES
+============================ */
 
 export interface Rubrique {
   id: string;
@@ -31,30 +53,32 @@ export interface Rubrique {
 }
 
 export const rubriquesService = {
-  // Récupérer la liste (triée par l'ordre défini)
   getAll: async (): Promise<Rubrique[]> => {
-    const { data } = await api.get<Rubrique[]>("/rubriques")
-    return data.sort((a, b) => a.ordre - b.ordre)
+    const { data } = await api.get<Rubrique[]>("/rubriques");
+    return data.sort((a, b) => a.ordre - b.ordre);
   },
 
-  // Créer (en envoyant le titre en majuscules pour le style UBO)
   create: async (titre: string): Promise<Rubrique> => {
-    const { data } = await api.post<Rubrique>("/rubriques", { 
-      titre: titre.toUpperCase() 
-    })
-    return data
+    const { data } = await api.post<Rubrique>("/rubriques", {
+      titre: titre.toUpperCase(),
+    });
+    return data;
   },
 
-  // Mettre à jour (utile pour changer l'ordre après un Drag & Drop)
-  update: async (id: string, updates: Partial<Rubrique>): Promise<Rubrique> => {
-    const { data } = await api.put<Rubrique>(`/rubriques/${id}`, updates)
-    return data
+  update: async (
+      id: string,
+      updates: Partial<Rubrique>
+  ): Promise<Rubrique> => {
+    const { data } = await api.put<Rubrique>(
+        `/rubriques/${id}`,
+        updates
+    );
+    return data;
   },
 
-  // Supprimer
   delete: async (id: string): Promise<void> => {
-    await api.delete(`/rubriques/${id}`)
-  }
-}
+    await api.delete(`/rubriques/${id}`);
+  },
+};
 
-export default api
+export default api;

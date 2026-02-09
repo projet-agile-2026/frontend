@@ -47,9 +47,9 @@ import { qualificatifService } from '../services/Qualificatifservice';
 
 // TYPES & INTERFACES
 interface Qualificatif {
-  idQualificatif: number;
-  maximal: string;
-  minimal: string;
+  id: number;
+  mot1: string;
+  mot2: string;
 }
 
 interface Question {
@@ -60,6 +60,14 @@ interface Question {
   type?: string;
   maximal?: string;
   minimal?: string;
+}
+
+interface AvailableQuestion {
+  idQuestion: number;
+  intitule: string;
+  idQualificatif: string;
+  type: string;
+  noEnseignant: string | null;
 }
 
 interface Rubrique {
@@ -77,17 +85,13 @@ interface SortableQuestionRowProps {
   rubriqueId: number;
   qualificatifs: Qualificatif[];
   onDelete: (rubriqueId: number, questionId: number) => void;
-  onEdit: (rubriqueId: number, questionId: number, newIntitule: string, newQualificatifId: number) => void;
 }
 
-const SortableQuestionRow = ({ question, rubriqueId, qualificatifs, onDelete, onEdit }: SortableQuestionRowProps) => {
+const SortableQuestionRow = ({ question, rubriqueId, qualificatifs, onDelete }: SortableQuestionRowProps) => {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: question.idQuestion.toString()
   });
 
-  const [editIntitule, setEditIntitule] = useState(question.intitule);
-  const [editQualificatifId, setEditQualificatifId] = useState(question.idQualificatif.toString());
-  const [isEditOpen, setIsEditOpen] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const style = {
@@ -97,13 +101,8 @@ const SortableQuestionRow = ({ question, rubriqueId, qualificatifs, onDelete, on
     backgroundColor: isDragging ? '#fef3c7' : 'transparent'
   };
 
-  const qualificatif = qualificatifs.find((q) => q.idQualificatif === question.idQualificatif);
-  const qualificatifLabel = qualificatif ? `${qualificatif.maximal} ↔ ${qualificatif.minimal}` : 'Non défini';
-
-  const handleSave = () => {
-    onEdit(rubriqueId, question.idQuestion, editIntitule, parseInt(editQualificatifId));
-    setIsEditOpen(false);
-  };
+  const qualificatif = qualificatifs.find((q) => q.id === question.idQualificatif);
+  const qualificatifLabel = qualificatif ? `${qualificatif.mot1} ↔ ${qualificatif.mot2}` : 'Non défini';
 
   const handleDelete = () => {
     onDelete(rubriqueId, question.idQuestion);
@@ -127,57 +126,12 @@ const SortableQuestionRow = ({ question, rubriqueId, qualificatifs, onDelete, on
 
           <div className="flex-1 grid grid-cols-12 gap-4 items-center min-w-0">
             <div className="col-span-6 text-sm text-gray-900 truncate">{question.intitule}</div>
-            <div className="col-span-4 text-sm text-gray-600 truncate">{qualificatifLabel}</div>
-            <div className="col-span-2 flex justify-end gap-2 flex-shrink-0">
-              <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-                <DialogTrigger asChild>
-                  <button
-                      className="p-1.5 text-gray-400 hover:text-yellow-600 hover:bg-yellow-200 rounded transition-all opacity-0 group-hover:opacity-100"
-                      title="Modifier"
-                  >
-                    <Edit2 size={14} />
-                  </button>
-                </DialogTrigger>
-                <DialogContent className="sm:max-w-md">
-                  <DialogHeader>
-                    <DialogTitle>Modifier la Question</DialogTitle>
-                  </DialogHeader>
-                  <div className="space-y-4 py-4">
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-gray-700">Intitulé</label>
-                      <Input
-                          value={editIntitule}
-                          onChange={(e) => setEditIntitule(e.target.value)}
-                          className="w-full"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-gray-700">Qualificatif (Échelle)</label>
-                      <select
-                          value={editQualificatifId}
-                          onChange={(e) => setEditQualificatifId(e.target.value)}
-                          className="w-full h-10 px-3 border border-gray-300 rounded-md bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      >
-                        {qualificatifs.map((q) => (
-                            <option key={q.idQualificatif} value={q.idQualificatif}>
-                              {q.maximal} ↔ {q.minimal}
-                            </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-                  <DialogFooter>
-                    <Button onClick={handleSave} className="w-full">
-                      Mettre à jour
-                    </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
-
+            <div className="col-span-5 text-sm text-gray-600 truncate">{qualificatifLabel}</div>
+            <div className="col-span-1 flex justify-end gap-2 flex-shrink-0">
               <button
                   onClick={() => setShowDeleteConfirm(true)}
                   className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-all opacity-0 group-hover:opacity-100"
-                  title="Supprimer"
+                  title="Retirer de la rubrique"
               >
                 <Trash2 size={14} />
               </button>
@@ -190,16 +144,16 @@ const SortableQuestionRow = ({ question, rubriqueId, qualificatifs, onDelete, on
             <AlertDialogHeader>
               <AlertDialogTitle className="flex items-center gap-2">
                 <AlertCircle className="h-5 w-5 text-red-600" />
-                Confirmer la suppression
+                Retirer la question
               </AlertDialogTitle>
               <AlertDialogDescription>
-                Êtes-vous sûr de vouloir supprimer la question <strong>"{question.intitule}"</strong> ? Cette action est irréversible.
+                Êtes-vous sûr de vouloir retirer <strong>"{question.intitule}"</strong> de cette rubrique ? La question ne sera pas supprimée, seulement retirée de cette rubrique.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Annuler</AlertDialogCancel>
               <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">
-                Supprimer
+                Retirer
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
@@ -212,24 +166,24 @@ const SortableQuestionRow = ({ question, rubriqueId, qualificatifs, onDelete, on
 interface SortableRubriqueRowProps {
   rubrique: Rubrique;
   qualificatifs: Qualificatif[];
+  availableQuestions: AvailableQuestion[];
   onToggleExpand: (id: number) => void;
   onDeleteRubrique: (id: number) => void;
   onEditRubrique: (id: number, newDesignation: string) => void;
-  onAddQuestion: (rubriqueId: number, intitule: string, qualificatifId: number) => void;
+  onAddQuestion: (rubriqueId: number, selectedQuestionId: number) => void;
   onDeleteQuestion: (rubriqueId: number, questionId: number) => void;
-  onEditQuestion: (rubriqueId: number, questionId: number, newIntitule: string, newQualificatifId: number) => void;
   onDragQuestionEnd: (rubriqueId: number, event: DragEndEvent) => void;
 }
 
 const SortableRubriqueRow = ({
                                rubrique,
                                qualificatifs,
+                               availableQuestions,
                                onToggleExpand,
                                onDeleteRubrique,
                                onEditRubrique,
                                onAddQuestion,
                                onDeleteQuestion,
-                               onEditQuestion,
                                onDragQuestionEnd
                              }: SortableRubriqueRowProps) => {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
@@ -239,8 +193,8 @@ const SortableRubriqueRow = ({
   const [editValue, setEditValue] = useState(rubrique.designation);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isAddQuestionOpen, setIsAddQuestionOpen] = useState(false);
-  const [newIntitule, setNewIntitule] = useState("");
-  const [newQualificatifId, setNewQualificatifId] = useState("");
+  const [selectedQuestionId, setSelectedQuestionId] = useState("");
+  const [questionSearch, setQuestionSearch] = useState("");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const questionSensors = useSensors(
@@ -254,11 +208,17 @@ const SortableRubriqueRow = ({
     opacity: isDragging ? 0.5 : 1
   };
 
+  // Filter available questions (exclude already added)
+  const currentQuestionIds = rubrique.questions.map(q => q.idQuestion);
+  const filteredAvailableQuestions = availableQuestions
+      .filter(q => !currentQuestionIds.includes(q.idQuestion))
+      .filter(q => q.intitule.toLowerCase().includes(questionSearch.toLowerCase()));
+
   const handleAddQuestion = () => {
-    if (!newIntitule.trim() || !newQualificatifId) return;
-    onAddQuestion(rubrique.idRubrique, newIntitule, parseInt(newQualificatifId));
-    setNewIntitule("");
-    setNewQualificatifId("");
+    if (!selectedQuestionId) return;
+    onAddQuestion(rubrique.idRubrique, parseInt(selectedQuestionId));
+    setSelectedQuestionId("");
+    setQuestionSearch("");
     setIsAddQuestionOpen(false);
   };
 
@@ -303,47 +263,63 @@ const SortableRubriqueRow = ({
                 <DialogTrigger asChild>
                   <button
                       className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-all"
-                      title="Ajouter une question"
+                      title="Ajouter une question existante"
                   >
                     <Plus size={16} />
                   </button>
                 </DialogTrigger>
-                <DialogContent className="sm:max-w-md">
+                <DialogContent className="sm:max-w-lg">
                   <DialogHeader>
-                    <DialogTitle>Nouvelle Question</DialogTitle>
+                    <DialogTitle>Sélectionner une question</DialogTitle>
                   </DialogHeader>
                   <div className="space-y-4 py-4">
                     <div className="space-y-2">
-                      <label className="text-sm font-medium text-gray-700">Intitulé</label>
+                      <label className="text-sm font-medium text-gray-700">Rechercher</label>
                       <Input
-                          placeholder="Ex: Clarté des explications"
-                          value={newIntitule}
-                          onChange={(e) => setNewIntitule(e.target.value)}
+                          placeholder="Rechercher une question..."
+                          value={questionSearch}
+                          onChange={(e) => setQuestionSearch(e.target.value)}
+                          className="w-full"
                       />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-sm font-medium text-gray-700">Qualificatif (Échelle)</label>
-                      <select
-                          value={newQualificatifId}
-                          onChange={(e) => setNewQualificatifId(e.target.value)}
-                          className="w-full h-10 px-3 border border-gray-300 rounded-md bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      >
-                        <option value="">Sélectionner une échelle</option>
-                        {qualificatifs.map((q) => (
-                            <option key={q.idQualificatif} value={q.idQualificatif}>
-                              {q.maximal} ↔ {q.minimal}
-                            </option>
-                        ))}
-                      </select>
+                      <label className="text-sm font-medium text-gray-700">Questions disponibles</label>
+                      <div className="max-h-80 overflow-y-auto border border-gray-200 rounded-md">
+                        {filteredAvailableQuestions.length > 0 ? (
+                            filteredAvailableQuestions.map((q) => {
+                              const qual = qualificatifs.find(qf => qf.id === parseInt(q.idQualificatif));
+                              return (
+                                  <div
+                                      key={q.idQuestion}
+                                      onClick={() => setSelectedQuestionId(q.idQuestion.toString())}
+                                      className={`p-3 cursor-pointer border-b border-gray-100 hover:bg-blue-50 transition-colors ${
+                                          selectedQuestionId === q.idQuestion.toString() ? 'bg-blue-100 border-blue-300' : ''
+                                      }`}
+                                  >
+                                    <div className="font-medium text-sm text-gray-900">{q.intitule}</div>
+                                    {qual && (
+                                        <div className="text-xs text-gray-500 mt-1">
+                                          {qual.mot1} ↔ {qual.mot2}
+                                        </div>
+                                    )}
+                                  </div>
+                              );
+                            })
+                        ) : (
+                            <div className="p-8 text-center text-gray-400 text-sm">
+                              {questionSearch ? 'Aucune question trouvée' : 'Toutes les questions sont déjà ajoutées'}
+                            </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                   <DialogFooter>
                     <Button
                         onClick={handleAddQuestion}
-                        disabled={!newIntitule.trim() || !newQualificatifId}
+                        disabled={!selectedQuestionId}
                         className="w-full"
                     >
-                      Ajouter
+                      Ajouter à la rubrique
                     </Button>
                   </DialogFooter>
                 </DialogContent>
@@ -406,8 +382,8 @@ const SortableRubriqueRow = ({
                       {/* Table Header */}
                       <div className="grid grid-cols-12 gap-4 px-9 py-2 bg-gray-100 border-t border-gray-200 text-xs font-semibold text-gray-600 uppercase">
                         <div className="col-span-6">Question</div>
-                        <div className="col-span-4">Échelle</div>
-                        <div className="col-span-2 text-right">Actions</div>
+                        <div className="col-span-5">Échelle</div>
+                        <div className="col-span-1 text-right">Actions</div>
                       </div>
                       {/* Questions with DnD */}
                       <DndContext
@@ -423,7 +399,6 @@ const SortableRubriqueRow = ({
                                   rubriqueId={rubrique.idRubrique}
                                   qualificatifs={qualificatifs}
                                   onDelete={onDeleteQuestion}
-                                  onEdit={onEditQuestion}
                               />
                           ))}
                         </SortableContext>
@@ -468,6 +443,7 @@ export default function RubriquesPage() {
   const [newRubriqueTitle, setNewRubriqueTitle] = useState("");
   const [rubriques, setRubriques] = useState<Rubrique[]>([]);
   const [qualificatifs, setQualificatifs] = useState<Qualificatif[]>([]);
+  const [availableQuestions, setAvailableQuestions] = useState<AvailableQuestion[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -485,12 +461,18 @@ export default function RubriquesPage() {
       setLoading(true);
       setError(null);
 
-      const [qualificatifsData, rubriquesData] = await Promise.all([
+      const [qualificatifsData, rubriquesData, questionsData] = await Promise.all([
         qualificatifService.getAllQualificatifs(),
-        rubriqueService.getAllRubriques()
+        rubriqueService.getAllRubriques(),
+        questionService.getAll()
       ]);
+      console.log('=== DEBUG DATA ===');
+      console.log('Qualificatifs:', qualificatifsData);
+      console.log('Rubriques:', rubriquesData);
+      console.log('First rubrique questions:', rubriquesData[0]?.questions);
 
       setQualificatifs(qualificatifsData);
+      setAvailableQuestions(questionsData);
 
       const transformedRubriques = rubriquesData.map((r: any) => ({
         idRubrique: r.idRubrique,
@@ -500,6 +482,9 @@ export default function RubriquesPage() {
         questions: r.questions || [],
         isExpanded: false
       }));
+
+      console.log('Transformed rubriques:', transformedRubriques);
+      console.log('First transformed rubrique questions:', transformedRubriques[0]?.questions);
 
       setRubriques(transformedRubriques);
     } catch (err: any) {
@@ -568,29 +553,38 @@ export default function RubriquesPage() {
     ));
   };
 
-  const handleDragRubriqueEnd = (event: DragEndEvent) => {
+  const handleDragRubriqueEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
     if (over && active.id !== over.id) {
-      setRubriques((items) => {
-        const oldIndex = items.findIndex((i) => i.idRubrique.toString() === active.id);
-        const newIndex = items.findIndex((i) => i.idRubrique.toString() === over.id);
-        return arrayMove(items, oldIndex, newIndex);
-      });
+      // 1. Mise à jour optimiste de l'UI
+      const oldIndex = rubriques.findIndex((i) => i.idRubrique.toString() === active.id);
+      const newIndex = rubriques.findIndex((i) => i.idRubrique.toString() === over.id);
+      const reorderedRubriques = arrayMove(rubriques, oldIndex, newIndex);
+
+      setRubriques(reorderedRubriques);
+
+      // 2. Envoyer au backend
+      try {
+        const rubriqueOrders = reorderedRubriques.map((r, index) => ({
+          idRubrique: r.idRubrique,
+          ordre: index + 1
+        }));
+
+        // Supposant que toutes les rubriques sont de type "RBS"
+        await rubriqueService.reorderRubriques("RBS", rubriqueOrders);
+      } catch (err: any) {
+        console.error('Error reordering rubriques:', err);
+        await loadData(); // Recharger si erreur
+      }
     }
   };
 
-  const handleAddQuestion = async (rubriqueId: number, intitule: string, qualificatifId: number) => {
+  const handleAddQuestion = async (rubriqueId: number, selectedQuestionId: number) => {
     try {
-      const newQuestion = await questionService.createQuestion({
-        noEnseignant: null,
-        idQualificatif: qualificatifId,
-        intitule: intitule
-      });
-
       const rubrique = rubriques.find(r => r.idRubrique === rubriqueId);
       const ordre = (rubrique?.questions.length || 0) + 1;
 
-      await rubriqueService.addQuestionToRubrique(rubriqueId, newQuestion.idQuestion, ordre);
+      await rubriqueService.addQuestionToRubrique(rubriqueId, selectedQuestionId, ordre);
       await loadData();
     } catch (err: any) {
       console.error('Error adding question:', err);
@@ -610,32 +604,6 @@ export default function RubriquesPage() {
     } catch (err: any) {
       console.error('Error deleting question:', err);
       alert('Erreur lors de la suppression de la question');
-    }
-  };
-
-  const handleEditQuestion = async (rubriqueId: number, questionId: number, newIntitule: string, newQualificatifId: number) => {
-    try {
-      await questionService.updateQuestion(questionId, {
-        noEnseignant: null,
-        idQualificatif: newQualificatifId,
-        intitule: newIntitule
-      });
-
-      setRubriques(prev => prev.map(r =>
-          r.idRubrique === rubriqueId
-              ? {
-                ...r,
-                questions: r.questions.map(q =>
-                    q.idQuestion === questionId
-                        ? { ...q, intitule: newIntitule, idQualificatif: newQualificatifId }
-                        : q
-                )
-              }
-              : r
-      ));
-    } catch (err: any) {
-      console.error('Error updating question:', err);
-      alert('Erreur lors de la mise à jour de la question');
     }
   };
 
@@ -758,12 +726,12 @@ export default function RubriquesPage() {
                               key={rubrique.idRubrique}
                               rubrique={rubrique}
                               qualificatifs={qualificatifs}
+                              availableQuestions={availableQuestions}
                               onToggleExpand={handleToggleExpand}
                               onDeleteRubrique={handleDeleteRubrique}
                               onEditRubrique={handleEditRubrique}
                               onAddQuestion={handleAddQuestion}
                               onDeleteQuestion={handleDeleteQuestion}
-                              onEditQuestion={handleEditQuestion}
                               onDragQuestionEnd={handleDragQuestionEnd}
                           />
                       ))}

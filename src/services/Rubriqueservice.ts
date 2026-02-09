@@ -3,12 +3,14 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8083/api'
 export interface CreateRubriqueRequest {
   designation: string;
   type?: string;
+  noEnseignant?: number;
   ordre?: number;
 }
 
 export interface UpdateRubriqueRequest {
   designation: string;
   type: string;
+  noEnseignant?: number;
   ordre: number;
 }
 
@@ -19,6 +21,11 @@ export interface AddQuestionToRubriqueRequest {
 
 export interface QuestionOrder {
   idQuestion: number;
+  ordre: number;
+}
+
+export interface RubriqueOrder {
+  idRubrique: number;
   ordre: number;
 }
 
@@ -91,6 +98,15 @@ class RubriqueService {
       body: JSON.stringify({ questionOrders })
     });
     if (!response.ok) throw new Error('Failed to reorder questions');
+  }
+
+  async reorderRubriques(type: string, rubriqueOrders: RubriqueOrder[]): Promise<void> {
+    const response = await fetch(`${this.baseUrl}/reorder/${type}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ rubriqueOrders })
+    });
+    if (!response.ok) throw new Error('Failed to reorder rubriques');
   }
 }
 
