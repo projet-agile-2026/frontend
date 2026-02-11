@@ -1,109 +1,118 @@
-import type { Couple } from "../../services/api";
-import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
+import { Edit3, Trash2, Check, X } from "lucide-react";
+import type { QualificatifDTO as Couple } from "../../services/Qualificatifservice";
 
 type Props = {
-    couple: Couple;
+  couple: Couple;
+  enEdition: boolean;
+  mot1Edition: string;
+  mot2Edition: string;
 
-    enEdition: boolean;
-    mot1Edition: string;
-    mot2Edition: string;
-    onChangerMot1Edition: (v: string) => void;
-    onChangerMot2Edition: (v: string) => void;
+  onChangerMot1Edition: (v: string) => void;
+  onChangerMot2Edition: (v: string) => void;
 
-    onDemarrerEdition: () => void;
-    onAnnulerEdition: () => void;
-    onSauvegarderEdition: () => void;
-
-    onSupprimer: () => void;
+  onDemarrerEdition: () => void;
+  onAnnulerEdition: () => void;
+  onSauvegarderEdition: () => void;
+  onSupprimer: () => void;
 };
 
 export function LigneCouple({
-                                couple,
-                                enEdition,
-                                mot1Edition,
-                                mot2Edition,
-                                onChangerMot1Edition,
-                                onChangerMot2Edition,
-                                onDemarrerEdition,
-                                onAnnulerEdition,
-                                onSauvegarderEdition,
-                                onSupprimer,
-                            }: Props) {
-    return (
-        <div className="relative">
-            {/* Accent jaune (fin et discret) */}
-            <div className="absolute left-0 top-0 h-full w-1 bg-yellow-400/90" />
+  couple,
+  enEdition,
+  mot1Edition,
+  mot2Edition,
+  onChangerMot1Edition,
+  onChangerMot2Edition,
+  onDemarrerEdition,
+  onAnnulerEdition,
+  onSauvegarderEdition,
+  onSupprimer,
+}: Props) {
+  const isUsed = (couple.count ?? 0) > 0;
 
-            <div className="grid grid-cols-[1.2fr_1.2fr_120px] items-center gap-3 px-5 py-3 pl-6 transition hover:bg-muted/30">
-                {enEdition ? (
-                    <>
-                        <Input
-                            value={mot1Edition}
-                            onChange={(e) => onChangerMot1Edition(e.target.value)}
-                            placeholder="Mot 1"
-                            className="h-10 rounded-xl bg-white shadow-sm"
-                        />
-                        <Input
-                            value={mot2Edition}
-                            onChange={(e) => onChangerMot2Edition(e.target.value)}
-                            placeholder="Mot 2"
-                            className="h-10 rounded-xl bg-white shadow-sm"
-                        />
+  return (
+    <div className="grid grid-cols-[1.2fr_1.2fr_80px_120px] gap-3 px-5 py-4 items-center">
+      {/* Maximal */}
+      <div>
+        {enEdition ? (
+          <Input value={mot1Edition} onChange={(e) => onChangerMot1Edition(e.target.value)} />
+        ) : (
+          <span className="font-semibold uppercase">{couple.mot1}</span>
+        )}
+      </div>
 
-                        <div className="flex items-center justify-end gap-2">
-                            <Button onClick={onSauvegarderEdition} className="h-10 rounded-xl px-3">
-                                ✔
-                            </Button>
-                            <Button
-                                onClick={onAnnulerEdition}
-                                className="h-10 rounded-xl px-3 border bg-white text-foreground hover:bg-muted"
-                            >
-                                ✖
-                            </Button>
-                        </div>
-                    </>
-                ) : (
-                    <>
-                        {/* Mot 1 */}
-                        <button
-                            onClick={onDemarrerEdition}
-                            className="truncate text-left text-sm font-semibold"
-                            title="Cliquer pour modifier"
-                            type="button"
-                        >
-                            {couple.mot1}
+      {/* Minimal */}
+      <div>
+        {enEdition ? (
+          <Input value={mot2Edition} onChange={(e) => onChangerMot2Edition(e.target.value)} />
+        ) : (
+          <span className="font-semibold uppercase">{couple.mot2}</span>
+        )}
+      </div>
 
-                        </button>
+      {/* COUNT */}
+      <div className="text-center">
+        <span
+          className={`inline-flex items-center justify-center h-7 min-w-[30px] px-2 text-xs font-bold rounded-full
+            ${isUsed ? "bg-red-100 text-red-600" : "bg-slate-100 text-slate-500"}
+          `}
+          title={isUsed ? "Couple utilisé dans des questions" : "Aucune question liée"}
+        >
+          {couple.count ?? 0}
+        </span>
+      </div>
 
-                        {/* Mot 2 */}
-                        <button
-                            onClick={onDemarrerEdition}
-                            className="truncate text-left text-sm font-semibold"
-                            title="Cliquer pour modifier"
-                            type="button"
-                        >
-                            {couple.mot2}
-                        </button>
+      {/* ACTIONS */}
+      <div className="flex justify-end gap-2">
+        {enEdition ? (
+          <>
+            <Button size="icon" variant="ghost" onClick={onSauvegarderEdition}>
+              <Check size={16} />
+            </Button>
+            <Button size="icon" variant="ghost" onClick={onAnnulerEdition}>
+              <X size={16} />
+            </Button>
+          </>
+        ) : (
+          <>
+            {/* EDIT */}
+            <Button
+              variant="ghost"
+              size="icon"
+              disabled={isUsed}
+              className={`h-8 w-8 rounded-lg border border-slate-100 shadow-sm
+                ${isUsed ? "text-slate-200 cursor-not-allowed" : "text-slate-400 hover:text-blue-600"}
+              `}
+              title={isUsed ? "Couple utilisé : modification interdite" : "Modifier"}
+              onClick={() => {
+                if (isUsed) return;
+                onDemarrerEdition();
+              }}
+            >
+              <Edit3 size={14} />
+            </Button>
 
-                        {/* Actions */}
-                        <div className="flex items-center justify-end gap-2">
-                            <Badge variant="secondary" className="h-7 rounded-full px-3 text-xs">
-                                {couple.count}
-                            </Badge>
-
-                            <Button
-                                onClick={onSupprimer}
-                                className="h-10 w-10 rounded-xl px-0 border bg-white text-foreground hover:bg-muted"
-                                title="Supprimer"
-                            >
-                                −
-                            </Button>
-                        </div>
-                    </>
-                )}
-            </div>
-        </div>
-    );
+            {/* DELETE */}
+            <Button
+              variant="ghost"
+              size="icon"
+              disabled={isUsed}
+              className={`h-8 w-8 rounded-lg border border-slate-100 shadow-sm
+                ${isUsed ? "text-slate-200 cursor-not-allowed" : "text-slate-400 hover:text-red-600"}
+              `}
+              title={isUsed ? "Couple utilisé : suppression interdite" : "Supprimer"}
+              onClick={() => {
+                if (isUsed) return;
+                onSupprimer();
+              }}
+            >
+              <Trash2 size={14} />
+            </Button>
+          </>
+        )}
+      </div>
+    </div>
+  );
 }

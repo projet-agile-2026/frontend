@@ -2,7 +2,13 @@ import  React, { useState, useMemo, useEffect } from 'react';
 import { Search, Plus, Trash2, Edit3, ChevronLeft, ChevronRight, Inbox, Loader2 } from 'lucide-react';
 import { Input } from "../components/ui/input";
 import { Button } from "../components/ui/button";
-import { questionService } from '../services/Questionservice';
+import {
+  getQuestions,
+  createQuestion,
+  updateQuestion,
+  deleteQuestion,
+  type Question,
+} from "../services/Questionservice"
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter,
 } from "../components/ui/dialog";
@@ -12,35 +18,28 @@ import {
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "../components/ui/alert-dialog";
+import { getQualificatifs, type QualificatifDTO } from "../services/Qualificatifservice";
 
-const LISTE_QUALIFICATIFS = [
-  { id: '1', max: 'Fort', min: 'Faible' },
-  { id: '2', max: 'Suffisant', min: 'Insuffisant' },
-  { id: '3', max: 'Facile', min: 'Difficile' },
-  { id: '4', max: 'Riche', min: 'Pauvre' },
-  { id: '5', max: 'Rapide', min: 'Lent' },
-  { id: '6', max: 'Trop nombreux', min: 'Peu nombreux' },
-  { id: '7', max: 'Bonne', min: 'Mauvaise' },
-  { id: '8', max: 'Satisfaisant', min: 'Insatisfaisant' },
-  { id: '9', max: 'Excessif', min: 'Raisonnable' },
-  { id: '10', max: 'Tres clair', min: 'Peu clair' },
-  { id: '11', max: 'Efficace', min: 'Inefficace' },
-  { id: '12', max: 'Abondant', min: 'Rare' },
-  { id: '13', max: 'Simple', min: 'Complexe' },
-];
 
-export default function QuestionsPage() {
-  const [questions, setQuestions] = useState([]);
+
+export function QuestionsPage() {
+  const [questions, setQuestions] = useState<Question[]>([])
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+  const [qualificatifs, setQualificatifs] = useState<QualificatifDTO[]>([]);
   const itemsPerPage = 8;
 
   const loadData = async () => {
     try {
       setLoading(true);
-      const data = await questionService.getAll();
-      setQuestions(data.sort((a, b) => a.intitule.localeCompare(b.intitule)));
+      const [questionsData, qualifsData] = await Promise.all([
+        getQuestions(),
+        getQualificatifs(),
+      ]);
+
+      setQuestions(questionsData.sort((a, b) => a.intitule.localeCompare(b.intitule)));
+      setQualificatifs(qualifsData);
     } catch (err) {
       console.error("Erreur Oracle", err);
     } finally {
@@ -61,24 +60,37 @@ export default function QuestionsPage() {
 
   const handleAdd = async (intitule: string, idQualif: string) => {
     try {
-      const newQ = await questionService.create({ intitule, idQualificatif: idQualif, type: 'QUS', noEnseignant: null });
+      const newQ = await createQuestion({
+        intitule,
+        idQualificatif: Number(idQualif),
+        type: 'QUS',
+        noEnseignant: null
+      });
+
       setQuestions(prev => [...prev, newQ].sort((a, b) => a.intitule.localeCompare(b.intitule)));
     } catch (err) { alert("Erreur lors de l'ajout"); }
   };
 
   const handleUpdate = async (id: any, updatedIntitule: string, updatedIdQualif: string) => {
     try {
-      const updated = await questionService.update(id, { idQuestion: id, intitule: updatedIntitule, idQualificatif: updatedIdQualif, type: 'QUS' });
+      const updated = await updateQuestion(id, {
+        intitule: updatedIntitule,
+        idQualificatif: Number(updatedIdQualif),
+        type: 'QUS',
+        noEnseignant: null
+      });
+
       setQuestions(prev => prev.map(q => q.idQuestion === id ? updated : q));
     } catch (err) { alert("Erreur lors de la modification"); }
   };
 
   const handleDelete = async (id: any) => {
     try {
-      await questionService.delete(id);
+      await deleteQuestion(id);
       setQuestions(prev => prev.filter(q => q.idQuestion !== id));
-    } catch (err) { alert(err.message); }
+    } catch (err: any) { alert(err.message); }
   };
+  
 
   if (loading) return (
     <div className="flex items-center justify-center h-screen bg-white">
@@ -93,7 +105,7 @@ export default function QuestionsPage() {
         {/* HEADER */}
         <div className="flex justify-between items-center mb-10">
           <h1 className="text-3xl font-bold tracking-tight uppercase italic">Questions</h1>
-          <AddQuestionDialog onAdd={handleAdd} />
+          <AddQuestionDialog onAdd={handleAdd}  qualificatifs={qualificatifs}/>
         </div>
 
         {/* RECHERCHE */}
@@ -123,6 +135,7 @@ export default function QuestionsPage() {
                 <QuestionRow 
                   key={q.idQuestion} 
                   question={q} 
+                  qualificatifs={qualificatifs}
                   onDelete={handleDelete} 
                   onUpdate={handleUpdate} 
                 />
@@ -157,11 +170,12 @@ export default function QuestionsPage() {
 }
 
 // --- LIGNE DU TABLEAU ---
-function QuestionRow({ question, onDelete, onUpdate }: any) {
-  const qualif = LISTE_QUALIFICATIFS.find(c => c.id === String(question.idQualificatif));
+function QuestionRow({ question, onDelete,qualificatifs, onUpdate }: any) {
+  const qualif = qualificatifs.find((c: any) => Number(c.id) === Number(question.idQualificatif));
   const [editIntitule, setEditIntitule] = useState(question.intitule);
   const [editIdQualif, setEditIdQualif] = useState(String(question.idQualificatif));
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const isUsed = question.usedInRubrique;
 
   return (
     <div className="grid grid-cols-12 items-center py-5 px-8 hover:bg-slate-50 transition-colors bg-white border-l-4 border-l-transparent hover:border-l-[#FFD700]">
@@ -176,11 +190,11 @@ function QuestionRow({ question, onDelete, onUpdate }: any) {
           <div className="inline-flex items-center gap-3">
             {/* POLICE DES COUPLES AGRANDIE ICI : text-[11px] */}
             <span className="text-[11px] font-bold text-slate-400 uppercase italic tracking-wider">
-              {qualif.min}
+              {qualif.mot2}
             </span>
             <div className="h-1 w-3 bg-slate-200 rounded-full"></div>
             <span className="text-[11px] font-bold text-slate-900 uppercase italic tracking-wider">
-              {qualif.max}
+              {qualif.mot1}
             </span>
           </div>
         )}
@@ -203,7 +217,12 @@ function QuestionRow({ question, onDelete, onUpdate }: any) {
                 <Select onValueChange={setEditIdQualif} value={editIdQualif}>
                   <SelectTrigger className="h-12 border-2 rounded-xl font-bold text-xs uppercase text-slate-900"><SelectValue /></SelectTrigger>
                   <SelectContent className="rounded-xl">
-                    {LISTE_QUALIFICATIFS.map(c => <SelectItem key={c.id} value={c.id} className="text-xs font-bold uppercase">{c.min} / {c.max}</SelectItem>)}
+                    {qualificatifs.map((c: any) => (
+                      <SelectItem key={c.id} value={String(c.id)} className="text-xs font-bold uppercase">
+                        {c.mot2} / {c.mot1}
+                      </SelectItem>
+                    ))}
+
                   </SelectContent>
                 </Select>
               </div>
@@ -216,7 +235,19 @@ function QuestionRow({ question, onDelete, onUpdate }: any) {
 
         <AlertDialog>
           <AlertDialogTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-red-600 rounded-lg border border-slate-100 shadow-sm"><Trash2 size={14} /></Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              disabled={isUsed}
+              className={`h-8 w-8 rounded-lg border border-slate-100 shadow-sm
+                ${isUsed 
+                  ? "text-slate-200 cursor-not-allowed"
+                  : "text-slate-400 hover:text-red-600"}
+              `}
+              title={isUsed ? "Question utilisée dans une rubrique" : "Supprimer"}
+            >
+              <Trash2 size={14} />
+            </Button>
           </AlertDialogTrigger>
           <AlertDialogContent className="rounded-3xl border-t-[10px] border-t-red-500 p-10 bg-white shadow-2xl">
             <AlertDialogHeader>
@@ -225,7 +256,7 @@ function QuestionRow({ question, onDelete, onUpdate }: any) {
             </AlertDialogHeader>
             <AlertDialogFooter className="mt-10 gap-3">
               <AlertDialogCancel className="rounded-xl font-bold uppercase text-[9px] h-11 border-2">Annuler</AlertDialogCancel>
-              <AlertDialogAction onClick={() => onDelete(question.idQuestion)} className="bg-red-500 text-white hover:bg-red-700 rounded-xl font-bold uppercase text-[9px] h-11 shadow-lg px-8 transition-colors">Supprimer</AlertDialogAction>
+              <AlertDialogAction disabled={isUsed} onClick={() => !isUsed && onDelete(question.idQuestion)} className="bg-red-500 text-white hover:bg-red-700 rounded-xl font-bold uppercase text-[9px] h-11 shadow-lg px-8 transition-colors">Supprimer</AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
@@ -234,7 +265,7 @@ function QuestionRow({ question, onDelete, onUpdate }: any) {
   );
 }
 
-function AddQuestionDialog({ onAdd }: any) {
+function AddQuestionDialog({ onAdd, qualificatifs }: any) {
   const [intitule, setIntitule] = useState("");
   const [idQualif, setIdQualif] = useState("");
   const [open, setOpen] = useState(false);
@@ -259,7 +290,12 @@ function AddQuestionDialog({ onAdd }: any) {
             <Select onValueChange={setIdQualif} value={idQualif}>
               <SelectTrigger className="h-12 border-2 border-slate-100 rounded-2xl font-bold text-xs uppercase bg-white shadow-sm"><SelectValue placeholder="Choisir dans la liste..." /></SelectTrigger>
               <SelectContent className="rounded-xl">
-                {LISTE_QUALIFICATIFS.map(c => <SelectItem key={c.id} value={c.id} className="font-bold text-[10px] py-3 uppercase">{c.min} / {c.max}</SelectItem>)}
+                {qualificatifs.map((c: any) => (
+                  <SelectItem key={c.id} value={String(c.id)} className="text-xs font-bold uppercase">
+                    {c.mot2} / {c.mot1}
+                  </SelectItem>
+                ))}
+
               </SelectContent>
             </Select>
           </div>

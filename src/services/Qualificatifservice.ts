@@ -1,52 +1,43 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8083/api';
+import api from "./api"
 
-export interface QualificatifDTO {
-  idQualificatif?: number;
-  maximal: string;
-  minimal: string;
+export type QualificatifDTO = {
+  idQualificatif?: number
+  mot1: string
+  mot2: string
+  count?: number
 }
 
-class QualificatifService {
-  private baseUrl = `${API_BASE_URL}/qualificatifs`;
-
-  async getAllQualificatifs(): Promise<any[]> {
-    const response = await fetch(this.baseUrl);
-    if (!response.ok) throw new Error('Failed to fetch qualificatifs');
-    return response.json();
-  }
-
-  async getQualificatifById(id: number): Promise<any> {
-    const response = await fetch(`${this.baseUrl}/${id}`);
-    if (!response.ok) throw new Error('Failed to fetch qualificatif');
-    return response.json();
-  }
-
-  async createQualificatif(qualificatif: QualificatifDTO): Promise<any> {
-    const response = await fetch(this.baseUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(qualificatif)
-    });
-    if (!response.ok) throw new Error('Failed to create qualificatif');
-    return response.json();
-  }
-
-  async updateQualificatif(id: number, qualificatif: QualificatifDTO): Promise<any> {
-    const response = await fetch(`${this.baseUrl}/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(qualificatif)
-    });
-    if (!response.ok) throw new Error('Failed to update qualificatif');
-    return response.json();
-  }
-
-  async deleteQualificatif(id: number): Promise<void> {
-    const response = await fetch(`${this.baseUrl}/${id}`, {
-      method: 'DELETE'
-    });
-    if (!response.ok) throw new Error('Failed to delete qualificatif');
-  }
+export async function getQualificatifs(): Promise<QualificatifDTO[]> {
+  const { data } = await api.get<QualificatifDTO[]>("/api/qualificatifs")
+  return data
 }
 
-export const qualificatifService = new QualificatifService();
+export async function getQualificatif(id: number): Promise<QualificatifDTO> {
+  const { data } = await api.get<QualificatifDTO>(`/api/qualificatifs/${id}`)
+  return data
+}
+
+export async function createQualificatif(
+  payload: QualificatifDTO,
+): Promise<QualificatifDTO> {
+  const { data } = await api.post<QualificatifDTO>(
+    "/api/qualificatifs",
+    payload,
+  )
+  return data
+}
+
+export async function updateQualificatif(
+  id: number,
+  payload: QualificatifDTO,
+): Promise<QualificatifDTO> {
+  const { data } = await api.put<QualificatifDTO>(
+    `/api/qualificatifs/${id}`,
+    payload,
+  )
+  return data
+}
+
+export async function deleteQualificatif(id: number): Promise<void> {
+  await api.delete(`/api/qualificatifs/${id}`)
+}

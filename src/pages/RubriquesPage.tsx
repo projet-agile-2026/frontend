@@ -29,7 +29,7 @@ import {
   useSensor,
   useSensors,
 } from '@dnd-kit/core';
-import { DragEndEvent } from '@dnd-kit/core';
+import type { DragEndEvent } from '@dnd-kit/core';
 
 import {
   arrayMove,
@@ -41,41 +41,35 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 
 // Import services
-import { rubriqueService } from '../services/Rubriqueservice';
-import { questionService } from '../services/Questionservice';
-import { qualificatifService } from '../services/Qualificatifservice';
+import {
+  getRubriques,
+  createRubrique,
+  updateRubrique,
+  deleteRubrique,
+  addQuestionToRubrique,
+  removeQuestionFromRubrique,
+  reorderQuestionsInRubrique,
+  reorderRubriques,
+} from "../services/Rubriqueservice"
+
+import {
+  getQuestions
+} from "../services/Questionservice"
+import {
+  getQualificatifs
+} from "../services/Qualificatifservice"
 
 // TYPES & INTERFACES
-interface Qualificatif {
-  id: number;
-  mot1: string;
-  mot2: string;
-}
-
-interface Question {
-  idQuestion: number;
-  intitule: string;
-  idQualificatif: number;
-  ordre: number;
-  type?: string;
-  maximal?: string;
-  minimal?: string;
-}
-
-interface AvailableQuestion {
-  idQuestion: number;
-  intitule: string;
-  idQualificatif: string;
-  type: string;
-  noEnseignant: string | null;
-}
+import type { QualificatifDTO as Qualificatif } from "../services/Qualificatifservice"
+import type { Question } from "../services/Questionservice"
+import type { QuestionInRubrique } from "../services/Questionservice"
 
 interface Rubrique {
   idRubrique: number;
   designation: string;
   type: string;
   ordre: number;
-  questions: Question[];
+  questions: QuestionInRubrique[];
   isExpanded: boolean;
 }
 
@@ -166,7 +160,7 @@ const SortableQuestionRow = ({ question, rubriqueId, qualificatifs, onDelete }: 
 interface SortableRubriqueRowProps {
   rubrique: Rubrique;
   qualificatifs: Qualificatif[];
-  availableQuestions: AvailableQuestion[];
+  availableQuestions: Question[];
   onToggleExpand: (id: number) => void;
   onDeleteRubrique: (id: number) => void;
   onEditRubrique: (id: number, newDesignation: string) => void;
@@ -287,7 +281,7 @@ const SortableRubriqueRow = ({
                       <div className="max-h-80 overflow-y-auto border border-gray-200 rounded-md">
                         {filteredAvailableQuestions.length > 0 ? (
                             filteredAvailableQuestions.map((q) => {
-                              const qual = qualificatifs.find(qf => qf.id === parseInt(q.idQualificatif));
+                              const qual = qualificatifs.find(qf => qf.idQualificatif === q.idQualificatif);
                               return (
                                   <div
                                       key={q.idQuestion}
@@ -437,13 +431,13 @@ const SortableRubriqueRow = ({
 };
 
 // MAIN PAGE
-export default function RubriquesPage() {
+export function RubriquesPage() {
   const [search, setSearch] = useState("");
   const [isAddRubriqueOpen, setIsAddRubriqueOpen] = useState(false);
   const [newRubriqueTitle, setNewRubriqueTitle] = useState("");
   const [rubriques, setRubriques] = useState<Rubrique[]>([]);
   const [qualificatifs, setQualificatifs] = useState<Qualificatif[]>([]);
-  const [availableQuestions, setAvailableQuestions] = useState<AvailableQuestion[]>([]);
+  const [availableQuestions, setAvailableQuestions] = useState<Question[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -462,9 +456,9 @@ export default function RubriquesPage() {
       setError(null);
 
       const [qualificatifsData, rubriquesData, questionsData] = await Promise.all([
-        qualificatifService.getAllQualificatifs(),
-        rubriqueService.getAllRubriques(),
-        questionService.getAll()
+        getQualificatifs(),
+        getRubriques(),
+        getQuestions()
       ]);
       console.log('=== DEBUG DATA ===');
       console.log('Qualificatifs:', qualificatifsData);
@@ -504,7 +498,7 @@ export default function RubriquesPage() {
     if (!newRubriqueTitle.trim()) return;
 
     try {
-      const newRubrique = await rubriqueService.createRubrique({
+      const newRubrique = await createRubrique({
         designation: newRubriqueTitle.toUpperCase()
       });
 
@@ -522,7 +516,7 @@ export default function RubriquesPage() {
       const rubrique = rubriques.find(r => r.idRubrique === id);
       if (!rubrique) return;
 
-      await rubriqueService.updateRubrique(id, {
+      await updateRubrique(id, {
         designation: newDesignation.toUpperCase(),
         type: rubrique.type,
         ordre: rubrique.ordre
@@ -539,7 +533,7 @@ export default function RubriquesPage() {
 
   const handleDeleteRubrique = async (id: number) => {
     try {
-      await rubriqueService.deleteRubrique(id);
+      await deleteRubrique(id);
       setRubriques(prev => prev.filter(r => r.idRubrique !== id));
     } catch (err: any) {
       console.error('Error deleting rubrique:', err);
@@ -571,7 +565,7 @@ export default function RubriquesPage() {
         }));
 
         // Supposant que toutes les rubriques sont de type "RBS"
-        await rubriqueService.reorderRubriques("RBS", rubriqueOrders);
+        await reorderRubriques("RBS", rubriqueOrders);
       } catch (err: any) {
         console.error('Error reordering rubriques:', err);
         await loadData(); // Recharger si erreur
@@ -584,7 +578,7 @@ export default function RubriquesPage() {
       const rubrique = rubriques.find(r => r.idRubrique === rubriqueId);
       const ordre = (rubrique?.questions.length || 0) + 1;
 
-      await rubriqueService.addQuestionToRubrique(rubriqueId, selectedQuestionId, ordre);
+      await addQuestionToRubrique(rubriqueId, selectedQuestionId, ordre);
       await loadData();
     } catch (err: any) {
       console.error('Error adding question:', err);
@@ -594,7 +588,7 @@ export default function RubriquesPage() {
 
   const handleDeleteQuestion = async (rubriqueId: number, questionId: number) => {
     try {
-      await rubriqueService.removeQuestionFromRubrique(rubriqueId, questionId);
+      await removeQuestionFromRubrique(rubriqueId, questionId);
 
       setRubriques(prev => prev.map(r =>
           r.idRubrique === rubriqueId
@@ -627,7 +621,7 @@ export default function RubriquesPage() {
           ordre: index + 1
         }));
 
-        await rubriqueService.reorderQuestionsInRubrique(rubriqueId, questionOrders);
+        await reorderQuestionsInRubrique(rubriqueId, questionOrders);
       } catch (err: any) {
         console.error('Error reordering questions:', err);
         await loadData();

@@ -1,6 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
-import { apiCouples, type Couple } from "../services/api";
-
+import {
+  getQualificatifs,
+  createQualificatif,
+  updateQualificatif,
+  deleteQualificatif,
+  type QualificatifDTO as Couple
+} from "../services/Qualificatifservice"
+import { getQuestions, type Question, } from "../services/Questionservice"
 import { BarreOutils } from "../components/couples/BarreOutils";
 import { AjoutCouple } from "../components/couples/AjoutCouple";
 import { ListeCouples } from "../components/couples/ListeCouples";
@@ -41,7 +47,7 @@ function existeDeja(couples: Couple[], mot1: string, mot2: string) {
     });
 }
 
-export default function PageCouples() {
+export function PageCouples() {
     const [chargement, setChargement] = useState(true);
     const [couples, setCouples] = useState<Couple[]>([]);
 
@@ -62,10 +68,15 @@ export default function PageCouples() {
     // CONFIRM suppression
     const [confirmSuppOuvert, setConfirmSuppOuvert] = useState(false);
     const [idASupprimer, setIdASupprimer] = useState<number | null>(null);
+    const [questions, setQuestions] = useState<Question[]>([]);
 
     async function charger() {
-        const data = await apiCouples.lister();
-        setCouples(data);
+        const [couplesData, questionsData] = await Promise.all([
+            getQualificatifs(),
+            getQuestions()
+        ]);
+        setCouples(couplesData);
+        setQuestions(questionsData);
     }
 
     useEffect(() => {
@@ -98,7 +109,7 @@ export default function PageCouples() {
         const mot1 = mot1Nouveau.trim();
         const mot2 = mot2Nouveau.trim();
         if (!mot1 || !mot2) {
-            toast.warning("Champs manquants", { description: "Mot 1 et Mot 2 sont obligatoires." });
+            toast.warning("Champs manquants", { description: "Couples qualificatif est obligatoire." });
             return;
         }
 
@@ -109,7 +120,7 @@ export default function PageCouples() {
             return;
         }
 
-        await apiCouples.creer({ mot1, mot2 });
+        await createQualificatif({ mot1, mot2 });
         await charger();
 
         setMot1Nouveau("");
@@ -120,9 +131,13 @@ export default function PageCouples() {
     }
 
     function demarrerEdition(c: Couple) {
-        setIdEdition(c.id);
+        setIdEdition(c.id ?? null);
         setMot1Edition(c.mot1);
         setMot2Edition(c.mot2);
+    }
+
+    function estUtilise(id?: number) {
+        return questions.some(q => q.idQualificatif === id);
     }
 
     function annulerEdition() {
@@ -138,12 +153,12 @@ export default function PageCouples() {
         const mot1 = mot1Edition.trim();
         const mot2 = mot2Edition.trim();
         if (!mot1 || !mot2) {
-            toast.warning("Champs manquants", { description: "Mot 1 et Mot 2 sont obligatoires." });
+            toast.warning("Champs manquants", { description: "Couples qualificatif est obligatoire." });
             return;
         }
 
         // Si ça devient un doublon (en excluant l’élément courant)
-        const couplesSansCourant = couples.filter((c) => c.id !== idEdition);
+        const couplesSansCourant = couples.filter((c) => c.idQualificatif !== idEdition);
         if (existeDeja(couplesSansCourant, mot1, mot2)) {
             setMessageDoublon(`Le couple "${mot1} / ${mot2}" existe déjà.`);
             setPopupDoublonOuvert(true);
@@ -151,7 +166,7 @@ export default function PageCouples() {
             return;
         }
 
-        await apiCouples.modifier(idEdition, { mot1, mot2 });
+        await updateQualificatif(idEdition, { mot1, mot2 });
         await charger();
         annulerEdition();
 
@@ -170,7 +185,7 @@ export default function PageCouples() {
 
         if (idEdition === idASupprimer) annulerEdition();
 
-        await apiCouples.supprimer(idASupprimer);
+        await deleteQualificatif(idASupprimer);
         await charger();
 
         setConfirmSuppOuvert(false);
@@ -207,6 +222,7 @@ export default function PageCouples() {
                     <ListeCouples
                         chargement={chargement}
                         couples={listeAffichee}
+                        questions={questions}
                         idEdition={idEdition}
                         mot1Edition={mot1Edition}
                         mot2Edition={mot2Edition}

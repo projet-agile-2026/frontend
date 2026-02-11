@@ -1,74 +1,54 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8083/v1/api';
+import api from "./api"
 
 export interface Question {
-  idQuestion: number;
-  type: string;
-  noEnseignant: string | null;
-  idQualificatif: string;
-  intitule: string;
+  idQuestion: number
+  type: string
+  noEnseignant: string | null
+  idQualificatif: number
+  intitule: string
+  usedInRubrique?: boolean
 }
 
-export interface CreateQuestionRequest {
-  type?: string;
-  noEnseignant: string | null;
-  idQualificatif: number;
-  intitule: string;
+export interface QuestionInRubrique extends Question {
+  ordre: number
+  maximal?: string
+  minimal?: string
 }
 
-export interface UpdateQuestionRequest {
-  type?: string;
-  noEnseignant: string | null;
-  idQualificatif: number;
-  intitule: string;
+export async function getQuestions(): Promise<Question[]> {
+  const { data } = await api.get<Question[]>("/api/questions")
+  return data
 }
 
-class QuestionService {
-  private baseUrl = `${API_BASE_URL}/questions`;
-
-  async getAll(): Promise<Question[]> {
-    const response = await fetch(this.baseUrl);
-    if (!response.ok) throw new Error('Erreur réseau');
-    return response.json();
-  }
-
-  async create(data: CreateQuestionRequest): Promise<Question> {
-    const response = await fetch(`${this.baseUrl}/create`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        ...data,
-        type: data.type || 'QST'
-      }),
-    });
-    if (!response.ok) throw new Error('Erreur lors de la création');
-    return response.json();
-  }
-
-  async update(id: number, data: UpdateQuestionRequest): Promise<Question> {
-    const response = await fetch(`${this.baseUrl}/update/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        ...data,
-        type: data.type || 'QST'
-      }),
-    });
-    if (!response.ok) throw new Error('Erreur lors de la mise à jour');
-    return response.json();
-  }
-
-  async delete(id: number): Promise<boolean> {
-    const response = await fetch(`${this.baseUrl}/delete/${id}`, {
-      method: 'DELETE'
-    });
-
-    if (response.status === 409) {
-      const error = await response.json();
-      throw new Error(error.message);
-    }
-    if (!response.ok) throw new Error('Erreur lors de la suppression');
-    return true;
-  }
+export async function createQuestion(payload: {
+  type?: string
+  noEnseignant: string | null
+  idQualificatif: number
+  intitule: string
+}): Promise<Question> {
+  const { data } = await api.post<Question>(
+    "/api/questions/create",
+    payload,
+  )
+  return data
 }
 
-export const questionService = new QuestionService();
+export async function updateQuestion(
+  id: number,
+  payload: {
+    type?: string
+    noEnseignant: string | null
+    idQualificatif: number
+    intitule: string
+  },
+): Promise<Question> {
+  const { data } = await api.put<Question>(
+    `/api/questions/update/${id}`,
+    payload,
+  )
+  return data
+}
+
+export async function deleteQuestion(id: number): Promise<void> {
+  await api.delete(`/api/questions/delete/${id}`)
+}
