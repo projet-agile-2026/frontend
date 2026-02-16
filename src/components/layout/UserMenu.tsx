@@ -24,10 +24,20 @@ export function UserMenu({ userName = DEFAULT_USER_NAME }: UserMenuProps) {
   const [user, setUser] = useState<UserInfo | null>(null)
 
   useEffect(() => {
-    getCurrentUser()
-      .then(setUser)
-      .catch(() => navigate("/login"))
-  }, [])
+  const token = localStorage.getItem("token")
+  if (!token) {
+    navigate("/login")
+    return
+  }
+
+  getCurrentUser()
+    .then(setUser)
+    .catch(() => {
+      logout()
+      navigate("/login")
+    })
+}, [])
+
   
   const handleLogout = () => {
     logout()

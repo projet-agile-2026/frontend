@@ -21,8 +21,6 @@ export async function getQuestions(): Promise<Question[]> {
 }
 
 export async function createQuestion(payload: {
-  type?: string
-  noEnseignant: string | null
   idQualificatif: number
   intitule: string
 }): Promise<Question> {

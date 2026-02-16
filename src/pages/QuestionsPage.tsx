@@ -19,6 +19,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "../components/ui/alert-dialog";
 import { getQualificatifs, type QualificatifDTO } from "../services/Qualificatifservice";
+import { getCurrentUser, type UserInfo } from "@/services/authService"
 
 
 
@@ -29,6 +30,19 @@ export function QuestionsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [qualificatifs, setQualificatifs] = useState<QualificatifDTO[]>([]);
   const itemsPerPage = 8;
+
+  const [user, setUser] = useState<UserInfo | null>(null)
+
+
+  useEffect(() => {
+    const init = async () => {
+      const current = await getCurrentUser();
+      setUser(current);
+      await loadData();
+    };
+    init();
+  }, []);
+
 
   const loadData = async () => {
     try {
@@ -47,8 +61,6 @@ export function QuestionsPage() {
     }
   };
 
-  useEffect(() => { loadData(); }, []);
-
   const filteredQuestions = useMemo(() => {
     return questions
       .filter(q => q.intitule.toLowerCase().includes(search.toLowerCase()))
@@ -62,22 +74,20 @@ export function QuestionsPage() {
     try {
       const newQ = await createQuestion({
         intitule,
-        idQualificatif: Number(idQualif),
-        type: 'QUS',
-        noEnseignant: null
+        idQualificatif: Number(idQualif)
       });
 
       setQuestions(prev => [...prev, newQ].sort((a, b) => a.intitule.localeCompare(b.intitule)));
     } catch (err) { alert("Erreur lors de l'ajout"); }
   };
 
-  const handleUpdate = async (id: any, updatedIntitule: string, updatedIdQualif: string) => {
+  const handleUpdate = async (id: any, updatedIntitule: string, updatedIdQualif: string, question: Question) => {
     try {
       const updated = await updateQuestion(id, {
         intitule: updatedIntitule,
         idQualificatif: Number(updatedIdQualif),
-        type: 'QUS',
-        noEnseignant: null
+        type: question.type,
+        noEnseignant: question.noEnseignant
       });
 
       setQuestions(prev => prev.map(q => q.idQuestion === id ? updated : q));
@@ -124,7 +134,8 @@ export function QuestionsPage() {
         {/* TABLEAU */}
         <div className="bg-white border rounded-2xl shadow-sm overflow-hidden">
           <div className="grid grid-cols-12 bg-slate-50 border-b py-4 px-8 text-[11px] font-bold uppercase tracking-wider text-slate-500">
-            <div className="col-span-8 italic">Questions</div>
+            <div className="col-span-7 italic">Questions</div>
+            <div className="col-span-1 text-center italic">Type</div>
             <div className="col-span-3 text-center italic">Couple Qualificatif</div>
             <div className="col-span-1 text-right italic">Actions</div>
           </div>
@@ -138,6 +149,7 @@ export function QuestionsPage() {
                   qualificatifs={qualificatifs}
                   onDelete={handleDelete} 
                   onUpdate={handleUpdate} 
+                  role={user?.role} 
                 />
               ))
             ) : (
@@ -170,18 +182,47 @@ export function QuestionsPage() {
 }
 
 // --- LIGNE DU TABLEAU ---
-function QuestionRow({ question, onDelete,qualificatifs, onUpdate }: any) {
+function QuestionRow({ question, onDelete,qualificatifs, onUpdate, role }: any) {
   const qualif = qualificatifs.find((c: any) => Number(c.id) === Number(question.idQualificatif));
   const [editIntitule, setEditIntitule] = useState(question.intitule);
   const [editIdQualif, setEditIdQualif] = useState(String(question.idQualificatif));
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const isUsed = question.usedInRubrique;
+  const isPersonal = question.type === "QUP"
+  const isStandard = question.type === "QUS"
+  const isAdmin = role === "ADM"
+  const isTeacher = role === "ENS"
+  console.log("Hayhayhay", question)
+
+  const canEdit =
+    !isUsed && (
+      (isAdmin && isStandard) ||
+      (isTeacher && isPersonal)
+    )
+
+  const canDelete =
+    !isUsed && (
+      (isAdmin && isStandard) ||
+      (isTeacher && isPersonal)
+    )
 
   return (
     <div className="grid grid-cols-12 items-center py-5 px-8 hover:bg-slate-50 transition-colors bg-white border-l-4 border-l-transparent hover:border-l-[#FFD700]">
-      <div className="col-span-8">
+      <div className="col-span-7">
         <span className="text-sm font-bold text-slate-800 leading-tight uppercase">
           {question.intitule}
+        </span>
+      </div>
+
+      <div className="col-span-1 flex justify-center">
+        <span
+          className={`px-3 py-1 text-[10px] font-bold uppercase rounded-full tracking-wider
+            ${isPersonal
+              ? "bg-blue-100 text-blue-700 border border-blue-300"
+              : "bg-gray-100 text-gray-600 border border-gray-300"}
+          `}
+        >
+          {isPersonal ? "PERSONNELLE" : "STANDARD"}
         </span>
       </div>
 
@@ -203,10 +244,10 @@ function QuestionRow({ question, onDelete,qualificatifs, onUpdate }: any) {
       <div className="col-span-1 flex justify-end gap-2">
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
           <DialogTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-blue-600 rounded-lg border border-slate-100 shadow-sm"><Edit3 size={14} /></Button>
+            <Button variant="ghost" disabled={!canEdit} size="icon" className="h-8 w-8 text-slate-400 hover:text-blue-600 rounded-lg border border-slate-100 shadow-sm"><Edit3 size={14} /></Button>
           </DialogTrigger>
           <DialogContent className="rounded-3xl border-t-[10px] border-t-blue-500 p-10 bg-white">
-            <DialogHeader><DialogTitle className="text-xl font-bold uppercase italic tracking-tighter">Édition Oracle</DialogTitle></DialogHeader>
+            <DialogHeader><DialogTitle className="text-xl font-bold uppercase italic tracking-tighter">Modifier la question</DialogTitle></DialogHeader>
             <div className="space-y-6 py-6">
               <div className="space-y-2 text-left text-slate-900">
                 <label className="text-[10px] font-bold uppercase text-slate-400 ml-1 italic tracking-widest">Désignation</label>
@@ -228,7 +269,7 @@ function QuestionRow({ question, onDelete,qualificatifs, onUpdate }: any) {
               </div>
             </div>
             <DialogFooter>
-              <Button className="w-full h-12 bg-blue-600 text-white font-bold rounded-xl text-[10px] uppercase tracking-widest shadow-lg" onClick={() => { onUpdate(question.idQuestion, editIntitule, editIdQualif); setIsEditDialogOpen(false); }}>Mise à jour</Button>
+              <Button className="w-full h-12 bg-blue-600 text-white font-bold rounded-xl text-[10px] uppercase tracking-widest shadow-lg" onClick={() => { onUpdate(question.idQuestion, editIntitule, editIdQualif, question); setIsEditDialogOpen(false); }}>Mise à jour</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -236,15 +277,15 @@ function QuestionRow({ question, onDelete,qualificatifs, onUpdate }: any) {
         <AlertDialog>
           <AlertDialogTrigger asChild>
             <Button
+              disabled={!canDelete}
               variant="ghost"
               size="icon"
-              disabled={isUsed}
               className={`h-8 w-8 rounded-lg border border-slate-100 shadow-sm
                 ${isUsed 
                   ? "text-slate-200 cursor-not-allowed"
                   : "text-slate-400 hover:text-red-600"}
               `}
-              title={isUsed ? "Question utilisée dans une rubrique" : "Supprimer"}
+              title={isStandard ? "Question standard non modifiable" : isUsed ? "Question utilisée dans une rubrique": "Supprimer"}
             >
               <Trash2 size={14} />
             </Button>
@@ -279,7 +320,7 @@ function AddQuestionDialog({ onAdd, qualificatifs }: any) {
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-xl rounded-3xl border-t-[10px] border-t-[#FFD700] p-10 bg-white shadow-2xl">
-        <DialogHeader><DialogTitle className="text-2xl font-bold uppercase italic tracking-tighter text-slate-900">Insertion Oracle</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle className="text-2xl font-bold uppercase italic tracking-tighter text-slate-900">Nouvelle question</DialogTitle></DialogHeader>
         <div className="space-y-6 py-8 text-slate-900">
           <div className="space-y-2 text-left">
             <label className="text-[10px] font-bold uppercase text-slate-400 ml-1 italic tracking-widest">Intitulé de la question</label>
