@@ -1,6 +1,7 @@
 import { SettingsMenu } from "./SettingsMenu"
 import { UserMenu } from "./UserMenu"
 import { Link } from "react-router-dom"
+import { EvaluationsButton } from "./EvaluationsButton"
 
 
 const APP_TITLE = "Plateforme d’évaluation"
@@ -49,6 +50,7 @@ export function Topbar() {
 
         {/* RIGHT : MENUS (UNCHANGED) */}
         <div className="flex items-center gap-3">
+          <EvaluationsButton />
           <SettingsMenu />
           <UserMenu />
         </div>

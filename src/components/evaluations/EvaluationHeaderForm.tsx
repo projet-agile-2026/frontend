@@ -15,8 +15,11 @@ export interface EvaluationHeaderFormValues {
   codeUe: string
   codeEc: string
   designation: string
+  etat: "ELA" | "DIS" | "CLO"
+  periode: string
   debutReponse: string
   finReponse: string
+  noEvaluation: number | ""
 }
 
 interface EvaluationHeaderFormProps {
@@ -57,13 +60,23 @@ export function EvaluationHeaderForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [values.codeFormation, values.codeUe])
 
+  const generateAnnees = () => {
+  const annees: string[] = []
+    for (let year = 2013; year <= 2027; year++) {
+      annees.push(`${year}-${year + 1}`)
+    }
+    return annees
+  }
+
+  const anneesUniversitaires = generateAnnees()
+
   return (
     <div className="grid gap-4 rounded-lg border border-gray-200 bg-white p-4 sm:p-6">
       <h2 className="text-base font-semibold text-gray-900">
         Informations générales
       </h2>
 
-      <div className="grid gap-4 md:grid-cols-2">
+      {/* <div className="grid gap-4 md:grid-cols-2">
         <div className="space-y-1.5">
           <Label>Formation</Label>
           <Select
@@ -101,9 +114,101 @@ export function EvaluationHeaderForm({
             }
           />
         </div>
+      </div> */}
+
+      <div className="grid gap-4 md:grid-cols-2">
+        {/* Formation */}
+        <div className="space-y-1.5">
+          <Label>Formation</Label>
+          <Select
+            disabled={disabled}
+            value={values.codeFormation || undefined}
+            onValueChange={(value) => {
+              onFormationChange(value)
+            }}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Sélectionner une formation" />
+            </SelectTrigger>
+            <SelectContent>
+              {formations.map((code) => (
+                <SelectItem key={code} value={code}>
+                  {code}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Année universitaire */}
+        <div className="space-y-1.5">
+          <Label>Année universitaire</Label>
+          <Select
+            value={values.anneeUniversitaire || undefined}
+            onValueChange={(value) =>
+              onChange({
+                ...values,
+                anneeUniversitaire: value,
+              })
+            }
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Sélectionner une année" />
+            </SelectTrigger>
+            <SelectContent>
+              {anneesUniversitaires.map((annee) => (
+                <SelectItem key={annee} value={annee}>
+                  {annee}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+        </div>
+
+        {/* État */}
+        <div className="space-y-1.5">
+          <Label>État</Label>
+          <Select
+            disabled={disabled}
+            value={values.etat}
+            onValueChange={(value) =>
+              onChange({
+                ...values,
+                etat: value as "ELA" | "DIS" | "CLO",
+              })
+            }
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Sélectionner un état" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ELA">En cours d'élaboration</SelectItem>
+              <SelectItem value="DIS">Mise à disposition</SelectItem>
+              <SelectItem value="CLO">Clôturée</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Période */}
+        <div className="space-y-1.5">
+          <Label>Période</Label>
+          <Input
+            disabled={disabled}
+            placeholder="Ex: S1 2024"
+            value={values.periode}
+            onChange={(e) =>
+              onChange({
+                ...values,
+                periode: e.target.value,
+              })
+            }
+          />
+        </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
+
+      <div className="grid gap-4 md:grid-cols-4">
         <div className="space-y-1.5">
           <Label>UE</Label>
           <Select
@@ -204,6 +309,22 @@ export function EvaluationHeaderForm({
             }
           />
         </div>
+        <div className="space-y-1.5">
+          <Label>Numéro d’évaluation</Label>
+          <Input
+            type="number"
+            min={1}
+            placeholder="Ex : 1"
+            value={values.noEvaluation}
+            onChange={(e) =>
+              onChange({
+                ...values,
+                noEvaluation: e.target.value === "" ? "" : Number(e.target.value),
+              })
+            }
+          />
+        </div>
+
       </div>
     </div>
   )

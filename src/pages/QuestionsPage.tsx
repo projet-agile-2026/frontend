@@ -29,7 +29,7 @@ export function QuestionsPage() {
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [qualificatifs, setQualificatifs] = useState<QualificatifDTO[]>([]);
-  const itemsPerPage = 8;
+  const itemsPerPage = 20;
 
   const [user, setUser] = useState<UserInfo | null>(null)
 

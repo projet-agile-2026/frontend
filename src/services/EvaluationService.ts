@@ -1,6 +1,37 @@
 import api from "./api"
 
-export type EvaluationStatus = "EN_COURS" | "TERMINE" | "BROUILLON"
+export type EvaluationStatus = "ELA" | "DIS" | "CLO"
+
+export interface QuestionEvaluationDTO {
+  idQuestionEvaluation: number
+  idQuestion: number
+  intitule: string
+}
+
+export interface RubriqueEvaluationDTO {
+  idRubriqueEvaluation: number
+  idEvaluation: number
+  idRubrique: number
+  ordre: number
+  designation: string
+  type?: string
+  questions: QuestionEvaluationDTO[]
+}
+
+export interface EvaluationWithRubriquesDTO {
+  idEvaluation: number
+  codeFormation: string
+  anneeUniversitaire: string
+  codeUe: string
+  codeEc: string
+  designation: string
+  etat: "ELA" | "DIS" | "CLO"
+  periode: string
+  noEvaluation: number | ""
+  debutReponse: string
+  finReponse: string
+  rubriques: RubriqueEvaluationDTO[]
+}
 
 export interface EvaluationListItem {
   idEvaluation: number
@@ -9,7 +40,8 @@ export interface EvaluationListItem {
   libelleFormation?: string
   codeUe: string
   libelleUe?: string
-  etat: EvaluationStatus
+  etat: "ELA" | "DIS" | "CLO"
+  periode: string
   debutReponse: string
   finReponse: string
 }
@@ -27,8 +59,10 @@ export interface EvaluationQuestionPayload {
 
 export interface EvaluationRubriquePayload {
   idRubrique?: number
-  titre: string
-  questions: EvaluationQuestionPayload[]
+  designation: string
+  questions: {
+    idQuestion?: number
+  }[]
 }
 
 export interface EvaluationDetailDTO {
@@ -40,8 +74,28 @@ export interface EvaluationDetailDTO {
   designation: string
   debutReponse: string
   finReponse: string
-  etat: EvaluationStatus
+  etat: "ELA" | "DIS" | "CLO"
+  periode: string
   rubriques: EvaluationRubriquePayload[]
+  noEvaluation: number
+}
+
+export interface RubriqueEvaluationOrder {
+  idRubriqueEvaluation: number
+  ordre: number
+}
+
+export interface ReorderRubriquesPayload {
+  rubriqueOrders: RubriqueEvaluationOrder[]
+}
+
+export interface QuestionEvaluationOrder {
+  idQuestionEvaluation: number
+  ordre: number
+}
+
+export interface ReorderQuestionsPayload {
+  questionOrders: QuestionEvaluationOrder[]
 }
 
 export async function getEvaluations(
@@ -51,7 +105,7 @@ export async function getEvaluations(
     "/api/enseignant/evaluations",
     {
       params: filters,
-    },
+    },  
   )
   return data
 }
@@ -112,3 +166,74 @@ export async function deleteEvaluation(id: number): Promise<void> {
   await api.delete(`/api/enseignant/evaluations/${id}`)
 }
 
+export async function addRubriqueToEvaluation(
+  evaluationId: number,
+  idRubrique: number
+): Promise<RubriqueEvaluationDTO> {
+  const { data } = await api.post(
+    `/api/enseignant/evaluations/${evaluationId}/rubriques`,
+    { idRubrique }
+  )
+  return data
+} 
+
+export async function addQuestionToRubriqueEvaluation(
+  evaluationId: number,
+  rubriqueEvaluationId: number,
+  idQuestion: number
+): Promise<RubriqueEvaluationDTO> {
+  const { data } = await api.post(
+    `/api/enseignant/evaluations/${evaluationId}/rubriques/${rubriqueEvaluationId}/questions`,
+    { idQuestion }
+  )
+  return data
+}
+
+export async function getEvaluationFull(
+  id: number
+): Promise<EvaluationWithRubriquesDTO> {
+  const { data } = await api.get(
+    `/api/enseignant/evaluations/${id}/rubriques`
+  )
+  return data
+}
+
+export async function removeQuestionFromRubriqueEvaluation(
+  evaluationId: number,
+  rubriqueEvaluationId: number,
+  questionEvaluationId: number
+) {
+  await api.delete(
+    `/api/enseignant/evaluations/${evaluationId}/rubriques/${rubriqueEvaluationId}/questions/${questionEvaluationId}`
+  )
+}
+
+export async function removeRubriqueFromEvaluation(
+  evaluationId: number,
+  rubriqueEvaluationId: number
+) {
+  await api.delete(
+    `/api/enseignant/evaluations/${evaluationId}/rubriques/${rubriqueEvaluationId}`
+  )
+}
+
+export async function reorderRubriquesInEvaluation(
+  evaluationId: number,
+  payload: ReorderRubriquesPayload
+): Promise<void> {
+  await api.put(
+    `/api/enseignant/evaluations/${evaluationId}/rubriques/reorder`,
+    payload
+  )
+}
+
+export async function reorderQuestionsInRubriqueEvaluation(
+  evaluationId: number,
+  rubriqueEvaluationId: number,
+  payload: ReorderQuestionsPayload
+): Promise<void> {
+  await api.put(
+    `/api/enseignant/evaluations/${evaluationId}/rubriques/${rubriqueEvaluationId}/questions/reorder`,
+    payload
+  )
+}

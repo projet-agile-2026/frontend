@@ -2,23 +2,23 @@ import { useEffect, useState } from "react"
 import { useNavigate, useParams } from "react-router-dom"
 import {
   EvaluationDetailDTO,
-  EvaluationRubriquePayload,
   EvaluationStatus,
-  FormationDTO,
+  EvaluationWithRubriquesDTO,
   getEcs,
-  getEvaluation,
   getFormations,
   getUes,
   createEvaluation,
   updateEvaluation,
+  getEvaluationFull,
 } from "../../services/EvaluationService"
 import {
   EvaluationHeaderForm,
-  EvaluationHeaderFormValues,
+  EvaluationHeaderFormValues
 } from "../../components/evaluations/EvaluationHeaderForm"
 import { RubriquesSection } from "../../components/evaluations/RubriquesSection"
 import { Button } from "../../components/ui/button"
 import { Loader2 } from "lucide-react"
+
 
 export function EvaluationForm() {
   const navigate = useNavigate()
@@ -30,7 +30,7 @@ export function EvaluationForm() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const [formations, setFormations] = useState<FormationDTO[]>([])
+  const [formations, setFormations] = useState<string[]>([])
   const [ues, setUes] = useState<String[]>([])
   const [ecs, setEcs] = useState<String[]>([])
 
@@ -42,10 +42,18 @@ export function EvaluationForm() {
     designation: "",
     debutReponse: "",
     finReponse: "",
+    etat: "ELA",
+    periode: "",
+    noEvaluation: "",
   })
 
-  const [etat, setEtat] = useState<EvaluationStatus>("BROUILLON")
-  const [rubriques, setRubriques] = useState<EvaluationRubriquePayload[]>([])
+  const [etat, setEtat] = useState<EvaluationStatus>("ELA")
+  const [rubriques, setRubriques] = useState<EvaluationWithRubriquesDTO["rubriques"]>([])
+
+  const reloadEvaluation = async (evaluationId: number) => {
+    const data = await getEvaluationFull(evaluationId)
+    setRubriques(data.rubriques || [])
+  }
 
   useEffect(() => {
     const init = async () => {
@@ -57,8 +65,9 @@ export function EvaluationForm() {
         setFormations(formationsData)
 
         if (isEdit && id) {
-          const evaluation = await getEvaluation(Number(id))
-          setEtat(evaluation.etat)
+          const evaluation = await getEvaluationFull(Number(id))
+          console.log("asss", evaluation)
+          setEtat(evaluation.etat as EvaluationStatus)
           setRubriques(evaluation.rubriques || [])
 
           setHeaderValues({
@@ -69,6 +78,9 @@ export function EvaluationForm() {
             designation: evaluation.designation,
             debutReponse: evaluation.debutReponse.slice(0, 10),
             finReponse: evaluation.finReponse.slice(0, 10),
+            etat: evaluation.etat,
+            periode: evaluation.periode,
+            noEvaluation: evaluation.noEvaluation,
           })
 
           const [uesData, ecsData] = await Promise.all([
@@ -138,14 +150,19 @@ export function EvaluationForm() {
       codeUe: headerValues.codeUe,
       codeEc: headerValues.codeEc,
       designation: headerValues.designation,
+      etat: headerValues.etat,
+      periode: headerValues.periode,
       debutReponse: headerValues.debutReponse,
       finReponse: headerValues.finReponse,
-      etat,
-      rubriques: rubriques || [],
+      noEvaluation: Number(headerValues.noEvaluation),
+      // Les rubriques sont gérées via les endpoints dédiés (/rubriques, /questions)
+      // pour ne pas casser l’assignation existante côté backend.
+      rubriques: [],
     }
 
     try {
       if (isEdit && id) {
+        console.log("PAYLOAD SENT:", payload)
         await updateEvaluation(Number(id), payload)
       } else {
         await createEvaluation(payload)
@@ -168,6 +185,7 @@ export function EvaluationForm() {
       </div>
     )
   }
+
 
   return (
     <form
@@ -209,7 +227,14 @@ export function EvaluationForm() {
         onUeChange={handleUeChange}
       />
 
-      <RubriquesSection rubriques={rubriques} onChange={setRubriques} />
+      <RubriquesSection
+        rubriques={rubriques}
+        onChange={setRubriques}
+        evaluationId={id ? Number(id) : undefined}
+        onReload={() => reloadEvaluation(Number(id))}
+      />
+
+
 
       <div className="flex justify-end gap-3 pt-2">
         <Button

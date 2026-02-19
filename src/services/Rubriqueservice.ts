@@ -115,7 +115,7 @@ export async function reorderRubriques(
   type: string,
   rubriqueOrders: RubriqueOrder[],
 ): Promise<void> {
-  await api.put(`/api/rubriques/reorder/${type}`, {
+  await api.put(`/api/rubriques/reorder`, {
     rubriqueOrders,
   })
 }
