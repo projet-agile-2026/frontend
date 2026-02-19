@@ -43,14 +43,6 @@ export function Promotion() {
             Gestion promotions
           </Link>
         </DropdownMenuItem>
-        <DropdownMenuItem className="py-2 cursor-pointer hover:bg-yellow-100" asChild>
-          <Link
-            to="/etudiants"
-            className="py-2 cursor-pointer hover:bg-yellow-100 w-full"
-          >
-            Gestion étudiants
-          </Link>
-        </DropdownMenuItem> 
       </DropdownMenuContent>
     </DropdownMenu>
   )

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useState, type FC } from "react"
 import { useNavigate, useParams } from "react-router-dom"
 import {
   EvaluationDetailDTO,
@@ -10,6 +10,7 @@ import {
   createEvaluation,
   updateEvaluation,
   getEvaluationFull,
+  getAnneesUniversitaires
 } from "../../services/EvaluationService"
 import {
   EvaluationHeaderForm,
@@ -17,14 +18,19 @@ import {
 } from "../../components/evaluations/EvaluationHeaderForm"
 import { RubriquesSection } from "../../components/evaluations/RubriquesSection"
 import { Button } from "../../components/ui/button"
+import { Badge } from "../../components/ui/badge"
 import { Loader2 } from "lucide-react"
 
+export type EvaluationFormProps = {
+  readOnly?: boolean
+}
 
-export function EvaluationForm() {
+export const EvaluationForm: FC<EvaluationFormProps> = ({ readOnly = false }) => {
   const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
 
   const isEdit = !!id
+  const isViewMode = readOnly === true
 
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -49,6 +55,9 @@ export function EvaluationForm() {
 
   const [etat, setEtat] = useState<EvaluationStatus>("ELA")
   const [rubriques, setRubriques] = useState<EvaluationWithRubriquesDTO["rubriques"]>([])
+
+
+  const [annees, setAnnees] = useState<string[]>([])  
 
   const reloadEvaluation = async (evaluationId: number) => {
     const data = await getEvaluationFull(evaluationId)
@@ -103,23 +112,33 @@ export function EvaluationForm() {
   }, [id, isEdit])
 
   const handleFormationChange = async (codeFormation: string) => {
-    setHeaderValues((prev) => ({
-      ...prev,
-      codeFormation,
-      codeUe: "",
-      codeEc: "",
-    }))
-    setUes([])
-    setEcs([])
+  setHeaderValues((prev) => ({
+    ...prev,
+    codeFormation,
+    anneeUniversitaire: "",
+    codeUe: "",
+    codeEc: "",
+  }))
 
-    if (!codeFormation) return
-    try {
-      const uesData = await getUes(codeFormation)
-      setUes(uesData)
-    } catch {
-      // ignore
-    }
+  setAnnees([])
+  setUes([])
+  setEcs([])
+
+  if (!codeFormation) return
+
+  try {
+    const [anneesData, uesData] = await Promise.all([
+      getAnneesUniversitaires(codeFormation),
+      getUes(codeFormation),
+    ])
+
+    setAnnees(anneesData)
+    setUes(uesData)
+  } catch {
+    // ignore
   }
+}
+
 
   const handleUeChange = async (codeUe: string) => {
     setHeaderValues((prev) => ({
@@ -140,6 +159,7 @@ export function EvaluationForm() {
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault()
+    if (isViewMode) return
     setSaving(true)
     setError(null)
 
@@ -195,8 +215,19 @@ export function EvaluationForm() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900 truncate">
-            {isEdit ? "Modifier une évaluation" : "Nouvelle évaluation"}
+            {isViewMode
+              ? "Détail de l’évaluation"
+              : isEdit
+                ? "Modifier une évaluation"
+                : "Nouvelle évaluation"}
           </h1>
+          {isViewMode && (
+            <div className="mt-2">
+              <Badge variant="secondary" className="rounded-full">
+                Lecture seule
+              </Badge>
+            </div>
+          )}
           <p className="text-xs sm:text-sm text-gray-500 mt-0.5">
             Renseignez les informations générales puis ajoutez les rubriques et
             questions.
@@ -212,17 +243,13 @@ export function EvaluationForm() {
         </Button>
       </div>
 
-      {error && (
-        <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-          {error}
-        </div>
-      )}
-
       <EvaluationHeaderForm
         values={headerValues}
         formations={formations}
         ues={ues}
         ecs={ecs}
+        annees={annees}
+        disabled={isViewMode}
         onChange={setHeaderValues}
         onFormationChange={handleFormationChange}
         onUeChange={handleUeChange}
@@ -231,30 +258,33 @@ export function EvaluationForm() {
       <RubriquesSection
         rubriques={rubriques}
         onChange={setRubriques}
-        evaluationId={id ? Number(id) : undefined}
-        onReload={() => id && reloadEvaluation(Number(id))}
+        evaluationId={isViewMode ? undefined : id ? Number(id) : undefined}
+        onReload={isViewMode ? undefined : () => id && reloadEvaluation(Number(id))}
+        readOnly={isViewMode}
       />
 
-      <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end sm:gap-3 pt-4 sm:pt-2">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => navigate("/evaluations")}
-          className="w-full sm:w-auto"
-        >
-          Annuler
-        </Button>
-        <Button type="submit" disabled={saving} className="w-full sm:w-auto">
-          {saving ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Enregistrement...
-            </>
-          ) : (
-            "Enregistrer"
-          )}
-        </Button>
-      </div>
+      {!isViewMode && (
+        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end sm:gap-3 pt-4 sm:pt-2">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => navigate("/evaluations")}
+            className="w-full sm:w-auto"
+          >
+            Annuler
+          </Button>
+          <Button type="submit" disabled={saving} className="w-full sm:w-auto">
+            {saving ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Enregistrement...
+              </>
+            ) : (
+              "Enregistrer"
+            )}
+          </Button>
+        </div>
+      )}
     </form>
   )
 }

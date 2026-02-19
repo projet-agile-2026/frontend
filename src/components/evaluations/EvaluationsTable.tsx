@@ -1,4 +1,4 @@
-import { Pencil, Trash2, Copy, Shield, Loader2 } from "lucide-react"
+import { Pencil, Trash2, Copy, Shield, Loader2, Eye } from "lucide-react"
 import { Badge } from "../../components/ui/badge"
 import { Button } from "../../components/ui/button"
 import {
@@ -16,6 +16,7 @@ interface EvaluationsTableProps {
   onDelete: (evaluation: EvaluationListItem) => void
   onDuplicate?: (evaluation: EvaluationListItem) => void
   onOpenDroits?: (evaluation: EvaluationListItem) => void
+  onView?: (evaluation: EvaluationListItem) => void
   duplicatingId?: number | null
 }
 
@@ -38,6 +39,7 @@ function EvaluationCard({
   onDelete,
   onDuplicate,
   onOpenDroits,
+  onView,
   duplicatingId,
   getStatusLabel,
   getStatusBadgeVariant,
@@ -47,6 +49,7 @@ function EvaluationCard({
   onDelete: (e: EvaluationListItem) => void
   onDuplicate?: (e: EvaluationListItem) => void
   onOpenDroits?: (e: EvaluationListItem) => void
+  onView?: (e: EvaluationListItem) => void
   duplicatingId?: number | null
   getStatusLabel: (s: EvaluationStatus) => string
   getStatusBadgeVariant: (s: EvaluationStatus) => "default" | "outline" | "secondary"
@@ -78,6 +81,17 @@ function EvaluationCard({
           </p>
         </div>
         <div className="flex shrink-0 gap-2 flex-wrap">
+          {onView && (
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-9 w-9"
+              onClick={() => onView(evaluation)}
+              title="Voir"
+            >
+              <Eye className="h-4 w-4" />
+            </Button>
+          )}
           {onOpenDroits && (
             <Button
               variant="outline"
@@ -150,6 +164,7 @@ export function EvaluationsTable({
   onDelete,
   onDuplicate,
   onOpenDroits,
+  onView,
   duplicatingId,
 }: EvaluationsTableProps) {
   const totalPages = Math.max(1, Math.ceil(total / pageSize))
@@ -172,6 +187,7 @@ export function EvaluationsTable({
                 onDelete={onDelete}
                 onDuplicate={onDuplicate}
                 onOpenDroits={onOpenDroits}
+                onView={onView}
                 duplicatingId={duplicatingId}
                 getStatusLabel={getStatusLabel}
                 getStatusBadgeVariant={getStatusBadgeVariant}
@@ -280,6 +296,17 @@ export function EvaluationsTable({
                           ) : (
                             <Copy className="h-4 w-4" />
                           )}
+                        </Button>
+                      )}
+                      {onView && (
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => onView(evaluation)}
+                          title="Voir"
+                        >
+                          <Eye className="h-4 w-4" />
                         </Button>
                       )}
                       <Button

@@ -1,4 +1,4 @@
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { Input } from "../../components/ui/input"
 import {
   Select,
@@ -10,6 +10,12 @@ import {
 import { Label } from "../ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card"
 import { Calendar, GraduationCap, FileText } from "lucide-react"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "../../components/ui/tooltip"
 
 export interface EvaluationHeaderFormValues {
   codeFormation: string
@@ -30,6 +36,7 @@ interface EvaluationHeaderFormProps {
   ues: String[]
   ecs: String[]
   disabled?: boolean
+  annees: string[]
   onChange: (values: EvaluationHeaderFormValues) => void
   onFormationChange: (codeFormation: string) => void
   onUeChange: (codeUe: string) => void
@@ -57,6 +64,7 @@ export function EvaluationHeaderForm({
   formations,
   ues,
   ecs,
+  annees,
   disabled,
   onChange,
   onFormationChange,
@@ -78,14 +86,6 @@ export function EvaluationHeaderForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [values.codeFormation, values.codeUe])
 
-  const anneesUniversitaires = (() => {
-    const annees: string[] = []
-    for (let year = 2013; year <= 2027; year++) {
-      annees.push(`${year}-${year + 1}`)
-    }
-    return annees
-  })()
-
   return (
     <Card className="overflow-hidden rounded-xl border border-gray-200/90 bg-white shadow-sm py-0 gap-0">
       <CardHeader className="border-b border-gray-200/80 bg-gradient-to-b from-gray-50/80 to-white px-5 sm:px-6 pt-5 sm:pt-6 pb-5">
@@ -106,30 +106,7 @@ export function EvaluationHeaderForm({
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <div className="space-y-2">
               <Label className="text-gray-600 text-sm font-medium">
-                Année universitaire
-              </Label>
-              <Select
-                value={values.anneeUniversitaire || undefined}
-                onValueChange={(value) =>
-                  onChange({ ...values, anneeUniversitaire: value })
-                }
-              >
-                <SelectTrigger className="h-10 bg-white">
-                  <SelectValue placeholder="Sélectionner une année" />
-                </SelectTrigger>
-                <SelectContent>
-                  {anneesUniversitaires.map((annee) => (
-                    <SelectItem key={annee} value={annee}>
-                      {annee}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-gray-600 text-sm font-medium">
-                Formation
+                Code Formation
               </Label>
               <Select
                 disabled={disabled}
@@ -145,6 +122,30 @@ export function EvaluationHeaderForm({
                       {code}
                     </SelectItem>
                   ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-gray-600 text-sm font-medium">
+                Année universitaire
+              </Label>
+              <Select
+                disabled={disabled || !values.codeFormation}
+                value={values.anneeUniversitaire || undefined}
+                onValueChange={(value) =>
+                  onChange({ ...values, anneeUniversitaire: value })
+                }
+              >
+                <SelectTrigger className="h-10 bg-white">
+                  <SelectValue placeholder="Sélectionner une année" />
+                </SelectTrigger>
+                <SelectContent>
+                  {annees.map((annee) => (
+                    <SelectItem key={annee} value={annee}>
+                      {annee}
+                    </SelectItem>
+                  ))}
+
                 </SelectContent>
               </Select>
             </div>
@@ -201,44 +202,73 @@ export function EvaluationHeaderForm({
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <div className="space-y-2">
               <Label className="text-gray-600 text-sm font-medium">UE</Label>
-              <Select
-                disabled={disabled || !values.codeFormation}
-                value={values.codeUe || undefined}
-                onValueChange={onUeChange}
-              >
-                <SelectTrigger className="h-10 bg-white">
-                  <SelectValue placeholder="Sélectionner une UE" />
-                </SelectTrigger>
-                <SelectContent>
-                  {ues.map((code) => (
-                    <SelectItem key={code} value={code}>
-                      {code}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div>
+                      <Select
+                        disabled={disabled || !values.codeFormation}
+                        value={values.codeUe || undefined}
+                        onValueChange={onUeChange}
+                      >
+                        <SelectTrigger className="h-10 bg-white">
+                          <SelectValue placeholder="Sélectionner une UE" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {ues.map((code) => (
+                            <SelectItem key={code} value={code}>
+                              {code}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </TooltipTrigger>
+
+                  {!values.codeFormation && (
+                    <TooltipContent>
+                      Sélectionnez d’abord une formation.
+                    </TooltipContent>
+                  )}
+                </Tooltip>
+              </TooltipProvider>
+
             </div>
 
             <div className="space-y-2">
               <Label className="text-gray-600 text-sm font-medium">EC</Label>
-              <Select
-                disabled={disabled || !values.codeUe}
-                value={values.codeEc || undefined}
-                onValueChange={(value) =>
-                  onChange({ ...values, codeEc: value })
-                }
-              >
-                <SelectTrigger className="h-10 bg-white">
-                  <SelectValue placeholder="Sélectionner une EC" />
-                </SelectTrigger>
-                <SelectContent>
-                  {ecs.map((code) => (
-                    <SelectItem key={code} value={code}>
-                      {code}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div>
+                      <Select
+                        disabled={disabled || !values.codeUe}
+                        value={values.codeEc || undefined}
+                        onValueChange={(value) =>
+                          onChange({ ...values, codeEc: value })
+                        }
+                      >
+                        <SelectTrigger className="h-10 bg-white">
+                          <SelectValue placeholder="Sélectionner une EC" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {ecs.map((code) => (
+                            <SelectItem key={code} value={code}>
+                              {code}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </TooltipTrigger>
+
+                  {!values.codeUe && (
+                    <TooltipContent>
+                      Sélectionnez d’abord une UE.
+                    </TooltipContent>
+                  )}
+                </Tooltip>
+              </TooltipProvider>
             </div>
 
             <div className="space-y-2 sm:col-span-2 lg:col-span-1">

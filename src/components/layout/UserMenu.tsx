@@ -71,7 +71,11 @@ export function UserMenu({ userName = DEFAULT_USER_NAME }: UserMenuProps) {
           size="lg"
         >
           <User className="size-5" />
-          {user ? `${user.prenom} ${user.nom}` : "Chargement..."}
+          {user
+            ? user.prenom && user.nom
+              ? `${user.prenom} ${user.nom}`
+              : user.email
+            : "Chargement..."}
         </Button>
       </DropdownMenuTrigger>
 

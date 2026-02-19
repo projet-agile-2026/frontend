@@ -205,6 +205,9 @@ export function EvaluationsPage() {
         onEdit={(evaluation) =>
           navigate(`/evaluations/${evaluation.idEvaluation}`)
         }
+        onView={(evaluation) =>
+          navigate(`/evaluations/${evaluation.idEvaluation}/view`)
+        }
         onDelete={handleDelete}
         onDuplicate={handleDuplicate}
         onOpenDroits={(evaluation) =>

@@ -311,3 +311,13 @@ export async function donnerDroitATous(
   )
   return data
 }
+
+export async function getAnneesUniversitaires(
+  codeFormation: string
+): Promise<string[]> {
+  const { data } = await api.get<string[]>(
+    `/api/enseignant/evaluations/formations/${codeFormation}/annees`
+  )
+  return data
+}
+

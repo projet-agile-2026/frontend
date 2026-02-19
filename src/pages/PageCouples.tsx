@@ -30,6 +30,13 @@ import {
     DialogHeader,
     DialogTitle,
 } from "../components/ui/dialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "../ui/tooltip"  
+
 
 function normaliser(s: string) {
     return s.trim().toLowerCase();

@@ -53,6 +53,10 @@ export const router = createBrowserRouter([
         element: <EvaluationForm />,
       },
       {
+        path: "evaluations/:id/view",
+        element: <EvaluationForm {...({ readOnly: true } as any)} />,
+      },
+      {
         path: "promotions",
         element: <PromotionsPage />,
       },

@@ -42,12 +42,20 @@ import {
   QuestionEvaluationDTO,
 } from "../../services/EvaluationService"
 import { getQuestions, type Question } from "../../services/Questionservice"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "../../components/ui/tooltip"
+
 
 interface RubriquesSectionProps {
   rubriques: EvaluationWithRubriquesDTO["rubriques"]
   onChange: (rubriques: EvaluationWithRubriquesDTO["rubriques"]) => void
   evaluationId?: number
   onReload?: () => void
+  readOnly?: boolean
 }
 
 /* Sortable question row inside a rubrique */
@@ -56,14 +64,17 @@ function SortableQuestionRow({
   rubriqueEvaluationId,
   evaluationId,
   onRemove,
+  readOnly,
 }: {
   question: QuestionEvaluationDTO
   rubriqueEvaluationId: number
   evaluationId?: number
   onRemove: (rubriqueEvaluationId: number, questionEvaluationId: number) => void
+  readOnly: boolean
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: question.idQuestionEvaluation.toString(),
+    disabled: readOnly,
   })
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -77,9 +88,13 @@ function SortableQuestionRow({
       className="flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50/80 px-3 py-2 sm:px-4 text-sm hover:bg-gray-100 transition min-w-0"
     >
       <div
-        {...attributes}
-        {...listeners}
-        className="cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 flex-shrink-0 touch-none"
+        {...(!readOnly ? attributes : {})}
+        {...(!readOnly ? listeners : {})}
+        className={`flex-shrink-0 touch-none ${
+          readOnly
+            ? "cursor-default text-gray-300"
+            : "cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600"
+        }`}
       >
         <GripVertical className="h-4 w-4" />
       </div>
@@ -108,6 +123,7 @@ function SortableRubriqueCard({
   onRemoveQuestion,
   onQuestionDragEnd,
   openQuestionDialog,
+  readOnly,
 }: {
   rubrique: RubriqueEvaluationDTO
   isExpanded: boolean
@@ -117,9 +133,11 @@ function SortableRubriqueCard({
   onRemoveQuestion: (rubriqueEvaluationId: number, questionEvaluationId: number) => void
   onQuestionDragEnd: (rubriqueEvaluationId: number, event: DragEndEvent) => void
   openQuestionDialog: (rubriqueEvaluationId: number) => void
+  readOnly: boolean
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: rubrique.idRubriqueEvaluation.toString(),
+    disabled: readOnly,
   })
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -140,9 +158,13 @@ function SortableRubriqueCard({
       {/* Accordion header */}
       <div className="flex items-center gap-2 border-b border-gray-100 bg-gray-50/50 px-3 py-2.5 sm:px-4 sm:py-3 min-w-0">
         <div
-          {...attributes}
-          {...listeners}
-          className="cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 flex-shrink-0 touch-none"
+          {...(!readOnly ? attributes : {})}
+          {...(!readOnly ? listeners : {})}
+          className={`flex-shrink-0 touch-none ${
+            readOnly
+              ? "cursor-default text-gray-300"
+              : "cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600"
+          }`}
         >
           <GripVertical className="h-5 w-5" />
         </div>
@@ -185,7 +207,7 @@ function SortableRubriqueCard({
               variant="outline"
               size="sm"
               className="h-8 rounded-full border-dashed text-xs w-full sm:w-auto"
-              disabled={!evaluationId}
+              disabled={!evaluationId || readOnly}
               onClick={() => openQuestionDialog(rubrique.idRubriqueEvaluation)}
             >
               <Plus className="mr-1.5 h-3.5 w-3.5" />
@@ -214,6 +236,7 @@ function SortableRubriqueCard({
                       rubriqueEvaluationId={rubrique.idRubriqueEvaluation}
                       evaluationId={evaluationId}
                       onRemove={onRemoveQuestion}
+                      readOnly={readOnly}
                     />
                   ))}
                 </div>
@@ -231,6 +254,7 @@ export function RubriquesSection({
   onChange,
   evaluationId,
   onReload,
+  readOnly = false,
 }: RubriquesSectionProps) {
   const [availableRubriques, setAvailableRubriques] = useState<Rubrique[]>([])
   const [availableQuestions, setAvailableQuestions] = useState<Question[]>([])
@@ -266,7 +290,7 @@ export function RubriquesSection({
   }
 
   const handleAddRubrique = async () => {
-    if (!selectedRubriqueId || !evaluationId) return
+    if (!selectedRubriqueId || !evaluationId || readOnly) return
 
     try {
       await addRubriqueToEvaluation(evaluationId, selectedRubriqueId)
@@ -281,7 +305,7 @@ export function RubriquesSection({
   }
 
   const handleRemoveRubrique = async (rubriqueEvaluationId: number) => {
-    if (!evaluationId) return
+    if (!evaluationId || readOnly) return
     try {
       await removeRubriqueFromEvaluation(evaluationId, rubriqueEvaluationId)
       if (onReload) {
@@ -293,7 +317,7 @@ export function RubriquesSection({
   }
 
   const openQuestionDialog = (rubriqueEvaluationId: number) => {
-    if (!evaluationId) return
+    if (!evaluationId || readOnly) return
     setActiveRubriqueEvaluationId(rubriqueEvaluationId)
     setSelectedQuestionId(null)
     setQuestionSearch("")
@@ -304,7 +328,8 @@ export function RubriquesSection({
     if (
       !evaluationId ||
       !activeRubriqueEvaluationId ||
-      !selectedQuestionId
+      !selectedQuestionId ||
+      readOnly
     )
       return
     try {
@@ -326,7 +351,7 @@ export function RubriquesSection({
     rubriqueEvaluationId: number,
     questionEvaluationId: number,
   ) => {
-    if (!evaluationId) return
+    if (!evaluationId || readOnly) return
     try {
       await removeQuestionFromRubriqueEvaluation(
         evaluationId,
@@ -357,6 +382,7 @@ export function RubriquesSection({
 
   const handleRubriqueDragEnd = useCallback(
     async (event: DragEndEvent) => {
+      if (readOnly) return
       const { active, over } = event
       if (!over || active.id === over.id || !evaluationId || !rubriques?.length) return
       const oldIndex = rubriques.findIndex(
@@ -379,11 +405,12 @@ export function RubriquesSection({
         console.error("Erreur réordonnancement rubriques :", err)
       }
     },
-    [evaluationId, rubriques, onReload]
+    [evaluationId, rubriques, onReload, readOnly]
   )
 
   const handleQuestionDragEnd = useCallback(
     async (rubriqueEvaluationId: number, event: DragEndEvent) => {
+      if (readOnly) return
       const { active, over } = event
       if (!over || active.id === over.id || !evaluationId) return
       const rubrique = rubriques?.find(
@@ -420,7 +447,7 @@ export function RubriquesSection({
         console.error("Erreur réordonnancement questions :", err)
       }
     },
-    [evaluationId, rubriques, onReload]
+    [evaluationId, rubriques, onReload, readOnly]
   )
 
   const filteredQuestions = availableQuestions.filter((q) => {
@@ -445,18 +472,33 @@ export function RubriquesSection({
         </h2>
 
         <Dialog open={isRubriqueDialogOpen} onOpenChange={setIsRubriqueDialogOpen}>
-          <DialogTrigger asChild>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={!evaluationId}
-              className="rounded-full w-full sm:w-auto shrink-0"
-            >
-              <Plus className="mr-1.5 h-4 w-4" />
-              Ajouter une rubrique
-            </Button>
-          </DialogTrigger>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="w-full sm:w-auto">
+                  <DialogTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={!evaluationId || readOnly}
+                      className="rounded-full w-full sm:w-auto shrink-0"
+                    >
+                      <Plus className="mr-1.5 h-4 w-4" />
+                      Ajouter une rubrique
+                    </Button>
+                  </DialogTrigger>
+                </div>
+              </TooltipTrigger>
+
+              {!evaluationId && (
+                <TooltipContent>
+                  Enregistrez d’abord les informations de l’évaluation.
+                </TooltipContent>
+              )}
+            </Tooltip>
+          </TooltipProvider>
+
 
           <DialogContent className="w-[calc(100%-2rem)] max-w-lg max-h-[90vh] overflow-hidden flex flex-col sm:max-h-[85vh]">
             <DialogHeader className="pb-2">
@@ -564,6 +606,7 @@ export function RubriquesSection({
                 onRemoveQuestion={handleRemoveQuestion}
                 onQuestionDragEnd={handleQuestionDragEnd}
                 openQuestionDialog={openQuestionDialog}
+                readOnly={readOnly}
               />
             ))}
           </div>
