@@ -118,10 +118,10 @@ const SortableQuestionRow = ({ question, rubriqueId, qualificatifs, onDelete }: 
             <GripVertical size={16} />
           </div>
 
-          <div className="flex-1 grid grid-cols-12 gap-4 items-center min-w-0">
-            <div className="col-span-6 text-sm text-gray-900 truncate">{question.intitule}</div>
-            <div className="col-span-5 text-sm text-gray-600 truncate">{qualificatifLabel}</div>
-            <div className="col-span-1 flex justify-end gap-2 flex-shrink-0">
+          <div className="flex-1 grid grid-cols-12 gap-2 sm:gap-4 items-center min-w-0">
+            <div className="col-span-12 sm:col-span-6 text-sm text-gray-900 truncate">{question.intitule}</div>
+            <div className="col-span-12 sm:col-span-5 text-sm text-gray-600 truncate">{qualificatifLabel}</div>
+            <div className="col-span-12 sm:col-span-1 flex justify-end gap-2 flex-shrink-0">
               <button
                   onClick={() => setShowDeleteConfirm(true)}
                   className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-all opacity-0 group-hover:opacity-100"
@@ -227,7 +227,7 @@ const SortableRubriqueRow = ({
       <>
         <div ref={setNodeRef} style={style} className={`border-l-4 border-l-yellow-400 bg-white mb-2 overflow-hidden ${isDragging ? 'shadow-lg' : ''}`}>
           {/* Rubrique Header */}
-          <div className="group flex items-center gap-2 py-3 px-3 bg-gray-50 hover:bg-gray-100 transition-colors">
+          <div className="group flex items-center gap-2 py-3 px-3 sm:px-4 bg-gray-50 hover:bg-gray-100 transition-colors min-w-0">
             <div
                 {...attributes}
                 {...listeners}
@@ -243,7 +243,7 @@ const SortableRubriqueRow = ({
               {rubrique.isExpanded ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
             </button>
 
-            <div className="flex-1 flex items-center gap-2 min-w-0">
+            <div className="flex-1 flex items-center gap-2 min-w-0 overflow-hidden">
               <span className="font-bold text-gray-900 truncate">{rubrique.designation}</span>
               {rubrique.questions.length > 0 && (
                   <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium flex-shrink-0">
@@ -328,7 +328,7 @@ const SortableRubriqueRow = ({
                     <Edit2 size={16} />
                   </button>
                 </DialogTrigger>
-                <DialogContent className="sm:max-w-md">
+                <DialogContent className="w-[calc(100%-2rem)] max-w-md">
                   <DialogHeader>
                     <DialogTitle>Modifier la Rubrique</DialogTitle>
                   </DialogHeader>
@@ -374,10 +374,10 @@ const SortableRubriqueRow = ({
                 {rubrique.questions.length > 0 ? (
                     <>
                       {/* Table Header */}
-                      <div className="grid grid-cols-12 gap-4 px-9 py-2 bg-gray-100 border-t border-gray-200 text-xs font-semibold text-gray-600 uppercase">
-                        <div className="col-span-6">Question</div>
-                        <div className="col-span-5">Échelle</div>
-                        <div className="col-span-1 text-right">Actions</div>
+                      <div className="grid grid-cols-12 gap-2 sm:gap-4 px-4 sm:px-9 py-2 bg-gray-100 border-t border-gray-200 text-xs font-semibold text-gray-600 uppercase">
+                        <div className="col-span-12 sm:col-span-6">Question</div>
+                        <div className="col-span-12 sm:col-span-5">Échelle</div>
+                        <div className="col-span-12 sm:col-span-1 text-right">Actions</div>
                       </div>
                       {/* Questions with DnD */}
                       <DndContext
@@ -653,19 +653,19 @@ export function RubriquesPage() {
   }
 
   return (
-      <div className="max-w-7xl mx-auto p-6">
+      <div className="w-full max-w-7xl mx-auto px-4 py-4 sm:p-6 min-w-0">
         {/* Header */}
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-900 mb-6">RUBRIQUES & QUESTIONS</h1>
+        <div className="mb-4 sm:mb-6">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-4 sm:mb-6">RUBRIQUES & QUESTIONS</h1>
 
           {/* Search and Add Button */}
-          <div className="bg-white p-5 rounded-lg shadow-sm border border-gray-200">
-            <div className="flex items-center gap-4">
-              <div className="flex-1 relative">
+          <div className="bg-white p-4 sm:p-5 rounded-lg shadow-sm border border-gray-200">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+              <div className="relative w-full min-w-0 flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
                     placeholder="Filtrer par nom de rubrique..."
-                    className="pl-9 h-10"
+                    className="pl-9 h-10 w-full"
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                 />
@@ -673,12 +673,12 @@ export function RubriquesPage() {
 
               <Dialog open={isAddRubriqueOpen} onOpenChange={setIsAddRubriqueOpen}>
                 <DialogTrigger asChild>
-                  <Button className="bg-black text-white hover:bg-gray-800 h-10">
+                  <Button className="bg-black text-white hover:bg-gray-800 h-10 w-full sm:w-auto">
                     <Plus className="mr-2 h-4 w-4" />
                     Ajouter une rubrique
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="sm:max-w-md">
+                <DialogContent className="w-[calc(100%-2rem)] max-w-md max-h-[90vh] overflow-y-auto sm:max-h-none">
                   <DialogHeader>
                     <DialogTitle>Nouvelle Rubrique</DialogTitle>
                   </DialogHeader>
@@ -703,14 +703,14 @@ export function RubriquesPage() {
         </div>
 
         {/* Rubriques List */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-          <div className="px-4 py-3 border-b border-gray-200">
-            <h2 className="font-semibold text-gray-900 text-sm">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+          <div className="px-3 sm:px-4 py-3 border-b border-gray-200">
+            <h2 className="font-semibold text-gray-900 text-sm truncate">
               Rubriques <span className="text-gray-400 font-normal">({filteredRubriques.length} résultat{filteredRubriques.length > 1 ? 's' : ''})</span>
             </h2>
           </div>
 
-          <div className="p-3">
+          <div className="p-3 sm:p-4 min-w-0">
             {filteredRubriques.length > 0 ? (
                 <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragRubriqueEnd}>
                   <SortableContext items={filteredRubriques.map(r => r.idRubrique.toString())} strategy={verticalListSortingStrategy}>

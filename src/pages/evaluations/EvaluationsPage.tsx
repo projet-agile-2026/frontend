@@ -5,6 +5,7 @@ import {
   EvaluationListItem,
   EvaluationFilters as EvaluationFiltersType,
   getEvaluations,
+  getEvaluationsPartagees,
 } from "../../services/EvaluationService"
 import { EvaluationFilters } from "../../components/evaluations/EvaluationFilters"
 import { EvaluationsTable } from "../../components/evaluations/EvaluationsTable"
@@ -22,6 +23,7 @@ export function EvaluationsPage() {
 
   const [search, setSearch] = useState("")
   const [onlyCurrentYear, setOnlyCurrentYear] = useState(false)
+  const [viewMode, setViewMode] = useState<"mine" | "partagees">("mine")
 
   const [page, setPage] = useState(1)
   const pageSize = 10
@@ -31,14 +33,14 @@ export function EvaluationsPage() {
       setLoading(true)
       setError(null)
 
-      const filters: EvaluationFiltersType = {
-        search: search || undefined,
-        onlyCurrentYear: onlyCurrentYear || undefined,
-      }
+      const data =
+        viewMode === "partagees"
+          ? await getEvaluationsPartagees()
+          : await getEvaluations({
+              search: search || undefined,
+              onlyCurrentYear: onlyCurrentYear || undefined,
+            } as EvaluationFiltersType)
 
-      const data = await getEvaluations(filters)
-
-      console.log("API returned:", data)
       setEvaluations(data)
     } catch (e: any) {
       setError(e.message || "Erreur lors du chargement des évaluations.")
@@ -50,7 +52,7 @@ export function EvaluationsPage() {
   useEffect(() => {
     loadEvaluations()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [onlyCurrentYear])
+  }, [onlyCurrentYear, viewMode])
 
   const filteredEvaluations = useMemo(() => {
     const term = search.trim().toLowerCase()
@@ -120,18 +122,42 @@ export function EvaluationsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-7xl p-6">
-      <div className="mb-6">
-        <h1 className="mb-2 text-3xl font-bold text-gray-900">
+    <div className="mx-auto w-full max-w-7xl px-4 py-4 sm:px-6 sm:py-6">
+      <div className="mb-4 sm:mb-6">
+        <h1 className="mb-1 sm:mb-2 text-2xl sm:text-3xl font-bold text-gray-900">
           ÉVALUATIONS
         </h1>
-        <p className="text-sm text-gray-500">
+        <p className="text-xs sm:text-sm text-gray-500 mb-4">
           Gérer les évaluations d&apos;enseignement : période de réponses,
           formations, UE et rubriques.
         </p>
+        <div className="flex rounded-lg border border-gray-200 bg-gray-50/80 p-1 w-fit">
+          <button
+            type="button"
+            onClick={() => setViewMode("mine")}
+            className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+              viewMode === "mine"
+                ? "bg-white text-gray-900 shadow-sm"
+                : "text-gray-600 hover:text-gray-900"
+            }`}
+          >
+            Mes évaluations
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewMode("partagees")}
+            className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+              viewMode === "partagees"
+                ? "bg-white text-gray-900 shadow-sm"
+                : "text-gray-600 hover:text-gray-900"
+            }`}
+          >
+            Evaluations partagées
+          </button>
+        </div>
       </div>
 
-      <div className="mb-5">
+      <div className="mb-4 sm:mb-5">
         <EvaluationFilters
           search={search}
           onSearchChange={setSearch}

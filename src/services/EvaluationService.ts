@@ -98,6 +98,24 @@ export interface ReorderQuestionsPayload {
   questionOrders: QuestionEvaluationOrder[]
 }
 
+export interface DroitResponseDTO {
+  idEvaluation: number
+  noEnseignant: number
+  consultation: "O" | "N"
+  duplication: "O" | "N"
+}
+
+export interface DroitRequestDTO {
+  noEnseignant: number
+  consultation: boolean
+  duplication: boolean
+}
+
+export interface DroitTousRequestDTO {
+  consultation: boolean
+  duplication: boolean
+}
+
 export async function getEvaluations(
   filters?: EvaluationFilters,
 ): Promise<EvaluationListItem[]> {
@@ -236,4 +254,60 @@ export async function reorderQuestionsInRubriqueEvaluation(
     `/api/enseignant/evaluations/${evaluationId}/rubriques/${rubriqueEvaluationId}/questions/reorder`,
     payload
   )
+}
+
+export async function getEvaluationsPartagees(): Promise<EvaluationListItem[]> {
+  const { data } = await api.get<EvaluationListItem[]>(
+    "/api/enseignant/evaluations/partagees"
+  )
+  return data
+}
+
+export async function dupliquerEvaluation(
+  idEvaluation: number
+): Promise<EvaluationDetailDTO> {
+  const { data } = await api.post<EvaluationDetailDTO>(
+    `/api/enseignant/evaluations/${idEvaluation}/dupliquer`
+  )
+  return data
+}
+
+export async function getDroits(
+  idEvaluation: number
+): Promise<DroitResponseDTO[]> {
+  const { data } = await api.get<DroitResponseDTO[]>(
+    `/api/enseignant/evaluations/${idEvaluation}/droits`
+  )
+  return data
+}
+
+export async function upsertDroit(
+  idEvaluation: number,
+  payload: DroitRequestDTO
+): Promise<DroitResponseDTO> {
+  const { data } = await api.post<DroitResponseDTO>(
+    `/api/enseignant/evaluations/${idEvaluation}/droits`,
+    payload
+  )
+  return data
+}
+
+export async function deleteDroit(
+  idEvaluation: number,
+  noEnseignantCible: number
+): Promise<void> {
+  await api.delete(
+    `/api/enseignant/evaluations/${idEvaluation}/droits/${noEnseignantCible}`
+  )
+}
+
+export async function donnerDroitATous(
+  idEvaluation: number,
+  payload: DroitTousRequestDTO
+): Promise<DroitResponseDTO> {
+  const { data } = await api.post<DroitResponseDTO>(
+    `/api/enseignant/evaluations/${idEvaluation}/droits/tous`,
+    payload
+  )
+  return data
 }

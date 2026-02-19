@@ -8,48 +8,43 @@ const APP_TITLE = "Plateforme d’évaluation"
 
 export function Topbar() {
   return (
-    <header className="sticky top-0 z-50 h-30 bg-white">
-      <div className="flex items-center justify-between px-8 h-34">
-        
+    <header className="sticky top-0 z-50 bg-white border-b border-gray-100">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between px-4 py-3 sm:px-6 md:px-8 min-h-[4rem] sm:min-h-[5.5rem]">
         {/* LEFT : LOGO + BADGES + TITLE */}
-        <div className="flex items-center gap-6">
-          {/* LOGO UBO */}
-          <Link to="/" className="flex items-center">
+        <div className="flex items-center gap-2 sm:gap-4 md:gap-6 min-w-0 flex-1">
+          <Link to="/" className="flex-shrink-0">
             <img
               src="/logo_UBO.png"
               alt="UBO"
-              className="h-20 cursor-pointer hover:opacity-80 transition"
+              className="h-12 sm:h-16 md:h-20 cursor-pointer hover:opacity-80 transition"
             />
           </Link>
 
-          {/* BADGES */}
-          <div className="flex items-center gap-3">
+          <div className="hidden sm:flex items-center gap-2 md:gap-3 flex-shrink-0">
             <img
               src="/logo-ubo-villes.svg"
               alt="UBO villes"
-              className="h-20"
+              className="h-12 md:h-20"
             />
             <img
               src="/logo-sea-eu.svg"
               alt="SEA-EU"
-              className="h-20"
+              className="h-12 md:h-20"
             />
             <img
               src="/oceanography.svg"
               alt="Oceanography"
-              className="h-20"
+              className="h-12 md:h-20"
             />
           </div>
 
-          {/* TITLE */}
-          <span className="ml-4 text-5xl font-extrabold tracking-wide text-black">
+          <span className="text-xl sm:text-2xl md:text-4xl xl:text-5xl font-extrabold tracking-wide text-black truncate ml-0 sm:ml-2 md:ml-4">
             {APP_TITLE}
           </span>
-
         </div>
 
-        {/* RIGHT : MENUS (UNCHANGED) */}
-        <div className="flex items-center gap-3">
+        {/* RIGHT : MENUS */}
+        <div className="flex items-center justify-end gap-2 sm:gap-3 flex-shrink-0">
           <EvaluationsButton />
           <SettingsMenu />
           <UserMenu />

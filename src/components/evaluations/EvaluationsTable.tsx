@@ -29,6 +29,67 @@ function getStatusLabel(status: EvaluationStatus) {
   }
 }
 
+function EvaluationCard({
+  evaluation,
+  onEdit,
+  onDelete,
+  getStatusLabel,
+  getStatusBadgeVariant,
+}: {
+  evaluation: EvaluationListItem
+  onEdit: (e: EvaluationListItem) => void
+  onDelete: (e: EvaluationListItem) => void
+  getStatusLabel: (s: EvaluationStatus) => string
+  getStatusBadgeVariant: (s: EvaluationStatus) => "default" | "outline" | "secondary"
+}) {
+  return (
+    <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0 flex-1 space-y-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="font-semibold text-gray-900">
+              {evaluation.libelleFormation || evaluation.codeFormation}
+            </span>
+            <Badge
+              variant={getStatusBadgeVariant(evaluation.etat)}
+              className="shrink-0 rounded-full px-2 py-0.5 text-xs"
+            >
+              {getStatusLabel(evaluation.etat)}
+            </Badge>
+          </div>
+          <p className="text-sm text-gray-600">
+            {evaluation.anneeUniversitaire}
+            {evaluation.codeUe && ` · ${evaluation.libelleUe || evaluation.codeUe}`}
+          </p>
+          <p className="text-xs text-gray-500">
+            {new Date(evaluation.debutReponse).toLocaleDateString()}
+            {" → "}
+            {new Date(evaluation.finReponse).toLocaleDateString()}
+          </p>
+        </div>
+        <div className="flex shrink-0 gap-2">
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-9 w-9"
+            onClick={() => onEdit(evaluation)}
+          >
+            <Pencil className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-9 w-9 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+            onClick={() => onDelete(evaluation)}
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function getStatusBadgeVariant(status: EvaluationStatus) {
   switch (status) {
     case "EN_COURS":
@@ -55,18 +116,41 @@ export function EvaluationsTable({
 
   return (
     <div className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
-      <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
+      {/* Mobile: cards (no horizontal scroll) */}
+      <div className="md:hidden divide-y divide-gray-100 p-3 sm:p-4">
+        {evaluations.length === 0 ? (
+          <div className="py-10 text-center text-sm text-gray-400">
+            Aucune évaluation trouvée.
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {evaluations.map((evaluation) => (
+              <EvaluationCard
+                key={evaluation.idEvaluation}
+                evaluation={evaluation}
+                onEdit={onEdit}
+                onDelete={onDelete}
+                getStatusLabel={getStatusLabel}
+                getStatusBadgeVariant={getStatusBadgeVariant}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Desktop/tablet: scrollable table */}
+      <div className="hidden md:block overflow-x-auto -webkit-overflow-scrolling-touch">
+        <table className="min-w-[48rem] w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-              <th className="px-4 py-3 text-left">Année universitaire</th>
-              <th className="px-4 py-3 text-left">Formation</th>
-              <th className="px-4 py-3 text-left">UE</th>
-              <th className="px-4 py-3 text-left">État</th>
-              <th className="px-4 py-3 text-left">Date début</th>
-              <th className="px-4 py-3 text-left">Date fin</th>
-              <th className="px-4 py-3 text-left">Partage</th>
-              <th className="px-4 py-3 text-right">Actions</th>
+              <th className="px-3 lg:px-4 py-3 text-left">Année universitaire</th>
+              <th className="px-3 lg:px-4 py-3 text-left">Formation</th>
+              <th className="px-3 lg:px-4 py-3 text-left">UE</th>
+              <th className="px-3 lg:px-4 py-3 text-left">État</th>
+              <th className="px-3 lg:px-4 py-3 text-left">Date début</th>
+              <th className="px-3 lg:px-4 py-3 text-left">Date fin</th>
+              <th className="px-3 lg:px-4 py-3 text-left">Partage</th>
+              <th className="px-3 lg:px-4 py-3 text-right">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100 bg-white text-sm text-gray-700">
@@ -82,12 +166,12 @@ export function EvaluationsTable({
             ) : (
               evaluations.map((evaluation) => (
                 <tr key={evaluation.idEvaluation} className="hover:bg-gray-50/60">
-                  <td className="whitespace-nowrap px-4 py-3">
+                  <td className="whitespace-nowrap px-3 lg:px-4 py-3">
                     {evaluation.anneeUniversitaire}
                   </td>
-                  <td className="px-4 py-3">
-                    <div className="flex flex-col">
-                      <span className="font-medium">
+                  <td className="px-3 lg:px-4 py-3">
+                    <div className="flex flex-col min-w-0">
+                      <span className="font-medium truncate">
                         {evaluation.libelleFormation || evaluation.codeFormation}
                       </span>
                       {evaluation.libelleFormation && (
@@ -97,9 +181,9 @@ export function EvaluationsTable({
                       )}
                     </div>
                   </td>
-                  <td className="px-4 py-3">
-                    <div className="flex flex-col">
-                      <span>{evaluation.libelleUe || evaluation.codeUe}</span>
+                  <td className="px-3 lg:px-4 py-3">
+                    <div className="flex flex-col min-w-0">
+                      <span className="truncate">{evaluation.libelleUe || evaluation.codeUe}</span>
                       {evaluation.libelleUe && (
                         <span className="text-xs text-gray-500">
                           {evaluation.codeUe}
@@ -107,7 +191,7 @@ export function EvaluationsTable({
                       )}
                     </div>
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-3 lg:px-4 py-3">
                     <Badge
                       variant={getStatusBadgeVariant(evaluation.etat)}
                       className="rounded-full px-2.5 py-0.5 text-xs"
@@ -115,17 +199,16 @@ export function EvaluationsTable({
                       {getStatusLabel(evaluation.etat)}
                     </Badge>
                   </td>
-                  <td className="whitespace-nowrap px-4 py-3 text-sm">
+                  <td className="whitespace-nowrap px-3 lg:px-4 py-3 text-sm">
                     {new Date(evaluation.debutReponse).toLocaleDateString()}
                   </td>
-                  <td className="whitespace-nowrap px-4 py-3 text-sm">
+                  <td className="whitespace-nowrap px-3 lg:px-4 py-3 text-sm">
                     {new Date(evaluation.finReponse).toLocaleDateString()}
                   </td>
-                  <td className="px-4 py-3 text-xs text-gray-400">
-                    {/* Placeholder colonne Partage */}
+                  <td className="px-3 lg:px-4 py-3 text-xs text-gray-400">
                     À venir
                   </td>
-                  <td className="whitespace-nowrap px-4 py-3 text-right">
+                  <td className="whitespace-nowrap px-3 lg:px-4 py-3 text-right">
                     <div className="flex items-center justify-end gap-2">
                       <Button
                         variant="outline"
@@ -152,18 +235,18 @@ export function EvaluationsTable({
         </table>
       </div>
 
-      <div className="flex items-center justify-between border-t border-gray-200 bg-gray-50 px-4 py-2.5 text-xs text-gray-600">
-        <div>
-          Page {page} / {totalPages} &nbsp;•&nbsp; {total} évaluation
-          {total > 1 ? "s" : ""}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-t border-gray-200 bg-gray-50 px-3 py-3 sm:px-4 text-xs text-gray-600">
+        <div className="text-center sm:text-left">
+          Page {page} / {totalPages} · {total} évaluation{total > 1 ? "s" : ""}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center justify-center gap-2">
           <Button
             type="button"
             variant="outline"
             size="sm"
             disabled={page <= 1}
             onClick={() => onPageChange(page - 1)}
+            className="min-w-[5rem]"
           >
             Précédent
           </Button>
@@ -173,6 +256,7 @@ export function EvaluationsTable({
             size="sm"
             disabled={page >= totalPages}
             onClick={() => onPageChange(page + 1)}
+            className="min-w-[5rem]"
           >
             Suivant
           </Button>
