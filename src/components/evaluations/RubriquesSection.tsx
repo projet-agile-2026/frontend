@@ -367,6 +367,7 @@ export function RubriquesSection({
       )
       if (oldIndex === -1 || newIndex === -1) return
       const reordered = arrayMove(rubriques, oldIndex, newIndex)
+      onChange(reordered)
       const rubriqueOrders = reordered.map((r, i) => ({
         idRubriqueEvaluation: r.idRubriqueEvaluation,
         ordre: i + 1,
@@ -398,6 +399,12 @@ export function RubriquesSection({
       )
       if (oldIndex === -1 || newIndex === -1) return
       const reordered = arrayMove(questions, oldIndex, newIndex)
+      const updatedRubriques = rubriques.map((r) =>
+          r.idRubriqueEvaluation === rubriqueEvaluationId
+              ? { ...r, questions: reordered }
+              : r
+      )
+      onChange(updatedRubriques)
       const questionOrders = reordered.map((q, i) => ({
         idQuestionEvaluation: q.idQuestionEvaluation,
         ordre: i + 1,
@@ -615,4 +622,3 @@ export function RubriquesSection({
     </div>
   )
 }
-

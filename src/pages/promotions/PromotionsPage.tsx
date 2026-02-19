@@ -20,13 +20,15 @@ import {
 } from "../../components/ui/dialog"
 import { Loader2, AlertCircle, Plus, Pencil, Trash2, GraduationCap } from "lucide-react"
 import { toast } from "sonner"
+import { useApiError } from "../../hooks/useApiError"
 
 export function PromotionsPage() {
   const navigate = useNavigate()
 
   const [promotions, setPromotions] = useState<PromotionResponseDTO[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<unknown>(null)
+  const errorText = useApiError(error)
 
   const [search, setSearch] = useState("")
 
@@ -54,7 +56,7 @@ export function PromotionsPage() {
       const data = await getPromotions()
       setPromotions(data)
     } catch (e: any) {
-      setError(e.message || "Erreur lors du chargement des promotions.")
+      setError(e)
     } finally {
       setLoading(false)
     }
@@ -181,12 +183,12 @@ export function PromotionsPage() {
     )
   }
 
-  if (error) {
+  if (errorText) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
         <div className="text-center">
           <AlertCircle className="mx-auto mb-4 h-10 w-10 text-red-600" />
-          <p className="mb-4 text-red-600">{error}</p>
+          <p className="mb-4 whitespace-pre-line text-red-600">{errorText}</p>
           <Button onClick={loadPromotions}>Réessayer</Button>
         </div>
       </div>

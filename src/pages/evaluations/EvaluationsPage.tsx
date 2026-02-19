@@ -20,6 +20,16 @@ import {
 import { Loader2, AlertCircle } from "lucide-react"
 import { Button } from "../../components/ui/button"
 import { toast } from "sonner"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "../../components/ui/alert-dialog"
 
 export function EvaluationsPage() {
   const navigate = useNavigate()
@@ -28,7 +38,7 @@ export function EvaluationsPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-   console.log("Evaluations:", evaluations)
+  console.log("Evaluations:", evaluations)
 
   const [search, setSearch] = useState("")
   const [onlyCurrentYear, setOnlyCurrentYear] = useState(false)
@@ -37,6 +47,7 @@ export function EvaluationsPage() {
     number | null
   >(null)
   const [duplicatingId, setDuplicatingId] = useState<number | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<EvaluationListItem | null>(null)
 
   const [page, setPage] = useState(1)
   const pageSize = 10
@@ -50,9 +61,9 @@ export function EvaluationsPage() {
         viewMode === "partagees"
           ? await getEvaluationsPartagees()
           : await getEvaluations({
-              search: search || undefined,
-              onlyCurrentYear: onlyCurrentYear || undefined,
-            } as EvaluationFiltersType)
+            search: search || undefined,
+            onlyCurrentYear: onlyCurrentYear || undefined,
+          } as EvaluationFiltersType)
 
       setEvaluations(data)
     } catch (e: any) {
@@ -97,17 +108,7 @@ export function EvaluationsPage() {
   }, [search])
 
   const handleDelete = async (evaluation: EvaluationListItem) => {
-    const confirmed = window.confirm(
-      `Supprimer l'évaluation de ${evaluation.anneeUniversitaire} (${evaluation.codeFormation} - ${evaluation.codeUe}) ?`,
-    )
-    if (!confirmed) return
-
-    try {
-      await deleteEvaluation(evaluation.idEvaluation)
-      await loadEvaluations()
-    } catch (e: any) {
-      alert(e.message || "Impossible de supprimer l'évaluation.")
-    }
+    setDeleteTarget(evaluation)
   }
 
   const handleDuplicate = async (evaluation: EvaluationListItem) => {
@@ -165,22 +166,20 @@ export function EvaluationsPage() {
           <button
             type="button"
             onClick={() => setViewMode("mine")}
-            className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-              viewMode === "mine"
+            className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${viewMode === "mine"
                 ? "bg-white text-gray-900 shadow-sm"
                 : "text-gray-600 hover:text-gray-900"
-            }`}
+              }`}
           >
             Mes évaluations
           </button>
           <button
             type="button"
             onClick={() => setViewMode("partagees")}
-            className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-              viewMode === "partagees"
+            className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${viewMode === "partagees"
                 ? "bg-white text-gray-900 shadow-sm"
                 : "text-gray-600 hover:text-gray-900"
-            }`}
+              }`}
           >
             Evaluations partagées
           </button>
@@ -227,6 +226,51 @@ export function EvaluationsPage() {
           )}
         </DialogContent>
       </Dialog>
+      <AlertDialog
+        open={deleteTarget != null}
+        onOpenChange={(open) => !open && setDeleteTarget(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Confirmer la suppression
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Êtes-vous sûr de vouloir supprimer l’évaluation{" "}
+              <strong>
+                {deleteTarget?.anneeUniversitaire} (
+                {deleteTarget?.codeFormation} - {deleteTarget?.codeUe})
+              </strong>{" "}
+              ?
+              <br />
+              Cette action est irréversible.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+
+            <AlertDialogAction
+              className="bg-red-600 hover:bg-red-700"
+              onClick={async () => {
+                if (!deleteTarget) return
+                try {
+                  await deleteEvaluation(deleteTarget.idEvaluation)
+                  toast.success("Évaluation supprimée")
+                  await loadEvaluations()
+                } catch (e: any) {
+                  toast.error(e.message || "Impossible de supprimer.")
+                } finally {
+                  setDeleteTarget(null)
+                }
+              }}
+            >
+              Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
     </div>
   )
 }
