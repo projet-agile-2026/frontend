@@ -8,6 +8,8 @@ import { QuestionsPage } from "@/pages/QuestionsPage"
 import { PageCouples } from "@/pages/PageCouples"
 import { EvaluationsPage } from "@/pages/evaluations/EvaluationsPage"
 import { EvaluationForm } from "@/pages/evaluations/EvaluationForm"
+import { PromotionsPage } from "@/pages/promotions/PromotionsPage"
+import { PromotionDetailPage } from "@/pages/promotions/PromotionDetailPage"
 
 export const router = createBrowserRouter([
   {
@@ -49,6 +51,14 @@ export const router = createBrowserRouter([
       {
         path: "evaluations/:id",
         element: <EvaluationForm />,
+      },
+      {
+        path: "promotions",
+        element: <PromotionsPage />,
+      },
+      {
+        path: "promotions/:codeFormation/:anneeUniversitaire",
+        element: <PromotionDetailPage />,
       },
     ],
   },

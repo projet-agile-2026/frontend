@@ -1,4 +1,4 @@
-import { Pencil, Trash2 } from "lucide-react"
+import { Pencil, Trash2, Copy, Shield, Loader2 } from "lucide-react"
 import { Badge } from "../../components/ui/badge"
 import { Button } from "../../components/ui/button"
 import {
@@ -14,6 +14,9 @@ interface EvaluationsTableProps {
   onPageChange: (page: number) => void
   onEdit: (evaluation: EvaluationListItem) => void
   onDelete: (evaluation: EvaluationListItem) => void
+  onDuplicate?: (evaluation: EvaluationListItem) => void
+  onOpenDroits?: (evaluation: EvaluationListItem) => void
+  duplicatingId?: number | null
 }
 
 function getStatusLabel(status: EvaluationStatus) {
@@ -33,15 +36,22 @@ function EvaluationCard({
   evaluation,
   onEdit,
   onDelete,
+  onDuplicate,
+  onOpenDroits,
+  duplicatingId,
   getStatusLabel,
   getStatusBadgeVariant,
 }: {
   evaluation: EvaluationListItem
   onEdit: (e: EvaluationListItem) => void
   onDelete: (e: EvaluationListItem) => void
+  onDuplicate?: (e: EvaluationListItem) => void
+  onOpenDroits?: (e: EvaluationListItem) => void
+  duplicatingId?: number | null
   getStatusLabel: (s: EvaluationStatus) => string
   getStatusBadgeVariant: (s: EvaluationStatus) => "default" | "outline" | "secondary"
 }) {
+  const isDuplicating = duplicatingId === evaluation.idEvaluation
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -67,7 +77,34 @@ function EvaluationCard({
             {new Date(evaluation.finReponse).toLocaleDateString()}
           </p>
         </div>
-        <div className="flex shrink-0 gap-2">
+        <div className="flex shrink-0 gap-2 flex-wrap">
+          {onOpenDroits && (
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-9 w-9"
+              onClick={() => onOpenDroits(evaluation)}
+              title="Gestion des droits"
+            >
+              <Shield className="h-4 w-4" />
+            </Button>
+          )}
+          {onDuplicate && (
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-9 w-9"
+              onClick={() => onDuplicate(evaluation)}
+              disabled={isDuplicating}
+              title="Dupliquer"
+            >
+              {isDuplicating ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Copy className="h-4 w-4" />
+              )}
+            </Button>
+          )}
           <Button
             variant="outline"
             size="icon"
@@ -111,6 +148,9 @@ export function EvaluationsTable({
   onPageChange,
   onEdit,
   onDelete,
+  onDuplicate,
+  onOpenDroits,
+  duplicatingId,
 }: EvaluationsTableProps) {
   const totalPages = Math.max(1, Math.ceil(total / pageSize))
 
@@ -130,6 +170,9 @@ export function EvaluationsTable({
                 evaluation={evaluation}
                 onEdit={onEdit}
                 onDelete={onDelete}
+                onDuplicate={onDuplicate}
+                onOpenDroits={onOpenDroits}
+                duplicatingId={duplicatingId}
                 getStatusLabel={getStatusLabel}
                 getStatusBadgeVariant={getStatusBadgeVariant}
               />
@@ -205,11 +248,40 @@ export function EvaluationsTable({
                   <td className="whitespace-nowrap px-3 lg:px-4 py-3 text-sm">
                     {new Date(evaluation.finReponse).toLocaleDateString()}
                   </td>
-                  <td className="px-3 lg:px-4 py-3 text-xs text-gray-400">
-                    À venir
+                  <td className="px-3 lg:px-4 py-3">
+                    {onOpenDroits ? (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 gap-1.5 text-xs"
+                        onClick={() => onOpenDroits(evaluation)}
+                        title="Gestion des droits"
+                      >
+                        <Shield className="h-3.5 w-3.5" />
+                        Droits
+                      </Button>
+                    ) : (
+                      <span className="text-xs text-gray-400">—</span>
+                    )}
                   </td>
                   <td className="whitespace-nowrap px-3 lg:px-4 py-3 text-right">
-                    <div className="flex items-center justify-end gap-2">
+                    <div className="flex items-center justify-end gap-1">
+                      {onDuplicate && (
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => onDuplicate(evaluation)}
+                          disabled={duplicatingId === evaluation.idEvaluation}
+                          title="Dupliquer"
+                        >
+                          {duplicatingId === evaluation.idEvaluation ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Copy className="h-4 w-4" />
+                          )}
+                        </Button>
+                      )}
                       <Button
                         variant="outline"
                         size="icon"

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import {
   deleteEvaluation,
+  dupliquerEvaluation,
   EvaluationListItem,
   EvaluationFilters as EvaluationFiltersType,
   getEvaluations,
@@ -9,8 +10,16 @@ import {
 } from "../../services/EvaluationService"
 import { EvaluationFilters } from "../../components/evaluations/EvaluationFilters"
 import { EvaluationsTable } from "../../components/evaluations/EvaluationsTable"
+import { DroitsSection } from "../../components/evaluations/DroitsSection"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "../../components/ui/dialog"
 import { Loader2, AlertCircle } from "lucide-react"
 import { Button } from "../../components/ui/button"
+import { toast } from "sonner"
 
 export function EvaluationsPage() {
   const navigate = useNavigate()
@@ -24,6 +33,10 @@ export function EvaluationsPage() {
   const [search, setSearch] = useState("")
   const [onlyCurrentYear, setOnlyCurrentYear] = useState(false)
   const [viewMode, setViewMode] = useState<"mine" | "partagees">("mine")
+  const [droitsDialogEvaluationId, setDroitsDialogEvaluationId] = useState<
+    number | null
+  >(null)
+  const [duplicatingId, setDuplicatingId] = useState<number | null>(null)
 
   const [page, setPage] = useState(1)
   const pageSize = 10
@@ -90,11 +103,28 @@ export function EvaluationsPage() {
     if (!confirmed) return
 
     try {
-      
       await deleteEvaluation(evaluation.idEvaluation)
       await loadEvaluations()
     } catch (e: any) {
       alert(e.message || "Impossible de supprimer l'évaluation.")
+    }
+  }
+
+  const handleDuplicate = async (evaluation: EvaluationListItem) => {
+    setDuplicatingId(evaluation.idEvaluation)
+    try {
+      const created = await dupliquerEvaluation(evaluation.idEvaluation)
+      toast.success("Évaluation dupliquée")
+      await loadEvaluations()
+      if (created?.id != null) {
+        navigate(`/evaluations/${created.id}`)
+      }
+    } catch (e: any) {
+      toast.error("Erreur", {
+        description: e.message || "Impossible de dupliquer l'évaluation.",
+      })
+    } finally {
+      setDuplicatingId(null)
     }
   }
 
@@ -173,9 +203,30 @@ export function EvaluationsPage() {
         pageSize={pageSize}
         total={filteredEvaluations.length}
         onPageChange={setPage}
-        onEdit={(evaluation) => navigate(`/evaluations/${evaluation.idEvaluation}`)}
+        onEdit={(evaluation) =>
+          navigate(`/evaluations/${evaluation.idEvaluation}`)
+        }
         onDelete={handleDelete}
+        onDuplicate={handleDuplicate}
+        onOpenDroits={(evaluation) =>
+          setDroitsDialogEvaluationId(evaluation.idEvaluation)
+        }
+        duplicatingId={duplicatingId}
       />
+
+      <Dialog
+        open={droitsDialogEvaluationId != null}
+        onOpenChange={(open) => !open && setDroitsDialogEvaluationId(null)}
+      >
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Gestion des droits de partage</DialogTitle>
+          </DialogHeader>
+          {droitsDialogEvaluationId != null && (
+            <DroitsSection evaluationId={droitsDialogEvaluationId} />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

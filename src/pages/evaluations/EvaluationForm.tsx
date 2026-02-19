@@ -10,17 +10,14 @@ import {
   createEvaluation,
   updateEvaluation,
   getEvaluationFull,
-  dupliquerEvaluation,
 } from "../../services/EvaluationService"
 import {
   EvaluationHeaderForm,
   EvaluationHeaderFormValues
 } from "../../components/evaluations/EvaluationHeaderForm"
 import { RubriquesSection } from "../../components/evaluations/RubriquesSection"
-import { DroitsSection } from "../../components/evaluations/DroitsSection"
 import { Button } from "../../components/ui/button"
-import { Loader2, Copy } from "lucide-react"
-import { toast } from "sonner"
+import { Loader2 } from "lucide-react"
 
 
 export function EvaluationForm() {
@@ -52,7 +49,6 @@ export function EvaluationForm() {
 
   const [etat, setEtat] = useState<EvaluationStatus>("ELA")
   const [rubriques, setRubriques] = useState<EvaluationWithRubriquesDTO["rubriques"]>([])
-  const [duplicating, setDuplicating] = useState(false)
 
   const reloadEvaluation = async (evaluationId: number) => {
     const data = await getEvaluationFull(evaluationId)
@@ -142,26 +138,6 @@ export function EvaluationForm() {
     }
   }
 
-  const handleDupliquer = async () => {
-    if (!id) return
-    setDuplicating(true)
-    try {
-      const created = await dupliquerEvaluation(Number(id))
-      toast.success("Évaluation dupliquée", {
-        description: "Vous êtes redirigé vers la nouvelle évaluation.",
-      })
-      if (created?.id != null) {
-        navigate(`/evaluations/${created.id}`)
-      } else {
-        navigate("/evaluations")
-      }
-    } catch (e: any) {
-      toast.error("Erreur", { description: e.message || "Impossible de dupliquer l'évaluation." })
-    } finally {
-      setDuplicating(false)
-    }
-  }
-
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault()
     setSaving(true)
@@ -226,32 +202,14 @@ export function EvaluationForm() {
             questions.
           </p>
         </div>
-        <div className="flex flex-wrap gap-2 w-full sm:w-auto">
-          {isEdit && id && (
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleDupliquer}
-              disabled={duplicating}
-              className="gap-1.5 shrink-0"
-            >
-              {duplicating ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Copy className="h-4 w-4" />
-              )}
-              Dupliquer
-            </Button>
-          )}
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => navigate("/evaluations")}
-            className="shrink-0"
-          >
-            Retour à la liste
-          </Button>
-        </div>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => navigate("/evaluations")}
+          className="w-full sm:w-auto shrink-0"
+        >
+          Retour à la liste
+        </Button>
       </div>
 
       {error && (
@@ -276,10 +234,6 @@ export function EvaluationForm() {
         evaluationId={id ? Number(id) : undefined}
         onReload={() => id && reloadEvaluation(Number(id))}
       />
-
-      {isEdit && id && (
-        <DroitsSection evaluationId={Number(id)} />
-      )}
 
       <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end sm:gap-3 pt-4 sm:pt-2">
         <Button
