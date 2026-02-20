@@ -10,11 +10,16 @@ import { EvaluationsPage } from "@/pages/evaluations/EvaluationsPage"
 import { EvaluationForm } from "@/pages/evaluations/EvaluationForm"
 import { PromotionsPage } from "@/pages/promotions/PromotionsPage"
 import { PromotionDetailPage } from "@/pages/promotions/PromotionDetailPage"
+import UnauthorizedPage from "@/pages/UnauthorizedPage"
 
 export const router = createBrowserRouter([
   {
     path: "/login",
     element: <LoginPage />,
+  },
+  {
+    path: "/unauthorized",
+    element: <UnauthorizedPage />,
   },
   {
     path: "/",
@@ -64,6 +69,7 @@ export const router = createBrowserRouter([
         path: "promotions/:codeFormation/:anneeUniversitaire",
         element: <PromotionDetailPage />,
       },
+      
     ],
   },
 ])

@@ -12,8 +12,8 @@ interface EvaluationsTableProps {
   pageSize: number
   total: number
   onPageChange: (page: number) => void
-  onEdit: (evaluation: EvaluationListItem) => void
-  onDelete: (evaluation: EvaluationListItem) => void
+  onEdit?: (evaluation: EvaluationListItem) => void
+  onDelete?: (evaluation: EvaluationListItem) => void
   onDuplicate?: (evaluation: EvaluationListItem) => void
   onOpenDroits?: (evaluation: EvaluationListItem) => void
   onView?: (evaluation: EvaluationListItem) => void
@@ -45,8 +45,8 @@ function EvaluationCard({
   getStatusBadgeVariant,
 }: {
   evaluation: EvaluationListItem
-  onEdit: (e: EvaluationListItem) => void
-  onDelete: (e: EvaluationListItem) => void
+  onEdit?: (e: EvaluationListItem) => void
+  onDelete?: (e: EvaluationListItem) => void
   onDuplicate?: (e: EvaluationListItem) => void
   onOpenDroits?: (e: EvaluationListItem) => void
   onView?: (e: EvaluationListItem) => void
@@ -119,22 +119,28 @@ function EvaluationCard({
               )}
             </Button>
           )}
-          <Button
-            variant="outline"
-            size="icon"
-            className="h-9 w-9"
-            onClick={() => onEdit(evaluation)}
-          >
-            <Pencil className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="outline"
-            size="icon"
-            className="h-9 w-9 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
-            onClick={() => onDelete(evaluation)}
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
+          {onEdit && (
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-9 w-9"
+              onClick={() => onEdit(evaluation)}
+              title="Modifier"
+            >
+              <Pencil className="h-4 w-4" />
+            </Button>
+          )}
+          {onDelete && (
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-9 w-9 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+              onClick={() => onDelete(evaluation)}
+              title="Supprimer"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          )}
         </div>
       </div>
     </div>
@@ -309,22 +315,28 @@ export function EvaluationsTable({
                           <Eye className="h-4 w-4" />
                         </Button>
                       )}
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={() => onEdit(evaluation)}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-8 w-8 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
-                        onClick={() => onDelete(evaluation)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      {onEdit && (
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => onEdit(evaluation)}
+                          title="Modifier"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                      )}
+                      {onDelete && (
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-8 w-8 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+                          onClick={() => onDelete(evaluation)}
+                          title="Supprimer"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
                     </div>
                   </td>
                 </tr>

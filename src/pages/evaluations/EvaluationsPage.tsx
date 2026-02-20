@@ -4,7 +4,6 @@ import {
   deleteEvaluation,
   dupliquerEvaluation,
   EvaluationListItem,
-  EvaluationFilters as EvaluationFiltersType,
   getEvaluations,
   getEvaluationsPartagees,
 } from "../../services/EvaluationService"
@@ -20,6 +19,8 @@ import {
 import { Loader2, AlertCircle } from "lucide-react"
 import { Button } from "../../components/ui/button"
 import { toast } from "sonner"
+import { getCurrentUser, type UserInfo } from "../../services/authService"
+import type { EvaluationStatus } from "../../services/EvaluationService"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -35,14 +36,18 @@ export function EvaluationsPage() {
   const navigate = useNavigate()
 
   const [evaluations, setEvaluations] = useState<EvaluationListItem[]>([])
+  const [user, setUser] = useState<UserInfo | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   console.log("Evaluations:", evaluations)
 
   const [search, setSearch] = useState("")
-  const [onlyCurrentYear, setOnlyCurrentYear] = useState(false)
   const [viewMode, setViewMode] = useState<"mine" | "partagees">("mine")
+  const [academicYearFilter, setAcademicYearFilter] = useState<string | null>(
+    null,
+  )
+  const [selectedStates, setSelectedStates] = useState<EvaluationStatus[]>([])
   const [droitsDialogEvaluationId, setDroitsDialogEvaluationId] = useState<
     number | null
   >(null)
@@ -52,6 +57,47 @@ export function EvaluationsPage() {
   const [page, setPage] = useState(1)
   const pageSize = 10
 
+  const isAdmin =
+    user?.role === "ADM" || user?.role === "ADMIN"
+
+  function getCurrentAcademicYear(date = new Date()) {
+    const year = date.getFullYear()
+    const month = date.getMonth() + 1 // 1..12
+    // Sept -> Déc : year-year+1 ; Jan -> Août : year-1-year
+    return month >= 9 ? `${year}-${year + 1}` : `${year - 1}-${year}`
+  }
+
+  function applyFilters(items: EvaluationListItem[]) {
+    let out = items
+
+    const term = search.trim().toLowerCase()
+    if (term) {
+      out = out.filter((e) => {
+        const haystack = [
+          e.anneeUniversitaire,
+          e.codeFormation,
+          e.libelleFormation,
+          e.codeUe,
+          e.libelleUe,
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase()
+        return haystack.includes(term)
+      })
+    }
+
+    if (academicYearFilter) {
+      out = out.filter((e) => e.anneeUniversitaire === academicYearFilter)
+    }
+
+    if (selectedStates.length > 0) {
+      out = out.filter((e) => selectedStates.includes(e.etat))
+    }
+
+    return out
+  }
+
   const loadEvaluations = async () => {
     try {
       setLoading(true)
@@ -60,42 +106,37 @@ export function EvaluationsPage() {
       const data =
         viewMode === "partagees"
           ? await getEvaluationsPartagees()
-          : await getEvaluations({
-            search: search || undefined,
-            onlyCurrentYear: onlyCurrentYear || undefined,
-          } as EvaluationFiltersType)
+          : await getEvaluations()
 
       setEvaluations(data)
     } catch (e: any) {
-      setError(e.message || "Erreur lors du chargement des évaluations.")
-    } finally {
-      setLoading(false)
-    }
+  if (e.status === 403) {
+    navigate("/unauthorized", { replace: true })
+    return
+  }
+
+  setError(e.message || "Erreur lors du chargement des évaluations.")
+} finally {
+  setLoading(false)
+}
+
   }
 
   useEffect(() => {
     loadEvaluations()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [onlyCurrentYear, viewMode])
+  }, [viewMode])
 
-  const filteredEvaluations = useMemo(() => {
-    const term = search.trim().toLowerCase()
-    if (!term) return evaluations
+  useEffect(() => {
+    // Minimal user fetch for role-based UI
+    getCurrentUser().then(setUser).catch(() => setUser(null))
+  }, [])
 
-    return evaluations.filter((e) => {
-      const haystack = [
-        e.anneeUniversitaire,
-        e.codeFormation,
-        e.libelleFormation,
-        e.codeUe,
-        e.libelleUe,
-      ]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase()
-      return haystack.includes(term)
-    })
-  }, [evaluations, search])
+  const filteredEvaluations = useMemo(
+    () => applyFilters(evaluations),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [evaluations, search, academicYearFilter, selectedStates],
+  )
 
   const paginatedEvaluations = useMemo(() => {
     if (!Array.isArray(filteredEvaluations)) return []
@@ -105,7 +146,7 @@ export function EvaluationsPage() {
 
   useEffect(() => {
     setPage(1)
-  }, [search])
+  }, [search, academicYearFilter, selectedStates])
 
   const handleDelete = async (evaluation: EvaluationListItem) => {
     setDeleteTarget(evaluation)
@@ -190,9 +231,23 @@ export function EvaluationsPage() {
         <EvaluationFilters
           search={search}
           onSearchChange={setSearch}
-          onlyCurrentYear={onlyCurrentYear}
-          onToggleCurrentYear={() => setOnlyCurrentYear((v) => !v)}
+          academicYearActive={academicYearFilter != null}
+          onToggleCurrentYear={() =>
+            setAcademicYearFilter((prev) =>
+              prev ? null : getCurrentAcademicYear(),
+            )
+          }
+          selectedStates={selectedStates}
+          onToggleState={(state) =>
+            setSelectedStates((prev) =>
+              prev.includes(state)
+                ? prev.filter((s) => s !== state)
+                : [...prev, state],
+            )
+          }
+          onClearStates={() => setSelectedStates([])}
           onNewEvaluation={() => navigate("/evaluations/new")}
+          showTeacherActions={!isAdmin}
         />
       </div>
 
@@ -202,16 +257,20 @@ export function EvaluationsPage() {
         pageSize={pageSize}
         total={filteredEvaluations.length}
         onPageChange={setPage}
-        onEdit={(evaluation) =>
-          navigate(`/evaluations/${evaluation.idEvaluation}`)
+        onEdit={
+          isAdmin
+            ? undefined
+            : (evaluation) => navigate(`/evaluations/${evaluation.idEvaluation}`)
         }
         onView={(evaluation) =>
           navigate(`/evaluations/${evaluation.idEvaluation}/view`)
         }
-        onDelete={handleDelete}
-        onDuplicate={handleDuplicate}
-        onOpenDroits={(evaluation) =>
-          setDroitsDialogEvaluationId(evaluation.idEvaluation)
+        onDelete={isAdmin ? undefined : handleDelete}
+        onDuplicate={isAdmin ? undefined : handleDuplicate}
+        onOpenDroits={
+          isAdmin
+            ? undefined
+            : (evaluation) => setDroitsDialogEvaluationId(evaluation.idEvaluation)
         }
         duplicatingId={duplicatingId}
       />

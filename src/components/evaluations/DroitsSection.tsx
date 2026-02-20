@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react"
 import { Shield, Plus, Trash2, Pencil, Users } from "lucide-react"
 import { Button } from "../ui/button"
-import { Input } from "../ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card"
 import {
   Dialog,
@@ -12,6 +11,13 @@ import {
   DialogTrigger,
 } from "../ui/dialog"
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../ui/select"
+import {
   getDroits,
   upsertDroit,
   deleteDroit,
@@ -20,6 +26,10 @@ import {
   type DroitRequestDTO,
   type DroitTousRequestDTO,
 } from "../../services/EvaluationService"
+import {
+  getEnseignants,
+  type EnseignantLightDTO,
+} from "../../services/enseignantservice"
 
 interface DroitsSectionProps {
   evaluationId: number
@@ -40,6 +50,8 @@ export function DroitsSection({ evaluationId }: DroitsSectionProps) {
   const [tousConsultation, setTousConsultation] = useState(true)
   const [tousDuplication, setTousDuplication] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [enseignants, setEnseignants] = useState<EnseignantLightDTO[]>([])
+  const [loadingEnseignants, setLoadingEnseignants] = useState(false)
 
   const loadDroits = async () => {
     try {
@@ -120,6 +132,22 @@ export function DroitsSection({ evaluationId }: DroitsSectionProps) {
       setSubmitting(false)
     }
   }
+
+  useEffect(() => {
+    if (!upsertOpen || enseignants.length > 0) return
+    const load = async () => {
+      try {
+        setLoadingEnseignants(true)
+        const data = await getEnseignants()
+        setEnseignants(data)
+      } catch (e: any) {
+        setError(e.message || "Erreur lors du chargement des enseignants.")
+      } finally {
+        setLoadingEnseignants(false)
+      }
+    }
+    void load()
+  }, [upsertOpen, enseignants.length])
 
   return (
     <Card className="overflow-hidden rounded-xl border border-gray-200/90 bg-white shadow-sm">
@@ -202,16 +230,36 @@ export function DroitsSection({ evaluationId }: DroitsSectionProps) {
                 </DialogHeader>
                 <div className="space-y-4 py-2">
                   <div>
-                    <label className="text-sm font-medium text-gray-700">Numéro enseignant</label>
-                    <Input
-                      type="number"
-                      min={0}
-                      placeholder="Ex: 12345"
-                      value={noEnseignant}
-                      onChange={(e) => setNoEnseignant(e.target.value)}
-                      className="mt-1"
-                      disabled={!!editingDroit}
-                    />
+                    <label className="text-sm font-medium text-gray-700">
+                      Enseignant
+                    </label>
+                    <div className="mt-1">
+                      <Select
+                        value={noEnseignant || undefined}
+                        onValueChange={setNoEnseignant}
+                        disabled={!!editingDroit || loadingEnseignants}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue
+                            placeholder={
+                              loadingEnseignants
+                                ? "Chargement..."
+                                : "Sélectionner un enseignant"
+                            }
+                          />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {enseignants.map((e) => (
+                            <SelectItem
+                              key={e.noEnseignant}
+                              value={String(e.noEnseignant)}
+                            >
+                              {e.prenom} {e.nom} ({e.emailUbo})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input

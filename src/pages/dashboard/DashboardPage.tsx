@@ -151,11 +151,6 @@ export function DashboardPage() {
             Suivez vos évaluations, visualisez leur état et accédez rapidement aux actions clés.
           </p>
         </div>
-        <div className="flex flex-col gap-2 sm:items-end">
-          <Badge variant="outline" className="rounded-full text-xs px-3 py-1">
-            Espace enseignant
-          </Badge>
-        </div>
       </div>
 
       {/* Stats row */}
