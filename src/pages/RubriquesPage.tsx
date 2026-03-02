@@ -1,5 +1,5 @@
 import  React, { useState, useMemo, useEffect } from 'react';
-import { Search, Plus, GripVertical, Trash2, Edit2, ChevronDown, ChevronRight, AlertCircle, Loader2 } from 'lucide-react';
+import { Search, Plus, GripVertical, Trash2, Edit2, ChevronDown, ChevronRight, AlertCircle, Loader2, CheckCircle } from 'lucide-react';
 import { Input } from "../components/ui/input";
 import { Button } from "../components/ui/button";
 import {
@@ -58,6 +58,7 @@ import {
 import {
   getQualificatifs
 } from "../services/Qualificatifservice"
+import { getCurrentUser, type UserInfo } from "../services/authService"
 
 // TYPES & INTERFACES
 import type { QualificatifDTO as Qualificatif } from "../services/Qualificatifservice"
@@ -79,12 +80,15 @@ interface SortableQuestionRowProps {
   rubriqueId: number;
   qualificatifs: Qualificatif[];
   onDelete: (rubriqueId: number, questionId: number) => void;
+  canEdit: boolean;
 }
 
-const SortableQuestionRow = ({ question, rubriqueId, qualificatifs, onDelete }: SortableQuestionRowProps) => {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+const SortableQuestionRow = ({ question, rubriqueId, qualificatifs, onDelete, canEdit }: SortableQuestionRowProps) => {
+  const sortable = canEdit ? useSortable({
     id: question.idQuestion.toString()
-  });
+  }) : { attributes: {}, listeners: {}, setNodeRef: () => {}, transform: null, transition: undefined, isDragging: false };
+  
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = sortable;
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
@@ -110,26 +114,35 @@ const SortableQuestionRow = ({ question, rubriqueId, qualificatifs, onDelete }: 
             style={style}
             className="group flex items-center gap-2 py-2.5 px-3 bg-yellow-50 border-b border-yellow-100 hover:bg-yellow-100 transition-colors"
         >
-          <div
-              {...attributes}
-              {...listeners}
-              className="cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 flex-shrink-0"
-          >
-            <GripVertical size={16} />
-          </div>
+          {canEdit && (
+            <div
+                {...attributes}
+                {...listeners}
+                className="cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 flex-shrink-0"
+            >
+              <GripVertical size={16} />
+            </div>
+          )}
 
           <div className="flex-1 grid grid-cols-12 gap-2 sm:gap-4 items-center min-w-0">
-            <div className="col-span-12 sm:col-span-6 text-sm text-gray-900 truncate">{question.intitule}</div>
+            <div className={`col-span-12 text-sm text-gray-900 truncate ${canEdit ? "sm:col-span-5" : "sm:col-span-6"}`}>{question.intitule}</div>
+            <div className="col-span-12 sm:col-span-1">
+              <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${question.type === 'QUS' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'}`}>
+                {question.type === 'QUS' ? 'Standard' : 'Personnelle'}
+              </span>
+            </div>
             <div className="col-span-12 sm:col-span-5 text-sm text-gray-600 truncate">{qualificatifLabel}</div>
+            {canEdit && (
             <div className="col-span-12 sm:col-span-1 flex justify-end gap-2 flex-shrink-0">
               <button
                   onClick={() => setShowDeleteConfirm(true)}
-                  className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-all opacity-0 group-hover:opacity-100"
+                  className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-all"
                   title="Retirer de la rubrique"
               >
                 <Trash2 size={14} />
               </button>
             </div>
+            )}
           </div>
         </div>
 
@@ -167,6 +180,7 @@ interface SortableRubriqueRowProps {
   onAddQuestion: (rubriqueId: number, selectedQuestionId: number) => void;
   onDeleteQuestion: (rubriqueId: number, questionId: number) => void;
   onDragQuestionEnd: (rubriqueId: number, event: DragEndEvent) => void;
+  canEdit: boolean;
 }
 
 const SortableRubriqueRow = ({
@@ -178,17 +192,21 @@ const SortableRubriqueRow = ({
                                onEditRubrique,
                                onAddQuestion,
                                onDeleteQuestion,
-                               onDragQuestionEnd
+                               onDragQuestionEnd,
+                               canEdit
                              }: SortableRubriqueRowProps) => {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+  const sortable = canEdit ? useSortable({
     id: rubrique.idRubrique.toString()
-  });
+  }) : { attributes: {}, listeners: {}, setNodeRef: () => {}, transform: null, transition: undefined, isDragging: false };
+  
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = sortable;
 
   const [editValue, setEditValue] = useState(rubrique.designation);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isAddQuestionOpen, setIsAddQuestionOpen] = useState(false);
   const [selectedQuestionId, setSelectedQuestionId] = useState("");
   const [questionSearch, setQuestionSearch] = useState("");
+  const [selectedQuestionType, setSelectedQuestionType] = useState<"QUS" | "QUP">("QUS");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const questionSensors = useSensors(
@@ -206,6 +224,7 @@ const SortableRubriqueRow = ({
   const currentQuestionIds = rubrique.questions.map(q => q.idQuestion);
   const filteredAvailableQuestions = availableQuestions
       .filter(q => !currentQuestionIds.includes(q.idQuestion))
+      .filter(q => q.type === selectedQuestionType)
       .filter(q => q.intitule.toLowerCase().includes(questionSearch.toLowerCase()));
 
   const handleAddQuestion = () => {
@@ -213,6 +232,7 @@ const SortableRubriqueRow = ({
     onAddQuestion(rubrique.idRubrique, parseInt(selectedQuestionId));
     setSelectedQuestionId("");
     setQuestionSearch("");
+    setSelectedQuestionType("QUS");
     setIsAddQuestionOpen(false);
   };
 
@@ -228,13 +248,15 @@ const SortableRubriqueRow = ({
         <div ref={setNodeRef} style={style} className={`border-l-4 border-l-yellow-400 bg-white mb-2 overflow-hidden ${isDragging ? 'shadow-lg' : ''}`}>
           {/* Rubrique Header */}
           <div className="group flex items-center gap-2 py-3 px-3 sm:px-4 bg-gray-50 hover:bg-gray-100 transition-colors min-w-0">
-            <div
-                {...attributes}
-                {...listeners}
-                className="cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 flex-shrink-0"
-            >
-              <GripVertical size={18} />
-            </div>
+            {canEdit && (
+              <div
+                  {...attributes}
+                  {...listeners}
+                  className="cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 flex-shrink-0"
+              >
+                <GripVertical size={18} />
+              </div>
+            )}
 
             <button
                 onClick={() => onToggleExpand(rubrique.idRubrique)}
@@ -252,8 +274,9 @@ const SortableRubriqueRow = ({
               )}
             </div>
 
-            <div className="flex items-center gap-2 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-              <Dialog open={isAddQuestionOpen} onOpenChange={setIsAddQuestionOpen}>
+            {canEdit && (
+              <div className="flex items-center gap-2 flex-shrink-0 transition-opacity">
+                <Dialog open={isAddQuestionOpen} onOpenChange={setIsAddQuestionOpen}>
                 <DialogTrigger asChild>
                   <button
                       className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-all"
@@ -267,6 +290,38 @@ const SortableRubriqueRow = ({
                     <DialogTitle>Sélectionner une question</DialogTitle>
                   </DialogHeader>
                   <div className="space-y-4 py-4">
+                    {/* Type Tabs */}
+                    <div className="bg-gray-50 p-1 rounded-lg border border-gray-200">
+                      <div className="flex gap-1">
+                        <button
+                          onClick={() => {
+                            setSelectedQuestionType("QUS");
+                            setSelectedQuestionId("");
+                          }}
+                          className={`flex-1 px-3 py-2 rounded-md text-xs font-medium transition-all ${
+                            selectedQuestionType === "QUS"
+                              ? "bg-blue-600 text-white shadow-sm"
+                              : "bg-transparent text-gray-600 hover:bg-gray-100"
+                          }`}
+                        >
+                          Questions Standard (QUS)
+                        </button>
+                        <button
+                          onClick={() => {
+                            setSelectedQuestionType("QUP");
+                            setSelectedQuestionId("");
+                          }}
+                          className={`flex-1 px-3 py-2 rounded-md text-xs font-medium transition-all ${
+                            selectedQuestionType === "QUP"
+                              ? "bg-purple-600 text-white shadow-sm"
+                              : "bg-transparent text-gray-600 hover:bg-gray-100"
+                          }`}
+                        >
+                          Questions Personnelles (QUP)
+                        </button>
+                      </div>
+                    </div>
+                    
                     <div className="space-y-2">
                       <label className="text-sm font-medium text-gray-700">Rechercher</label>
                       <Input
@@ -365,7 +420,8 @@ const SortableRubriqueRow = ({
               >
                 <Trash2 size={16} />
               </button>
-            </div>
+              </div>
+            )}
           </div>
 
           {/* Questions List */}
@@ -375,17 +431,35 @@ const SortableRubriqueRow = ({
                     <>
                       {/* Table Header */}
                       <div className="grid grid-cols-12 gap-2 sm:gap-4 px-4 sm:px-9 py-2 bg-gray-100 border-t border-gray-200 text-xs font-semibold text-gray-600 uppercase">
-                        <div className="col-span-12 sm:col-span-6">Question</div>
-                        <div className="col-span-12 sm:col-span-5">Échelle</div>
-                        <div className="col-span-12 sm:col-span-1 text-right">Actions</div>
+                        <div className={canEdit ? "col-span-12 sm:col-span-5" : "col-span-12 sm:col-span-6"}>Question</div>
+                        <div className="col-span-12 sm:col-span-1">Type</div>
+                        <div className="col-span-12 sm:col-span-5">Couples de qualificatifs</div>
+                        {canEdit && (
+                          <div className="col-span-12 sm:col-span-1 text-right">Actions</div>
+                        )}
                       </div>
                       {/* Questions with DnD */}
-                      <DndContext
-                          sensors={questionSensors}
-                          collisionDetection={closestCenter}
-                          onDragEnd={(event) => onDragQuestionEnd(rubrique.idRubrique, event)}
-                      >
-                        <SortableContext items={rubrique.questions.map(q => q.idQuestion.toString())} strategy={verticalListSortingStrategy}>
+                      {canEdit ? (
+                        <DndContext
+                            sensors={questionSensors}
+                            collisionDetection={closestCenter}
+                            onDragEnd={(event) => onDragQuestionEnd(rubrique.idRubrique, event)}
+                        >
+                          <SortableContext items={rubrique.questions.map(q => q.idQuestion.toString())} strategy={verticalListSortingStrategy}>
+                            {rubrique.questions.map((question) => (
+                                <SortableQuestionRow
+                                    key={question.idQuestion}
+                                    question={question}
+                                    rubriqueId={rubrique.idRubrique}
+                                    qualificatifs={qualificatifs}
+                                    onDelete={onDeleteQuestion}
+                                    canEdit={canEdit}
+                                />
+                            ))}
+                          </SortableContext>
+                        </DndContext>
+                      ) : (
+                        <>
                           {rubrique.questions.map((question) => (
                               <SortableQuestionRow
                                   key={question.idQuestion}
@@ -393,10 +467,11 @@ const SortableRubriqueRow = ({
                                   rubriqueId={rubrique.idRubrique}
                                   qualificatifs={qualificatifs}
                                   onDelete={onDeleteQuestion}
+                                  canEdit={canEdit}
                               />
                           ))}
-                        </SortableContext>
-                      </DndContext>
+                        </>
+                      )}
                     </>
                 ) : (
                     <div className="py-8 text-center text-gray-400 text-sm">
@@ -440,6 +515,10 @@ export function RubriquesPage() {
   const [availableQuestions, setAvailableQuestions] = useState<Question[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [user, setUser] = useState<UserInfo | null>(null);
+  const [selectedType, setSelectedType] = useState<"RBS" | "RBP">("RBS");
+  const [showSuccessNotification, setShowSuccessNotification] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
 
   const sensors = useSensors(
       useSensor(PointerSensor),
@@ -448,7 +527,21 @@ export function RubriquesPage() {
 
   useEffect(() => {
     loadData();
+    loadUser();
   }, []);
+
+  const loadUser = async () => {
+    try {
+      const userData = await getCurrentUser();
+      setUser(userData);
+      // Si enseignant, afficher par défaut les rubriques personnelles
+      if (userData.role === "ENS") {
+        setSelectedType("RBP");
+      }
+    } catch (err) {
+      console.error('Error loading user:', err);
+    }
+  };
 
   const loadData = async () => {
     try {
@@ -489,9 +582,20 @@ export function RubriquesPage() {
     }
   };
 
+  // Vérification des permissions
+  const canEdit = useMemo(() => {
+    if (!user) return false;
+    if (user.role === "ADM") return true; // Admin peut tout faire
+    if (user.role === "ENS" && selectedType === "RBP") return true; // Enseignant peut gérer RBP
+    return false; // Enseignant ne peut pas gérer RBS
+  }, [user, selectedType]);
+
   const filteredRubriques = useMemo(
-      () => rubriques.filter(r => r.designation.toLowerCase().includes(search.toLowerCase())),
-      [rubriques, search]
+      () => rubriques
+        .filter(r => r.type === selectedType)
+        .filter(r => r.designation.toLowerCase().includes(search.toLowerCase()))
+        .sort((a, b) => a.designation.localeCompare(b.designation)),
+      [rubriques, search, selectedType]
   );
 
   const handleAddRubrique = async () => {
@@ -499,7 +603,8 @@ export function RubriquesPage() {
 
     try {
       const newRubrique = await createRubrique({
-        designation: newRubriqueTitle.toUpperCase()
+        designation: newRubriqueTitle.toUpperCase(),
+        type: selectedType
       });
 
       setRubriques(prev => [...prev, { ...newRubrique, questions: [], isExpanded: false }]);
@@ -525,6 +630,11 @@ export function RubriquesPage() {
       setRubriques(prev => prev.map(r =>
           r.idRubrique === id ? { ...r, designation: newDesignation.toUpperCase() } : r
       ));
+      
+      // Afficher la notification de succès
+      setSuccessMessage(`Rubrique "${newDesignation.toUpperCase()}" modifiée avec succès`);
+      setShowSuccessNotification(true);
+      setTimeout(() => setShowSuccessNotification(false), 3000);
     } catch (err: any) {
       console.error('Error updating rubrique:', err);
       alert('Erreur lors de la mise à jour de la rubrique');
@@ -533,8 +643,16 @@ export function RubriquesPage() {
 
   const handleDeleteRubrique = async (id: number) => {
     try {
+      const rubrique = rubriques.find(r => r.idRubrique === id);
+      const rubriqueNom = rubrique?.designation || '';
+      
       await deleteRubrique(id);
       setRubriques(prev => prev.filter(r => r.idRubrique !== id));
+      
+      // Afficher la notification de succès
+      setSuccessMessage(`Rubrique "${rubriqueNom}" supprimée avec succès`);
+      setShowSuccessNotification(true);
+      setTimeout(() => setShowSuccessNotification(false), 3000);
     } catch (err: any) {
       console.error('Error deleting rubrique:', err);
       alert('Erreur lors de la suppression de la rubrique');
@@ -564,8 +682,7 @@ export function RubriquesPage() {
           ordre: index + 1
         }));
 
-        // Supposant que toutes les rubriques sont de type "RBS"
-        await reorderRubriques("RBS", rubriqueOrders);
+        await reorderRubriques(selectedType, rubriqueOrders);
       } catch (err: any) {
         console.error('Error reordering rubriques:', err);
         await loadData(); // Recharger si erreur
@@ -577,9 +694,16 @@ export function RubriquesPage() {
     try {
       const rubrique = rubriques.find(r => r.idRubrique === rubriqueId);
       const ordre = (rubrique?.questions.length || 0) + 1;
+      const question = availableQuestions.find(q => q.idQuestion === selectedQuestionId);
+      const questionNom = question?.intitule || '';
 
       await addQuestionToRubrique(rubriqueId, selectedQuestionId, ordre);
       await loadData();
+      
+      // Afficher la notification de succès
+      setSuccessMessage(`Question "${questionNom}" ajoutée avec succès à la rubrique`);
+      setShowSuccessNotification(true);
+      setTimeout(() => setShowSuccessNotification(false), 3000);
     } catch (err: any) {
       console.error('Error adding question:', err);
       alert('Erreur lors de l\'ajout de la question');
@@ -588,6 +712,10 @@ export function RubriquesPage() {
 
   const handleDeleteQuestion = async (rubriqueId: number, questionId: number) => {
     try {
+      const rubrique = rubriques.find(r => r.idRubrique === rubriqueId);
+      const question = rubrique?.questions.find(q => q.idQuestion === questionId);
+      const questionNom = question?.intitule || '';
+      
       await removeQuestionFromRubrique(rubriqueId, questionId);
 
       setRubriques(prev => prev.map(r =>
@@ -595,6 +723,11 @@ export function RubriquesPage() {
               ? { ...r, questions: r.questions.filter(q => q.idQuestion !== questionId) }
               : r
       ));
+      
+      // Afficher la notification de succès
+      setSuccessMessage(`Question "${questionNom}" retirée avec succès de la rubrique`);
+      setShowSuccessNotification(true);
+      setTimeout(() => setShowSuccessNotification(false), 3000);
     } catch (err: any) {
       console.error('Error deleting question:', err);
       alert('Erreur lors de la suppression de la question');
@@ -654,9 +787,60 @@ export function RubriquesPage() {
 
   return (
       <div className="w-full max-w-7xl mx-auto px-4 py-4 sm:p-6 min-w-0">
+        {/* Success Notification */}
+        {showSuccessNotification && (
+          <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-top-5 duration-300">
+            <div className="bg-green-50 border-l-4 border-green-500 rounded-lg shadow-lg p-4 flex items-center gap-3 min-w-[320px]">
+              <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />
+              <div className="flex-1">
+                <p className="text-sm font-medium text-green-800">{successMessage}</p>
+              </div>
+              <button
+                onClick={() => setShowSuccessNotification(false)}
+                className="text-green-500 hover:text-green-700 transition-colors"
+              >
+                ×
+              </button>
+            </div>
+          </div>
+        )}
+        
         {/* Header */}
         <div className="mb-4 sm:mb-6">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-4 sm:mb-6">RUBRIQUES & QUESTIONS</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-4 sm:mb-6">
+            {user?.role === "ADM" 
+              ? "Gestion des Rubriques Standards" 
+              : "Gestion des Rubriques"}
+          </h1>
+
+          {/* Type Tabs - Hidden for Admin */}
+          {user?.role !== "ADM" && (
+          <div className="bg-white p-2 rounded-lg shadow-sm border border-gray-200 mb-4">
+            <div className="flex gap-2">
+              <button
+                onClick={() => setSelectedType("RBS")}
+                className={`flex-1 px-4 py-2.5 rounded-md text-sm font-medium transition-all ${
+                  selectedType === "RBS"
+                    ? "bg-blue-600 text-white shadow-sm"
+                    : "bg-gray-50 text-gray-600 hover:bg-gray-100"
+                }`}
+              >
+                Rubriques Standard
+                
+              </button>
+              <button
+                onClick={() => setSelectedType("RBP")}
+                className={`flex-1 px-4 py-2.5 rounded-md text-sm font-medium transition-all ${
+                  selectedType === "RBP"
+                    ? "bg-purple-600 text-white shadow-sm"
+                    : "bg-gray-50 text-gray-600 hover:bg-gray-100"
+                }`}
+              >
+                Rubriques Personnelles
+              </button>
+            </div>
+          </div>
+          )}
 
           {/* Search and Add Button */}
           <div className="bg-white p-4 sm:p-5 rounded-lg shadow-sm border border-gray-200">
@@ -671,16 +855,23 @@ export function RubriquesPage() {
                 />
               </div>
 
-              <Dialog open={isAddRubriqueOpen} onOpenChange={setIsAddRubriqueOpen}>
-                <DialogTrigger asChild>
-                  <Button className="bg-black text-white hover:bg-gray-800 h-10 w-full sm:w-auto">
-                    <Plus className="mr-2 h-4 w-4" />
-                    Ajouter une rubrique
-                  </Button>
-                </DialogTrigger>
+              {canEdit && (
+                <Dialog open={isAddRubriqueOpen} onOpenChange={setIsAddRubriqueOpen}>
+                  <DialogTrigger asChild>
+                    <Button className={`${
+                      selectedType === "RBS" 
+                        ? "bg-blue-600 hover:bg-blue-700" 
+                        : "bg-purple-600 hover:bg-purple-700"
+                    } text-white h-10 w-full sm:w-auto`}>
+                      <Plus className="mr-2 h-4 w-4" />
+                      Ajouter une rubrique {selectedType === "RBS" ? "standard" : "personnelle"}
+                    </Button>
+                  </DialogTrigger>
                 <DialogContent className="w-[calc(100%-2rem)] max-w-md max-h-[90vh] overflow-y-auto sm:max-h-none">
                   <DialogHeader>
-                    <DialogTitle>Nouvelle Rubrique</DialogTitle>
+                    <DialogTitle>
+                      Nouvelle Rubrique {selectedType === "RBS" ? "Standard" : "Personnelle"}
+                    </DialogTitle>
                   </DialogHeader>
                   <div className="py-4">
                     <label className="text-sm font-medium text-gray-700 mb-2 block">Désignation</label>
@@ -698,6 +889,7 @@ export function RubriquesPage() {
                   </DialogFooter>
                 </DialogContent>
               </Dialog>
+              )}
             </div>
           </div>
         </div>
@@ -706,35 +898,56 @@ export function RubriquesPage() {
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
           <div className="px-3 sm:px-4 py-3 border-b border-gray-200">
             <h2 className="font-semibold text-gray-900 text-sm truncate">
-              Rubriques <span className="text-gray-400 font-normal">({filteredRubriques.length} résultat{filteredRubriques.length > 1 ? 's' : ''})</span>
+              Rubriques {selectedType === "RBS" ? "Standard" : "Personnelles"} <span className="text-gray-400 font-normal">({filteredRubriques.length} résultat{filteredRubriques.length > 1 ? 's' : ''})</span>
             </h2>
           </div>
 
           <div className="p-3 sm:p-4 min-w-0">
             {filteredRubriques.length > 0 ? (
-                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragRubriqueEnd}>
-                  <SortableContext items={filteredRubriques.map(r => r.idRubrique.toString())} strategy={verticalListSortingStrategy}>
-                    <div className="space-y-2">
-                      {filteredRubriques.map((rubrique) => (
-                          <SortableRubriqueRow
-                              key={rubrique.idRubrique}
-                              rubrique={rubrique}
-                              qualificatifs={qualificatifs}
-                              availableQuestions={availableQuestions}
-                              onToggleExpand={handleToggleExpand}
-                              onDeleteRubrique={handleDeleteRubrique}
-                              onEditRubrique={handleEditRubrique}
-                              onAddQuestion={handleAddQuestion}
-                              onDeleteQuestion={handleDeleteQuestion}
-                              onDragQuestionEnd={handleDragQuestionEnd}
-                          />
-                      ))}
-                    </div>
-                  </SortableContext>
-                </DndContext>
+                canEdit ? (
+                  <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragRubriqueEnd}>
+                    <SortableContext items={filteredRubriques.map(r => r.idRubrique.toString())} strategy={verticalListSortingStrategy}>
+                      <div className="space-y-2">
+                        {filteredRubriques.map((rubrique) => (
+                            <SortableRubriqueRow
+                                key={rubrique.idRubrique}
+                                rubrique={rubrique}
+                                qualificatifs={qualificatifs}
+                                availableQuestions={availableQuestions}
+                                onToggleExpand={handleToggleExpand}
+                                onDeleteRubrique={handleDeleteRubrique}
+                                onEditRubrique={handleEditRubrique}
+                                onAddQuestion={handleAddQuestion}
+                                onDeleteQuestion={handleDeleteQuestion}
+                                onDragQuestionEnd={handleDragQuestionEnd}
+                                canEdit={canEdit}
+                            />
+                        ))}
+                      </div>
+                    </SortableContext>
+                  </DndContext>
+                ) : (
+                  <div className="space-y-2">
+                    {filteredRubriques.map((rubrique) => (
+                        <SortableRubriqueRow
+                            key={rubrique.idRubrique}
+                            rubrique={rubrique}
+                            qualificatifs={qualificatifs}
+                            availableQuestions={availableQuestions}
+                            onToggleExpand={handleToggleExpand}
+                            onDeleteRubrique={handleDeleteRubrique}
+                            onEditRubrique={handleEditRubrique}
+                            onAddQuestion={handleAddQuestion}
+                            onDeleteQuestion={handleDeleteQuestion}
+                            onDragQuestionEnd={handleDragQuestionEnd}
+                            canEdit={canEdit}
+                        />
+                    ))}
+                  </div>
+                )
             ) : (
                 <div className="py-16 text-center text-gray-400">
-                  <p className="text-sm">Aucune rubrique trouvée</p>
+                  <p className="text-sm">Aucune rubrique {selectedType === "RBS" ? "standard" : "personnelle"} trouvée</p>
                 </div>
             )}
           </div>
