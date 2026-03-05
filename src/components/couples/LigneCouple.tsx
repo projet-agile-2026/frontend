@@ -2,7 +2,7 @@ import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Edit3, Trash2, Check, X } from "lucide-react";
 import type { QualificatifDTO as Couple } from "../../services/Qualificatifservice";
-
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
 type Props = {
   couple: Couple;
   enEdition: boolean;
@@ -34,15 +34,6 @@ export function LigneCouple({
 
   return (
     <div className="grid grid-cols-[1.2fr_1.2fr_80px_120px] gap-3 px-5 py-4 items-center">
-      {/* Maximal */}
-      <div>
-        {enEdition ? (
-          <Input value={mot1Edition} onChange={(e) => onChangerMot1Edition(e.target.value)} />
-        ) : (
-          <span className="font-semibold uppercase">{couple.mot1}</span>
-        )}
-      </div>
-
       {/* Minimal */}
       <div>
         {enEdition ? (
@@ -51,17 +42,29 @@ export function LigneCouple({
           <span className="font-semibold uppercase">{couple.mot2}</span>
         )}
       </div>
-
+        {/* Maximal */}
+        <div>
+            {enEdition ? (
+                <Input value={mot1Edition} onChange={(e) => onChangerMot1Edition(e.target.value)} />
+            ) : (
+                <span className="font-semibold uppercase">{couple.mot1}</span>
+            )}
+        </div>
       {/* COUNT */}
       <div className="text-center">
-        <span
-          className={`inline-flex items-center justify-center h-7 min-w-[30px] px-2 text-xs font-bold rounded-full
-            ${isUsed ? "bg-red-100 text-red-600" : "bg-slate-100 text-slate-500"}
-          `}
-          title={isUsed ? "Couple utilisé dans des questions" : "Aucune question liée"}
-        >
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+        <span className={`inline-flex items-center justify-center h-7 min-w-[30px] px-2 text-xs font-bold rounded-full cursor-default
+          ${isUsed ? "bg-red-100 text-red-600" : "bg-slate-100 text-slate-500"}`}>
           {couple.count ?? 0}
         </span>
+            </TooltipTrigger>
+            <TooltipContent>
+              {isUsed ? `Utilisé dans ${couple.count} question(s)` : "Aucune question liée"}
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </div>
 
       {/* ACTIONS */}
@@ -78,38 +81,40 @@ export function LigneCouple({
         ) : (
           <>
             {/* EDIT */}
-            <Button
-              variant="ghost"
-              size="icon"
-              disabled={isUsed}
-              className={`h-8 w-8 rounded-lg border border-slate-100 shadow-sm
-                ${isUsed ? "text-slate-200 cursor-not-allowed" : "text-slate-400 hover:text-blue-600"}
-              `}
-              title={isUsed ? "Couple utilisé : modification interdite" : "Modifier"}
-              onClick={() => {
-                if (isUsed) return;
-                onDemarrerEdition();
-              }}
-            >
-              <Edit3 size={14} />
-            </Button>
+            <TooltipProvider>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+      <span>
+        <Button
+            variant="ghost" size="icon"
+            disabled={isUsed}
+            className={`h-8 w-8 rounded-lg border border-slate-100 shadow-sm ${isUsed ? "text-slate-200 cursor-not-allowed" : "text-slate-400 hover:text-blue-600"}`}
+            onClick={() => { if (!isUsed) onDemarrerEdition(); }}
+        >
+          <Edit3 size={14} />
+        </Button>
+      </span>
+                    </TooltipTrigger>
+                    <TooltipContent>{isUsed ? "Couple de qualificatifs utilisé dans une question : modification interdite" : "Modifier"}</TooltipContent>
+                </Tooltip>
 
             {/* DELETE */}
-            <Button
-              variant="ghost"
-              size="icon"
-              disabled={isUsed}
-              className={`h-8 w-8 rounded-lg border border-slate-100 shadow-sm
-                ${isUsed ? "text-slate-200 cursor-not-allowed" : "text-slate-400 hover:text-red-600"}
-              `}
-              title={isUsed ? "Couple utilisé : suppression interdite" : "Supprimer"}
-              onClick={() => {
-                if (isUsed) return;
-                onSupprimer();
-              }}
-            >
-              <Trash2 size={14} />
-            </Button>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+      <span>
+        <Button
+            variant="ghost" size="icon"
+            disabled={isUsed}
+            className={`h-8 w-8 rounded-lg border border-slate-100 shadow-sm ${isUsed ? "text-slate-200 cursor-not-allowed" : "text-slate-400 hover:text-red-600"}`}
+            onClick={() => { if (!isUsed) onSupprimer(); }}
+        >
+          <Trash2 size={14} />
+        </Button>
+      </span>
+                    </TooltipTrigger>
+                    <TooltipContent>{isUsed ? "Couple de qualificatifs utilisé dans une question : suppression interdite" : "Supprimer"}</TooltipContent>
+                </Tooltip>
+            </TooltipProvider>
           </>
         )}
       </div>
