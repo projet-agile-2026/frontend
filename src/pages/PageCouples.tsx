@@ -23,19 +23,8 @@ import {
     AlertDialogTitle,
 } from "../components/ui/alert-dialog";
 
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogHeader,
-    DialogTitle,
-} from "../components/ui/dialog";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "../ui/tooltip"  
+import { extraireMessageErreur } from "../lib/erreur";
+
 
 
 function normaliser(s: string) {
@@ -68,13 +57,10 @@ export function PageCouples() {
     const [mot1Edition, setMot1Edition] = useState("");
     const [mot2Edition, setMot2Edition] = useState("");
 
-    // POPUP doublon
-    const [popupDoublonOuvert, setPopupDoublonOuvert] = useState(false);
-    const [messageDoublon, setMessageDoublon] = useState("");
-
-    // CONFIRM suppression
+       // CONFIRM suppression
     const [confirmSuppOuvert, setConfirmSuppOuvert] = useState(false);
     const [idASupprimer, setIdASupprimer] = useState<number | null>(null);
+    const [coupleASupprimer, setCoupleASupprimer] = useState<Couple | null>(null);
     const [questions, setQuestions] = useState<Question[]>([]);
 
     async function charger() {
@@ -115,26 +101,34 @@ export function PageCouples() {
     async function ajouter() {
         const mot1 = mot1Nouveau.trim();
         const mot2 = mot2Nouveau.trim();
-        if (!mot1 || !mot2) {
-            toast.warning("Champs manquants", { description: "Couples qualificatif est obligatoire." });
+        if (!mot1 && !mot2) {
+            toast.warning("Champs manquants", { description: "Les deux champs sont vides." });
+            return;
+        }
+        if (!mot2) {
+            toast.warning("Champ manquant", { description: "Le champ Minimal est vide." });
+            return;
+        }
+        if (!mot1) {
+            toast.warning("Champ manquant", { description: "Le champ Maximal est vide." });
             return;
         }
 
         if (existeDeja(couples, mot1, mot2)) {
-            setMessageDoublon(`Le couple "${mot1} / ${mot2}" existe déjà.`);
-            setPopupDoublonOuvert(true);
-            toast.error("Doublon détecté", { description: "Impossible d’ajouter un couple déjà existant." });
+            toast.error("Doublon détecté", {description: "Impossible d’ajouter un couple déjà existant."});
             return;
         }
 
-        await createQualificatif({ mot1, mot2 });
-        await charger();
-
-        setMot1Nouveau("");
-        setMot2Nouveau("");
-        setAjoutOuvert(false);
-
-        toast.success("Ajout effectué", { description: `Couple "${mot1}" + "${mot2}" ajouté.` });
+        try {
+            await createQualificatif({mot1, mot2});
+            await charger();
+            setMot1Nouveau("");
+            setMot2Nouveau("");
+            setAjoutOuvert(false);
+            toast.success("Ajout effectué", {description: `Couple "${mot2} / ${mot1}" ajouté.`});
+        } catch (error: unknown) {
+            toast.error("Erreur lors de l'ajout", { description: extraireMessageErreur(error) });
+        }
     }
 
     function demarrerEdition(c: Couple) {
@@ -165,24 +159,26 @@ export function PageCouples() {
         }
 
         // Si ça devient un doublon (en excluant l’élément courant)
-        const couplesSansCourant = couples.filter((c) => c.idQualificatif !== idEdition);
+        const couplesSansCourant = couples.filter((c) => c.id !== idEdition);
         if (existeDeja(couplesSansCourant, mot1, mot2)) {
-            setMessageDoublon(`Le couple "${mot1} / ${mot2}" existe déjà.`);
-            setPopupDoublonOuvert(true);
             toast.error("Doublon détecté", { description: "Impossible d’enregistrer un doublon." });
             return;
         }
 
-        await updateQualificatif(idEdition, { mot1, mot2 });
-        await charger();
-        annulerEdition();
-
-        toast.success("Modification enregistrée", { description: `Couple mis à jour.` });
+        try {
+            await updateQualificatif(idEdition, { mot1, mot2 });
+            await charger();
+            annulerEdition();
+            toast.success("Modification enregistrée", { description: `Couple "${mot2} / ${mot1}" mis à jour.` });
+        } catch (error) {
+            toast.error("Erreur lors de la modification", { description: extraireMessageErreur(error) });
+        }
     }
 
     // ✅ Demande de suppression (ouvre confirm)
     function demanderSuppression(id: number) {
         setIdASupprimer(id);
+        setCoupleASupprimer(couples.find(c => c.id === id) ?? null);
         setConfirmSuppOuvert(true);
     }
 
@@ -192,13 +188,17 @@ export function PageCouples() {
 
         if (idEdition === idASupprimer) annulerEdition();
 
-        await deleteQualificatif(idASupprimer);
-        await charger();
-
-        setConfirmSuppOuvert(false);
-        setIdASupprimer(null);
-
-        toast.success("Supprimé", { description: "Le couple a été supprimé avec succès." }); // ✅ toast vert
+        try {
+            await deleteQualificatif(idASupprimer);
+            await charger();
+            setConfirmSuppOuvert(false);
+            setIdASupprimer(null);
+            toast.success("Supprimé", { description: "Le couple de qualificatifs a été supprimé." });
+        } catch (error) {
+            setConfirmSuppOuvert(false);
+            setIdASupprimer(null);
+            toast.error("Erreur lors de la suppression", { description: extraireMessageErreur(error) });
+        }
     }
 
     return (
@@ -206,7 +206,7 @@ export function PageCouples() {
             <div className="mx-auto w-full max-w-6xl px-4 py-10 sm:py-12">
                 {/* Header minimal (plus de bouton + plus de sous-titre) */}
                 <div className="flex items-end justify-between">
-                    <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl">COUPLES QUALIFICATIFS</h1>
+                    <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl">GESTION DES COUPLES DE QUALIFICATIFS</h1>
                 </div>
 
                 <div className="mt-7 grid gap-4">
@@ -224,6 +224,7 @@ export function PageCouples() {
                         onChangerMot1={setMot1Nouveau}
                         onChangerMot2={setMot2Nouveau}
                         onValider={ajouter}
+                        onFermer={() => setAjoutOuvert(false)}
                     />
 
                     <ListeCouples
@@ -244,15 +245,7 @@ export function PageCouples() {
                 </div>
             </div>
 
-            {/* Popup shadcn "doublon" */}
-            <Dialog open={popupDoublonOuvert} onOpenChange={setPopupDoublonOuvert}>
-                <DialogContent className="sm:max-w-md">
-                    <DialogHeader>
-                        <DialogTitle>Doublon</DialogTitle>
-                        <DialogDescription>{messageDoublon || "Ce couple existe déjà."}</DialogDescription>
-                    </DialogHeader>
-                </DialogContent>
-            </Dialog>
+
 
             {/* Confirmation suppression */}
             <AlertDialog open={confirmSuppOuvert} onOpenChange={setConfirmSuppOuvert}>
@@ -260,7 +253,11 @@ export function PageCouples() {
                     <AlertDialogHeader>
                         <AlertDialogTitle>Confirmer la suppression ?</AlertDialogTitle>
                         <AlertDialogDescription>
-                            Cette action est définitive. Voulez-vous vraiment supprimer ce couple ?
+                            Êtes-vous sûr de vouloir supprimer le couple de qualificatifs{" "}
+                            <span className="font-semibold text-foreground">
+        {coupleASupprimer?.mot1} / {coupleASupprimer?.mot2}
+    </span>{" "}
+                            ? Cette action est définitive.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>

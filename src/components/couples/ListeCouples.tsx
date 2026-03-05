@@ -39,16 +39,17 @@ export function ListeCouples({
     <div className="mt-6 overflow-hidden rounded-2xl border border-border/60 bg-white shadow-sm">
       {/* Header */}
       <div className="flex items-center justify-between px-5 py-4">
-        <div className="text-sm font-semibold">Couples</div>
+        <div className="text-sm font-semibold">Couples de qualificatifs</div>
         <div className="text-sm text-muted-foreground">
           {chargement ? "Chargement..." : `${couples.length} résultat(s)`}
         </div>
       </div>
 
       {/* Table header */}
-      <div className="grid grid-cols-[1.2fr_1.2fr_120px] gap-3 border-y bg-muted/30 px-5 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-        <div>Maximal</div>
+      <div className="grid grid-cols-[1.2fr_1.2fr_80px_120px] gap-3 border-y bg-muted/30 px-5 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
         <div>Minimal</div>
+        <div>Maximal</div>
+        <div className="text-center">Utilisations</div>
         <div className="text-right">Actions</div>
       </div>
 

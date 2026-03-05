@@ -72,6 +72,7 @@ interface Rubrique {
   ordre: number;
   questions: QuestionInRubrique[];
   isExpanded: boolean;
+  usedInEval?: boolean;
 }
 
 // SORTABLE QUESTION ROW
@@ -177,7 +178,7 @@ interface SortableRubriqueRowProps {
   onToggleExpand: (id: number) => void;
   onDeleteRubrique: (id: number) => void;
   onEditRubrique: (id: number, newDesignation: string) => void;
-  onAddQuestion: (rubriqueId: number, selectedQuestionId: number) => void;
+  onAddQuestion: (rubriqueId: number, selectedQuestionIds: number[]) => void;
   onDeleteQuestion: (rubriqueId: number, questionId: number) => void;
   onDragQuestionEnd: (rubriqueId: number, event: DragEndEvent) => void;
   canEdit: boolean;
@@ -204,7 +205,7 @@ const SortableRubriqueRow = ({
   const [editValue, setEditValue] = useState(rubrique.designation);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isAddQuestionOpen, setIsAddQuestionOpen] = useState(false);
-  const [selectedQuestionId, setSelectedQuestionId] = useState("");
+  const [selectedQuestionIds, setSelectedQuestionIds] = useState<string[]>([]);
   const [questionSearch, setQuestionSearch] = useState("");
   const [selectedQuestionType, setSelectedQuestionType] = useState<"QUS" | "QUP">("QUS");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -228,9 +229,12 @@ const SortableRubriqueRow = ({
       .filter(q => q.intitule.toLowerCase().includes(questionSearch.toLowerCase()));
 
   const handleAddQuestion = () => {
-    if (!selectedQuestionId) return;
-    onAddQuestion(rubrique.idRubrique, parseInt(selectedQuestionId));
-    setSelectedQuestionId("");
+    if (selectedQuestionIds.length === 0) return;
+    
+    // Ajouter toutes les questions sélectionnées en une seule fois
+    onAddQuestion(rubrique.idRubrique, selectedQuestionIds.map(id => parseInt(id)));
+    
+    setSelectedQuestionIds([]);
     setQuestionSearch("");
     setSelectedQuestionType("QUS");
     setIsAddQuestionOpen(false);
@@ -296,7 +300,7 @@ const SortableRubriqueRow = ({
                         <button
                           onClick={() => {
                             setSelectedQuestionType("QUS");
-                            setSelectedQuestionId("");
+                            setSelectedQuestionIds([]);
                           }}
                           className={`flex-1 px-3 py-2 rounded-md text-xs font-medium transition-all ${
                             selectedQuestionType === "QUS"
@@ -304,12 +308,12 @@ const SortableRubriqueRow = ({
                               : "bg-transparent text-gray-600 hover:bg-gray-100"
                           }`}
                         >
-                          Questions Standard (QUS)
+                          Questions Standard
                         </button>
                         <button
                           onClick={() => {
                             setSelectedQuestionType("QUP");
-                            setSelectedQuestionId("");
+                            setSelectedQuestionIds([]);
                           }}
                           className={`flex-1 px-3 py-2 rounded-md text-xs font-medium transition-all ${
                             selectedQuestionType === "QUP"
@@ -317,7 +321,7 @@ const SortableRubriqueRow = ({
                               : "bg-transparent text-gray-600 hover:bg-gray-100"
                           }`}
                         >
-                          Questions Personnelles (QUP)
+                          Questions Personnelles
                         </button>
                       </div>
                     </div>
@@ -332,25 +336,71 @@ const SortableRubriqueRow = ({
                       />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-sm font-medium text-gray-700">Questions disponibles</label>
+                      <div className="flex items-center justify-between">
+                        <label className="text-sm font-medium text-gray-700">
+                          Questions disponibles
+                          {selectedQuestionIds.length > 0 && (
+                            <span className="ml-2 text-xs text-blue-600 font-semibold">
+                              ({selectedQuestionIds.length} sélectionnée{selectedQuestionIds.length > 1 ? 's' : ''})
+                            </span>
+                          )}
+                        </label>
+                        {filteredAvailableQuestions.length > 0 && (
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => setSelectedQuestionIds(filteredAvailableQuestions.map(q => q.idQuestion.toString()))}
+                              className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+                            >
+                              Tout sélectionner
+                            </button>
+                            <span className="text-gray-300">|</span>
+                            <button
+                              onClick={() => setSelectedQuestionIds([])}
+                              className="text-xs text-gray-600 hover:text-gray-800 font-medium"
+                            >
+                              Tout désélectionner
+                            </button>
+                          </div>
+                        )}
+                      </div>
                       <div className="max-h-80 overflow-y-auto border border-gray-200 rounded-md">
                         {filteredAvailableQuestions.length > 0 ? (
                             filteredAvailableQuestions.map((q) => {
                               const qual = qualificatifs.find(qf => qf.idQualificatif === q.idQualificatif);
+                              const isSelected = selectedQuestionIds.includes(q.idQuestion.toString());
                               return (
                                   <div
                                       key={q.idQuestion}
-                                      onClick={() => setSelectedQuestionId(q.idQuestion.toString())}
+                                      onClick={() => {
+                                        setSelectedQuestionIds(prev => 
+                                          isSelected 
+                                            ? prev.filter(id => id !== q.idQuestion.toString())
+                                            : [...prev, q.idQuestion.toString()]
+                                        );
+                                      }}
                                       className={`p-3 cursor-pointer border-b border-gray-100 hover:bg-blue-50 transition-colors ${
-                                          selectedQuestionId === q.idQuestion.toString() ? 'bg-blue-100 border-blue-300' : ''
+                                          isSelected ? 'bg-blue-100 border-blue-300' : ''
                                       }`}
                                   >
-                                    <div className="font-medium text-sm text-gray-900">{q.intitule}</div>
-                                    {qual && (
-                                        <div className="text-xs text-gray-500 mt-1">
-                                          {qual.mot1} ↔ {qual.mot2}
-                                        </div>
-                                    )}
+                                    <div className="flex items-center gap-2">
+                                      <div className={`w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 ${
+                                        isSelected ? 'bg-blue-600 border-blue-600' : 'border-gray-300'
+                                      }`}>
+                                        {isSelected && (
+                                          <svg className="w-3 h-3 text-white" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path d="M5 13l4 4L19 7"></path>
+                                          </svg>
+                                        )}
+                                      </div>
+                                      <div className="flex-1 min-w-0">
+                                        <div className="font-medium text-sm text-gray-900">{q.intitule}</div>
+                                        {qual && (
+                                            <div className="text-xs text-gray-500 mt-1">
+                                              {qual.mot1} ↔ {qual.mot2}
+                                            </div>
+                                        )}
+                                      </div>
+                                    </div>
                                   </div>
                               );
                             })
@@ -365,10 +415,10 @@ const SortableRubriqueRow = ({
                   <DialogFooter>
                     <Button
                         onClick={handleAddQuestion}
-                        disabled={!selectedQuestionId}
+                        disabled={selectedQuestionIds.length === 0}
                         className="w-full"
                     >
-                      Ajouter à la rubrique
+                      Ajouter {selectedQuestionIds.length > 0 ? `(${selectedQuestionIds.length})` : ''} à la rubrique
                     </Button>
                   </DialogFooter>
                 </DialogContent>
@@ -377,8 +427,13 @@ const SortableRubriqueRow = ({
               <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
                 <DialogTrigger asChild>
                   <button
-                      className="p-1.5 text-gray-400 hover:text-yellow-600 hover:bg-yellow-50 rounded transition-all"
-                      title="Modifier"
+                      disabled={rubrique.usedInEval}
+                      className={`p-1.5 rounded transition-all ${
+                        rubrique.usedInEval
+                          ? "text-gray-300 cursor-not-allowed"
+                          : "text-gray-400 hover:text-yellow-600 hover:bg-yellow-50"
+                      }`}
+                      title={rubrique.usedInEval ? "Modification bloquée : Utilisée dans une évaluation" : "Modifier"}
                   >
                     <Edit2 size={16} />
                   </button>
@@ -409,14 +464,14 @@ const SortableRubriqueRow = ({
               </Dialog>
 
               <button
-                  disabled={!canDelete}
-                  onClick={() => canDelete && setShowDeleteConfirm(true)}
+                  disabled={rubrique.usedInEval}
+                  onClick={() => !rubrique.usedInEval && setShowDeleteConfirm(true)}
                   className={`p-1.5 rounded transition-all ${
-                      !canDelete
+                      rubrique.usedInEval
                           ? "text-gray-300 cursor-not-allowed"
                           : "text-gray-400 hover:text-red-600 hover:bg-red-50"
                   }`}
-                  title={!canDelete ? "Suppression bloquée : Contient des questions" : "Supprimer"}
+                  title={rubrique.usedInEval ? "Suppression bloquée : Utilisée dans une évaluation" : "Supprimer"}
               >
                 <Trash2 size={16} />
               </button>
@@ -567,7 +622,8 @@ export function RubriquesPage() {
         type: r.type,
         ordre: r.ordre,
         questions: r.questions || [],
-        isExpanded: false
+        isExpanded: false,
+        usedInEval: r.usedInEval || false
       }));
 
       console.log('Transformed rubriques:', transformedRubriques);
@@ -593,8 +649,8 @@ export function RubriquesPage() {
   const filteredRubriques = useMemo(
       () => rubriques
         .filter(r => r.type === selectedType)
-        .filter(r => r.designation.toLowerCase().includes(search.toLowerCase()))
-        .sort((a, b) => a.designation.localeCompare(b.designation)),
+        .filter(r => r.designation.toLowerCase().includes(search.toLowerCase())),
+        //.sort((a, b) => a.designation.localeCompare(b.designation)),
       [rubriques, search, selectedType]
   );
 
@@ -637,7 +693,6 @@ export function RubriquesPage() {
       setTimeout(() => setShowSuccessNotification(false), 3000);
     } catch (err: any) {
       console.error('Error updating rubrique:', err);
-      alert('Erreur lors de la mise à jour de la rubrique');
     }
   };
 
@@ -655,7 +710,7 @@ export function RubriquesPage() {
       setTimeout(() => setShowSuccessNotification(false), 3000);
     } catch (err: any) {
       console.error('Error deleting rubrique:', err);
-      alert('Erreur lors de la suppression de la rubrique');
+      //alert('Erreur lors de la suppression de la rubrique');
     }
   };
 
@@ -690,23 +745,35 @@ export function RubriquesPage() {
     }
   };
 
-  const handleAddQuestion = async (rubriqueId: number, selectedQuestionId: number) => {
+  const handleAddQuestion = async (rubriqueId: number, selectedQuestionIds: number[]) => {
     try {
       const rubrique = rubriques.find(r => r.idRubrique === rubriqueId);
-      const ordre = (rubrique?.questions.length || 0) + 1;
-      const question = availableQuestions.find(q => q.idQuestion === selectedQuestionId);
-      const questionNom = question?.intitule || '';
-
-      await addQuestionToRubrique(rubriqueId, selectedQuestionId, ordre);
+      let ordre = (rubrique?.questions.length || 0) + 1;
+      
+      // Ajouter toutes les questions séquentiellement
+      for (const questionId of selectedQuestionIds) {
+        await addQuestionToRubrique(rubriqueId, questionId, ordre);
+        ordre++;
+      }
+      
+      // Un seul rechargement après toutes les additions
       await loadData();
       
-      // Afficher la notification de succès
-      setSuccessMessage(`Question "${questionNom}" ajoutée avec succès à la rubrique`);
+      // Message de succès adapté au nombre de questions
+      const count = selectedQuestionIds.length;
+      if (count === 1) {
+        const question = availableQuestions.find(q => q.idQuestion === selectedQuestionIds[0]);
+        const questionNom = question?.intitule || '';
+        setSuccessMessage(`Question "${questionNom}" ajoutée avec succès à la rubrique`);
+      } else {
+        setSuccessMessage(`${count} questions ajoutées avec succès à la rubrique`);
+      }
+      
       setShowSuccessNotification(true);
       setTimeout(() => setShowSuccessNotification(false), 3000);
     } catch (err: any) {
-      console.error('Error adding question:', err);
-      alert('Erreur lors de l\'ajout de la question');
+      console.error('Error adding questions:', err);
+      //alert('Erreur lors de l\'ajout des questions');
     }
   };
 
@@ -730,7 +797,7 @@ export function RubriquesPage() {
       setTimeout(() => setShowSuccessNotification(false), 3000);
     } catch (err: any) {
       console.error('Error deleting question:', err);
-      alert('Erreur lors de la suppression de la question');
+      //alert('Erreur lors de la suppression de la question');
     }
   };
 
