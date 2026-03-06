@@ -94,15 +94,7 @@ export function UserMenu({ userName = DEFAULT_USER_NAME }: UserMenuProps) {
         <div className="px-3 py-1 text-xs font-bold text-yellow-600 uppercase">
           {user && formatRole(user.role)}
         </div>
-        
-        <DropdownMenuSeparator />
-
-        <DropdownMenuItem className="py-2 cursor-pointer hover:bg-yellow-100">
-          Mon compte
-        </DropdownMenuItem>
-        <DropdownMenuItem className="py-2 cursor-pointer hover:bg-yellow-100">
-          Changer mot de passe
-        </DropdownMenuItem>
+      
 
         <DropdownMenuSeparator />
 

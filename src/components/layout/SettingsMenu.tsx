@@ -7,8 +7,15 @@ import {
 import { Button } from "@/components/ui/button"
 import { Settings } from "lucide-react"
 import { Link } from "react-router-dom"
+import { getCurrentUser } from "@/services/authService"
+import type { UserInfo } from "@/services/authService"
+import { useState } from "react"
 
 export function SettingsMenu() {
+  const [user, setUser] = useState<UserInfo | null>(null)
+
+  const role = user?.role
+  
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -23,7 +30,7 @@ export function SettingsMenu() {
           size="lg"
         >
           <Settings className="size-5" />
-          Réglage de SPI
+          Paramétrage
         </Button>
       </DropdownMenuTrigger>
 
@@ -35,20 +42,22 @@ export function SettingsMenu() {
           shadow-lg
         "
       >
+        {role === "ADM" && 
         <DropdownMenuItem className="py-2 cursor-pointer hover:bg-yellow-100" asChild>
           <Link
             to="/couples"
             className="py-2 cursor-pointer hover:bg-yellow-100 w-full"
           >
-            Gestion couples qualificatif
+            Couples de qualificatifs
           </Link>
         </DropdownMenuItem>
+        }
         <DropdownMenuItem className="py-2 cursor-pointer hover:bg-yellow-100" asChild>
           <Link
             to="/questions"
             className="py-2 cursor-pointer hover:bg-yellow-100 w-full"
           >
-            Gestion questions
+            Questions
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem className="py-2 cursor-pointer hover:bg-yellow-100" asChild>
@@ -56,7 +65,7 @@ export function SettingsMenu() {
             to="/rubriques"
             className="py-2 cursor-pointer hover:bg-yellow-100 w-full"
           >
-            Gestion rubriques
+            Rubriques
           </Link>
         </DropdownMenuItem> 
       </DropdownMenuContent>
