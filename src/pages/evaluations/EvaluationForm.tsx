@@ -1,9 +1,9 @@
 import { useEffect, useState, type FC } from "react"
 import { useNavigate, useParams } from "react-router-dom"
 import {
-  EvaluationDetailDTO,
-  EvaluationStatus,
-  EvaluationWithRubriquesDTO,
+  type EvaluationDetailDTO,
+  type EvaluationStatus,
+  type EvaluationWithRubriquesDTO,
   getEcs,
   getFormations,
   getUes,
@@ -14,7 +14,7 @@ import {
 } from "../../services/EvaluationService"
 import {
   EvaluationHeaderForm,
-  EvaluationHeaderFormValues
+  type EvaluationHeaderFormValues
 } from "../../components/evaluations/EvaluationHeaderForm"
 import { RubriquesSection } from "../../components/evaluations/RubriquesSection"
 import { Button } from "../../components/ui/button"
@@ -57,7 +57,7 @@ export const EvaluationForm: FC<EvaluationFormProps> = ({ readOnly = false }) =>
   const [rubriques, setRubriques] = useState<EvaluationWithRubriquesDTO["rubriques"]>([])
 
 
-  const [annees, setAnnees] = useState<string[]>([])  
+  const [annees, setAnnees] = useState<string[]>([])
 
   const reloadEvaluation = async (evaluationId: number) => {
     const data = await getEvaluationFull(evaluationId)
@@ -75,7 +75,6 @@ export const EvaluationForm: FC<EvaluationFormProps> = ({ readOnly = false }) =>
 
         if (isEdit && id) {
           const evaluation = await getEvaluationFull(Number(id))
-          console.log("asss", evaluation)
           setEtat(evaluation.etat as EvaluationStatus)
           setRubriques(evaluation.rubriques || [])
 
@@ -112,33 +111,34 @@ export const EvaluationForm: FC<EvaluationFormProps> = ({ readOnly = false }) =>
   }, [id, isEdit])
 
   const handleFormationChange = async (codeFormation: string) => {
-  setHeaderValues((prev) => ({
-    ...prev,
-    codeFormation,
-    anneeUniversitaire: "",
-    codeUe: "",
-    codeEc: "",
-  }))
+    setHeaderValues((prev) => ({
+      ...prev,
+      codeFormation,
+      anneeUniversitaire: "",
+      codeUe: "",
+      codeEc: "",
+    }))
 
-  setAnnees([])
-  setUes([])
-  setEcs([])
+    setAnnees([])
+    setUes([])
+    setEcs([])
 
-  if (!codeFormation) return
+    if (!codeFormation) return
 
-  try {
-    const [anneesData, uesData] = await Promise.all([
-      getAnneesUniversitaires(codeFormation),
-      getUes(codeFormation),
-    ])
+    try {
+      const [anneesData, uesData] = await Promise.all([
+        getAnneesUniversitaires(codeFormation),
+        getUes(codeFormation),
+      ])
 
-    setAnnees(anneesData)
-    setUes(uesData)
-  } catch {
-    // ignore
+      setAnnees(anneesData)
+      setUes(uesData)
+    } catch {
+      // ignore
+    }
   }
-}
 
+  console.log("ass", annees)
 
   const handleUeChange = async (codeUe: string) => {
     setHeaderValues((prev) => ({
@@ -182,7 +182,6 @@ export const EvaluationForm: FC<EvaluationFormProps> = ({ readOnly = false }) =>
 
     try {
       if (isEdit && id) {
-        console.log("PAYLOAD SENT:", payload)
         await updateEvaluation(Number(id), payload)
       } else {
         await createEvaluation(payload)

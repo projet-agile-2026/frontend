@@ -22,12 +22,12 @@ interface EvaluationsTableProps {
 
 function getStatusLabel(status: EvaluationStatus) {
   switch (status) {
-    case "EN_COURS":
+    case "ELA":
       return "En cours"
-    case "TERMINE":
-      return "Terminé"
-    case "BROUILLON":
-      return "Brouillon"
+    case "DIS":
+      return "Mise à disposition"
+    case "CLO":
+      return "clôturée"
     default:
       return status
   }
@@ -149,11 +149,11 @@ function EvaluationCard({
 
 function getStatusBadgeVariant(status: EvaluationStatus) {
   switch (status) {
-    case "EN_COURS":
+    case "ELA":
       return "default" as const
-    case "TERMINE":
+    case "DIS":
       return "outline" as const
-    case "BROUILLON":
+    case "CLO":
       return "secondary" as const
     default:
       return "outline" as const
