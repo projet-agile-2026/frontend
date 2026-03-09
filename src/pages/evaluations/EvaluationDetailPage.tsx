@@ -87,7 +87,7 @@ export function EvaluationDetailPage() {
       <div className="flex items-center justify-between">
 
         <h1 className="text-2xl font-bold text-gray-900">
-          Détail de l'évaluation
+          {`${evaluation.designation}`}
         </h1>
 
         <Button

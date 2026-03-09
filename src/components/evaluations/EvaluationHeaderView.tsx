@@ -37,7 +37,7 @@ export function EvaluationHeaderView({ evaluation }: Props) {
 
       <CardHeader className="border-b border-gray-200 bg-gray-50 px-6 py-5">
         <CardTitle className="text-lg font-semibold text-gray-900">
-          Informations de l'évaluation
+          {`Informations de l'évaluation : ${evaluation.designation}`}
         </CardTitle>
 
         <p className="text-sm text-gray-500 mt-1">
