@@ -11,22 +11,43 @@ export function LoginPage() {
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const navigate = useNavigate()
+  const [errors, setErrors] = useState<{
+    email?: string
+    password?: string
+    global?: string
+  }>({})
 
-  
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
+    const newErrors: typeof errors = {}
+
+    if (!email) {
+      newErrors.email = "Email requis"
+    }
+
+    if (!password) {
+      newErrors.password = "Mot de passe requis"
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors)
+      return
+    }
+
     try {
       const res = await login({
-        email: email,
+        email,
         motPasse: password,
       })
 
       localStorage.setItem("token", res.token)
-
       navigate("/")
     } catch (error: any) {
-      alert(error.message)
+      setErrors({
+        global: "Email ou mot de passe incorrect",
+      })
     }
   }
 
@@ -73,9 +94,16 @@ export function LoginPage() {
             <label className="text-sm font-medium">Email:*</label>
             <Input
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="bg-yellow-100 border-yellow-400 focus-visible:ring-yellow-400"
+              onChange={(e) => {
+                setEmail(e.target.value)
+                setErrors({})
+              }}
+              className={`bg-yellow-100 border-yellow-400 focus-visible:ring-yellow-400 ${errors.email ? "border-red-500" : ""
+                }`}
             />
+            {errors.email && (
+              <p className="text-red-500 text-xs mt-1">{errors.email}</p>
+            )}
           </div>
 
           <div>
@@ -95,8 +123,16 @@ export function LoginPage() {
                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
             </div>
+            {errors.password && (
+                <p className="text-red-500 text-xs mt-1">{errors.password}</p>
+              )}
           </div>
 
+          {errors.global && (
+            <div className="bg-red-100 text-red-600 p-2 rounded text-sm">
+              {errors.global}
+            </div>
+          )}
           <Button
             type="submit"
             className="bg-yellow-400 text-black hover:bg-yellow-500"
@@ -108,14 +144,6 @@ export function LoginPage() {
         <hr className="my-4" />
 
         <div className="mt-4 space-y-2 text-[13px] leading-relaxed text-gray-600">
-          <a
-            href="#"
-            className="flex items-center gap-1 text-blue-600 hover:underline"
-          >
-            <span className="text-base">👤</span>
-            Mot de passe oublié ?
-          </a>
-
           <p className="text-xs">
             Ne complétez jamais ce formulaire si l'adresse n'est pas{" "}
             <a

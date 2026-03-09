@@ -260,10 +260,10 @@ export function EvaluationsPage() {
         onEdit={
           isAdmin
             ? undefined
-            : (evaluation) => navigate(`/evaluations/${evaluation.idEvaluation}`)
+            : (evaluation) => navigate(`/evaluations/${evaluation.idEvaluation}/edit`)
         }
         onView={(evaluation) =>
-          navigate(`/evaluations/${evaluation.idEvaluation}/view`)
+          navigate(`/evaluations/${evaluation.idEvaluation}`)
         }
         onDelete={isAdmin ? undefined : handleDelete}
         onDuplicate={isAdmin ? undefined : handleDuplicate}

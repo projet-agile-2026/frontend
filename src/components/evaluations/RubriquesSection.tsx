@@ -37,9 +37,9 @@ import {
   removeRubriqueFromEvaluation,
   reorderRubriquesInEvaluation,
   reorderQuestionsInRubriqueEvaluation,
-  EvaluationWithRubriquesDTO,
-  RubriqueEvaluationDTO,
-  QuestionEvaluationDTO,
+  type EvaluationWithRubriquesDTO,
+  type RubriqueEvaluationDTO,
+  type QuestionEvaluationDTO,
 } from "../../services/EvaluationService"
 import { getQuestions, type Question } from "../../services/Questionservice"
 import {

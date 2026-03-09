@@ -11,6 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "../../components/ui/dropdown-menu"
 import type { EvaluationStatus } from "../../services/EvaluationService"
+import { Check } from "lucide-react"
 
 interface EvaluationFiltersProps {
   search: string
@@ -93,20 +94,44 @@ export function EvaluationFilters({
                 <DropdownMenuCheckboxItem
                   checked={selectedStates.includes("ELA")}
                   onCheckedChange={() => onToggleState("ELA")}
+                  className={`cursor-pointer ${
+                    selectedStates.includes("ELA")
+                      ? "bg-blue-50 text-blue-700 font-semibold"
+                      : "hover:bg-muted/50"
+                  }`}
                 >
-                  ELA — En cours d’élaboration
+                  <span>ELA — En cours d’élaboration</span>
+                  {selectedStates.includes("ELA") && (
+                    <Check className="h-4 w-4 text-blue" />
+                  )}
                 </DropdownMenuCheckboxItem>
                 <DropdownMenuCheckboxItem
                   checked={selectedStates.includes("DIS")}
                   onCheckedChange={() => onToggleState("DIS")}
+                  className={`cursor-pointer ${
+                    selectedStates.includes("DIS")
+                      ? "bg-blue-50 text-blue-700 font-semibold"
+                      : "hover:bg-muted/50"
+                  }`}
                 >
-                  DIS — Mise à disposition
+                  <span>DIS — Mise à disposition</span>
+                  {selectedStates.includes("DIS") && (
+                    <Check className="h-4 w-4 text-blue" />
+                  )}
                 </DropdownMenuCheckboxItem>
                 <DropdownMenuCheckboxItem
                   checked={selectedStates.includes("CLO")}
                   onCheckedChange={() => onToggleState("CLO")}
+                  className={`cursor-pointer ${
+                    selectedStates.includes("CLO")
+                      ? "bg-blue-50 text-blue-700 font-semibold"
+                      : "hover:bg-muted/50"
+                  }`}
                 >
-                  CLO — Clôturée
+                  <span>CLO — Clôturée</span>
+                  {selectedStates.includes("CLO") && (
+                    <Check className="h-4 w-4 text-blue" />
+                  )}
                 </DropdownMenuCheckboxItem>
                 <DropdownMenuSeparator />
                 <Button

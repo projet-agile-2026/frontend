@@ -7,10 +7,12 @@ import { RubriquesPage } from "@/pages/RubriquesPage"
 import { QuestionsPage } from "@/pages/QuestionsPage"
 import { PageCouples } from "@/pages/PageCouples"
 import { EvaluationsPage } from "@/pages/evaluations/EvaluationsPage"
-import { EvaluationForm } from "@/pages/evaluations/EvaluationForm"
 import { PromotionsPage } from "@/pages/promotions/PromotionsPage"
 import { PromotionDetailPage } from "@/pages/promotions/PromotionDetailPage"
 import UnauthorizedPage from "@/pages/UnauthorizedPage"
+import { EvaluationCreatePage } from "@/pages/evaluations/EvaluationCreatePage"
+import { EvaluationEditPage } from "@/pages/evaluations/EvaluationEditPage"
+import { EvaluationDetailPage } from "@/pages/evaluations/EvaluationDetailPage"
 
 export const router = createBrowserRouter([
   {
@@ -50,16 +52,20 @@ export const router = createBrowserRouter([
         element: <EvaluationsPage />,
       },
       {
+        path: "evaluations",
+        element: <EvaluationsPage />,
+      },
+      {
         path: "evaluations/new",
-        element: <EvaluationForm />,
+        element: <EvaluationCreatePage />,
+      },
+      {
+        path: "evaluations/:id/edit",
+        element: <EvaluationEditPage />,
       },
       {
         path: "evaluations/:id",
-        element: <EvaluationForm />,
-      },
-      {
-        path: "evaluations/:id/view",
-        element: <EvaluationForm {...({ readOnly: true } as any)} />,
+        element: <EvaluationDetailPage />,
       },
       {
         path: "promotions",

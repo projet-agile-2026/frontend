@@ -71,6 +71,7 @@ export function EvaluationHeaderForm({
   onUeChange,
 }: EvaluationHeaderFormProps) {
   useEffect(() => {
+    
     if (!values.codeFormation && (values.codeUe || values.codeEc)) {
       onChange({
         ...values,
