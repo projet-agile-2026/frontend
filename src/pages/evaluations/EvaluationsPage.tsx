@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom"
 import {
   deleteEvaluation,
   dupliquerEvaluation,
-  EvaluationListItem,
+  type EvaluationListItem,
   getEvaluations,
   getEvaluationsPartagees,
 } from "../../services/EvaluationService"
