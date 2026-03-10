@@ -1,3 +1,4 @@
+import { useEffect } from "react"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,7 +15,12 @@ import { useState } from "react"
 export function SettingsMenu() {
   const [user, setUser] = useState<UserInfo | null>(null)
 
+  useEffect(() => {
+      getCurrentUser().then(setUser)
+    }, [])
+
   const role = user?.role
+  console.log("role", role)
   
   return (
     <DropdownMenu>
@@ -48,7 +54,7 @@ export function SettingsMenu() {
             to="/couples"
             className="py-2 cursor-pointer hover:bg-yellow-100 w-full"
           >
-            Couples de qualificatifs
+            Gestion des Couples
           </Link>
         </DropdownMenuItem>
         }
@@ -57,7 +63,7 @@ export function SettingsMenu() {
             to="/questions"
             className="py-2 cursor-pointer hover:bg-yellow-100 w-full"
           >
-            Questions
+            Gestion des Questions
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem className="py-2 cursor-pointer hover:bg-yellow-100" asChild>
@@ -65,7 +71,7 @@ export function SettingsMenu() {
             to="/rubriques"
             className="py-2 cursor-pointer hover:bg-yellow-100 w-full"
           >
-            Rubriques
+            Gestion des Rubriques
           </Link>
         </DropdownMenuItem> 
       </DropdownMenuContent>

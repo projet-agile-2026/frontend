@@ -5,6 +5,12 @@ import {
   type EvaluationListItem,
   type EvaluationStatus,
 } from "../../services/EvaluationService"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "../../components/ui/tooltip"
 
 interface EvaluationsTableProps {
   evaluations: EvaluationListItem[]
@@ -33,6 +39,7 @@ function getStatusLabel(status: EvaluationStatus) {
   }
 }
 
+
 function EvaluationCard({
   evaluation,
   onEdit,
@@ -55,6 +62,8 @@ function EvaluationCard({
   getStatusBadgeVariant: (s: EvaluationStatus) => "default" | "outline" | "secondary"
 }) {
   const isDuplicating = duplicatingId === evaluation.idEvaluation
+  const isLocked =
+  evaluation.etat === "DIS" || evaluation.etat === "CLO"
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">

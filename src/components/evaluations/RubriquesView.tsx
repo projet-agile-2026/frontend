@@ -5,6 +5,12 @@ import type {
     RubriqueEvaluationDTO
 } from "../../services/EvaluationService"
 
+import {
+    getRubriqueTypeLabel,
+    getRubriqueTypeStyle
+} from "../../utils/rubriqueType"
+
+
 interface Props {
     rubriques: RubriqueEvaluationDTO[]
 }
@@ -30,28 +36,6 @@ export function RubriquesView({ rubriques }: Props) {
                 </p>
             </div>
         )
-    }
-
-    function getRubriqueTypeLabel(type?: string) {
-        switch (type) {
-            case "RBS":
-                return "Rubrique standard"
-            case "RBP":
-                return "Rubrique personnalisée"
-            default:
-                return type ?? ""
-        }
-    }
-
-    function getRubriqueTypeStyle(type?: string) {
-        switch (type) {
-            case "RBS":
-                return "bg-blue-50 text-blue-700 border-blue-200"
-            case "RBP":
-                return "bg-purple-50 text-purple-700 border-purple-200"
-            default:
-                return "bg-gray-100 text-gray-600 border-gray-200"
-        }
     }
 
     return (
@@ -135,9 +119,23 @@ export function RubriquesView({ rubriques }: Props) {
 
                                         <div
                                             key={q.idQuestionEvaluation}
-                                            className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-2 text-sm"
+                                            className="grid grid-cols-2 items-center rounded-lg border border-gray-200 bg-gray-50 px-4 py-3"
                                         >
-                                            {q.intitule}
+
+                                            {/* Question */}
+                                            <div className="text-sm font-medium text-gray-800">
+                                                {q.intitule}
+                                            </div>
+
+                                            {/* Échelle */}
+                                            <div className="flex justify-center">
+                                                <span className="text-sm font-semibold text-gray-600 bg-white border border-gray-200 px-3 py-1 rounded-md">
+                                                    {q.maximal && q.minimal
+                                                        ? `${q.minimal} ↔ ${q.maximal}`
+                                                        : "Échelle non définie"}
+                                                </span>
+                                            </div>
+
                                         </div>
 
                                     ))}

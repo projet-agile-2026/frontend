@@ -15,6 +15,7 @@ interface DatePickerFieldProps {
   onChange: (value: string) => void
   placeholder?: string
   disabled?: boolean
+  min?: string 
 }
 
 export function DatePickerField({
@@ -22,6 +23,7 @@ export function DatePickerField({
   onChange,
   placeholder = "Sélectionner une date",
   disabled,
+  min,
 }: DatePickerFieldProps) {
   const selectedDate =
     value && isValid(parseISO(value)) ? parseISO(value) : undefined
@@ -53,6 +55,9 @@ export function DatePickerField({
             onChange(format(date, "yyyy-MM-dd"))
           }}
           locale={fr}
+          disabled={(date) =>
+            min ? date < parseISO(min) : false
+          }
           initialFocus
         />
       </PopoverContent>

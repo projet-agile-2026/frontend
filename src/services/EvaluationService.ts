@@ -6,6 +6,8 @@ export interface QuestionEvaluationDTO {
   idQuestionEvaluation: number
   idQuestion: number
   intitule: string
+  maximal?: string
+  minimal?: string
 }
 
 export interface RubriqueEvaluationDTO {
@@ -324,3 +326,14 @@ export async function getAnneesUniversitaires(
   return data
 }
 
+
+export async function updateEvaluationEtat(
+  evaluationId: number,
+  etat: "DIS" | "CLO"
+) {
+  const { data } = await api.put(
+    `/api/enseignant/evaluations/${evaluationId}/etat`,
+    { etat: etat }
+  )
+  return data
+}
