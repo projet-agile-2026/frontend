@@ -100,7 +100,7 @@ export function EvaluationDetailPage() {
       </div>
 
 
-      <EvaluationHeaderView evaluation={evaluation} />
+      <EvaluationHeaderView evaluation={evaluation} onReload={() => loadEvaluation(Number(id))}/>
 
       <RubriquesView rubriques={rubriques} />
 

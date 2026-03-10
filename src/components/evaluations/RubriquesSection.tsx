@@ -48,6 +48,10 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "../../components/ui/tooltip"
+import {
+  getRubriqueTypeLabel,
+  getRubriqueTypeStyle
+} from "../../utils/rubriqueType"
 
 
 interface RubriquesSectionProps {
@@ -81,6 +85,7 @@ function SortableQuestionRow({
     transition,
     opacity: isDragging ? 0.6 : 1,
   }
+
   return (
     <div
       ref={setNodeRef}
@@ -90,15 +95,26 @@ function SortableQuestionRow({
       <div
         {...(!readOnly ? attributes : {})}
         {...(!readOnly ? listeners : {})}
-        className={`flex-shrink-0 touch-none ${
-          readOnly
-            ? "cursor-default text-gray-300"
-            : "cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600"
-        }`}
+        className={`flex-shrink-0 touch-none ${readOnly
+          ? "cursor-default text-gray-300"
+          : "cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600"
+          }`}
       >
         <GripVertical className="h-4 w-4" />
       </div>
-      <span className="text-gray-800 truncate min-w-0 flex-1">{question.intitule}</span>
+      <div className="flex-1 grid grid-cols-12 items-center gap-2 min-w-0">
+
+        <span className="col-span-7 text-gray-800 truncate">
+          {question.intitule}
+        </span>
+
+        <span className="col-span-4 text-xs text-gray-500 truncate">
+          {question.maximal && question.minimal
+            ? `${question.maximal} ↔ ${question.minimal}`
+            : "Échelle non définie"}
+        </span>
+
+      </div>
       <Button
         type="button"
         variant="ghost"
@@ -160,11 +176,10 @@ function SortableRubriqueCard({
         <div
           {...(!readOnly ? attributes : {})}
           {...(!readOnly ? listeners : {})}
-          className={`flex-shrink-0 touch-none ${
-            readOnly
-              ? "cursor-default text-gray-300"
-              : "cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600"
-          }`}
+          className={`flex-shrink-0 touch-none ${readOnly
+            ? "cursor-default text-gray-300"
+            : "cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600"
+            }`}
         >
           <GripVertical className="h-5 w-5" />
         </div>
@@ -180,7 +195,9 @@ function SortableRubriqueCard({
           <h3 className="text-base font-semibold text-gray-900 truncate">{rubrique.designation}</h3>
           <div className="flex flex-wrap items-center gap-2 mt-0.5 text-xs text-gray-500">
             {rubrique.type && (
-              <span className="rounded-full bg-gray-100 px-2 py-0.5">{rubrique.type}</span>
+              <span className={`rounded-full border px-2 py-0.5 text-xs ${getRubriqueTypeStyle(rubrique.type)}`}>
+                {getRubriqueTypeLabel(rubrique.type)}
+              </span>
             )}
             <span>{questions.length} question{questions.length !== 1 ? "s" : ""}</span>
           </div>
@@ -225,20 +242,24 @@ function SortableRubriqueCard({
               onDragEnd={(e) => onQuestionDragEnd(rubrique.idRubriqueEvaluation, e)}
             >
               <SortableContext
-                items={questions.map((q) => q.idQuestionEvaluation.toString())}
+                items={questions
+                  .filter((q) => q && q.idQuestionEvaluation != null)
+                  .map((q) => q.idQuestionEvaluation.toString())}
                 strategy={verticalListSortingStrategy}
               >
                 <div className="space-y-2">
-                  {questions.map((q) => (
-                    <SortableQuestionRow
-                      key={q.idQuestionEvaluation}
-                      question={q}
-                      rubriqueEvaluationId={rubrique.idRubriqueEvaluation}
-                      evaluationId={evaluationId}
-                      onRemove={onRemoveQuestion}
-                      readOnly={readOnly}
-                    />
-                  ))}
+                  {questions
+                    .filter((q) => q && q.idQuestionEvaluation != null)
+                    .map((q) => (
+                      <SortableQuestionRow
+                        key={q.idQuestionEvaluation}
+                        question={q}
+                        rubriqueEvaluationId={rubrique.idRubriqueEvaluation}
+                        evaluationId={evaluationId}
+                        onRemove={onRemoveQuestion}
+                        readOnly={readOnly}
+                      />
+                    ))}
                 </div>
               </SortableContext>
             </DndContext>
@@ -259,9 +280,7 @@ export function RubriquesSection({
   const [availableRubriques, setAvailableRubriques] = useState<Rubrique[]>([])
   const [availableQuestions, setAvailableQuestions] = useState<Question[]>([])
 
-  const [selectedRubriqueId, setSelectedRubriqueId] = useState<number | null>(
-    null,
-  )
+  const [selectedRubriqueIds, setSelectedRubriqueIds] = useState<number[] | null>([])
   const [isRubriqueDialogOpen, setIsRubriqueDialogOpen] = useState(false)
   const [expandedRubriqueIds, setExpandedRubriqueIds] = useState<Set<number>>(new Set())
 
@@ -286,18 +305,23 @@ export function RubriquesSection({
 
   const loadQuestions = async () => {
     const data = await getQuestions()
+    
     setAvailableQuestions(data)
   }
 
   const handleAddRubrique = async () => {
-    if (!selectedRubriqueId || !evaluationId || readOnly) return
+    if (!selectedRubriqueIds || !evaluationId || readOnly) return
 
     try {
-      await addRubriqueToEvaluation(evaluationId, selectedRubriqueId)
+      await Promise.all(
+        selectedRubriqueIds.map((id) =>
+          addRubriqueToEvaluation(evaluationId, id)
+        )
+      )
       if (onReload) {
         await onReload()
       }
-      setSelectedRubriqueId(null)
+      setSelectedRubriqueIds(null)
       setIsRubriqueDialogOpen(false)
     } catch (error) {
       console.error("Erreur lors de l'ajout de la rubrique :", error)
@@ -375,6 +399,16 @@ export function RubriquesSection({
     })
   }, [])
 
+  const toggleRubriqueSelection = (id: number) => {
+    setSelectedRubriqueIds((prev) => {
+      const list = prev ?? []
+
+      return list.includes(id)
+        ? list.filter((r) => r !== id)
+        : [...list, id]
+    })
+  }
+
   const rubriqueSensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
@@ -427,9 +461,9 @@ export function RubriquesSection({
       if (oldIndex === -1 || newIndex === -1) return
       const reordered = arrayMove(questions, oldIndex, newIndex)
       const updatedRubriques = rubriques.map((r) =>
-          r.idRubriqueEvaluation === rubriqueEvaluationId
-              ? { ...r, questions: reordered }
-              : r
+        r.idRubriqueEvaluation === rubriqueEvaluationId
+          ? { ...r, questions: reordered }
+          : r
       )
       onChange(updatedRubriques)
       const questionOrders = reordered.map((q, i) => ({
@@ -463,6 +497,18 @@ export function RubriquesSection({
       .includes(questionSearch.toLowerCase())
     return !alreadyUsedIds.has(q.idQuestion) && matchesSearch
   })
+
+  const usedRubriqueIds = new Set(
+    (rubriques ?? []).map((r) => r.idRubrique)
+  )
+
+  const filteredRubriques = availableRubriques.filter(
+    (r) => !usedRubriqueIds.has(r.idRubrique)
+  )
+
+  const sortedRubriques = filteredRubriques.sort((a, b) =>
+    a.designation.localeCompare(b.designation)
+  )
 
   return (
     <div className="space-y-4 rounded-lg border border-gray-200 bg-white p-4 sm:p-6 min-w-0">
@@ -509,25 +555,24 @@ export function RubriquesSection({
                 </DialogTitle>
               </div>
               <p className="text-sm text-gray-500 font-normal mt-1">
-                Choisissez une rubrique dans le catalogue. Elle sera ajoutée avec ses questions existantes.
+                Choisissez une ou plusieurs rubriques dans le catalogue. Elles seront ajoutées avec leurs questions existantes.
               </p>
             </DialogHeader>
 
             <div className="flex-1 min-h-0 overflow-y-auto rounded-xl border border-gray-200/90 bg-gray-50/30 p-2 sm:p-3">
               <div className="grid gap-2 sm:gap-3">
-                {availableRubriques.map((r) => {
-                  const isSelected = selectedRubriqueId === r.idRubrique
-                  const questionCount = r.questions?.length ?? 0
+                {sortedRubriques.map((r) => {
+                  const isSelected = selectedRubriqueIds?.includes(r.idRubrique)
+                  const questionCount = Array.isArray(r.questions) ? r.questions.length : 0
                   return (
                     <button
                       key={r.idRubrique}
                       type="button"
-                      onClick={() => setSelectedRubriqueId(r.idRubrique)}
-                      className={`group relative w-full text-left rounded-xl border-2 p-4 transition-all duration-200 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-gray-400 ${
-                        isSelected
-                          ? "border-blue-500 bg-blue-50/80 shadow-sm ring-0"
-                          : "border-transparent bg-white hover:border-gray-200 hover:bg-white hover:shadow-sm"
-                      }`}
+                      onClick={() => toggleRubriqueSelection(r.idRubrique)}
+                      className={`group relative w-full text-left rounded-xl border-2 p-4 transition-all duration-200 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-gray-400 ${isSelected
+                        ? "border-blue-500 bg-blue-50/80 shadow-sm ring-0"
+                        : "border-transparent bg-white hover:border-gray-200 hover:bg-white hover:shadow-sm"
+                        }`}
                     >
                       {isSelected && (
                         <div className="absolute top-3 right-3 flex h-6 w-6 items-center justify-center rounded-full bg-blue-500 text-white">
@@ -539,11 +584,11 @@ export function RubriquesSection({
                           {r.designation}
                         </div>
                         <div className="mt-1 flex items-center gap-2 text-xs text-gray-500">
-                          <span className="rounded-md bg-gray-100 px-2 py-0.5 font-medium text-gray-600">
+                          <span className={`rounded-md bg-gray-100 px-2 py-0.5 font-medium text-gray-600  ${getRubriqueTypeStyle(r.type)}`}>
                             {questionCount} question{questionCount !== 1 ? "s" : ""}
                           </span>
                           {r.type && (
-                            <span className="text-gray-400">{r.type}</span>
+                            <span className="text-gray-400">{getRubriqueTypeLabel(r.type)}</span>
                           )}
                         </div>
                       </div>
@@ -565,7 +610,7 @@ export function RubriquesSection({
               <Button
                 type="button"
                 onClick={handleAddRubrique}
-                disabled={!selectedRubriqueId}
+                disabled={selectedRubriqueIds?.length === 0}
                 className="order-1 sm:order-2 w-full sm:w-auto"
               >
                 <Plus className="mr-2 h-4 w-4" />
@@ -639,8 +684,8 @@ export function RubriquesSection({
                     key={q.idQuestion}
                     onClick={() => setSelectedQuestionId(q.idQuestion)}
                     className={`cursor-pointer border-b px-3 py-2 text-sm hover:bg-gray-100 ${selectedQuestionId === q.idQuestion
-                        ? "bg-blue-50"
-                        : "bg-white"
+                      ? "bg-blue-50"
+                      : "bg-white"
                       }`}
                   >
                     {q.intitule}

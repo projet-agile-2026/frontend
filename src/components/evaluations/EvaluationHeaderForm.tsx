@@ -17,6 +17,7 @@ import {
   TooltipTrigger,
 } from "../../components/ui/tooltip"
 import { DatePickerField } from "../DatePickerField"
+import { Button } from "../ui/button"
 
 
 export interface EvaluationHeaderFormValues {
@@ -42,6 +43,8 @@ interface EvaluationHeaderFormProps {
   onChange: (values: EvaluationHeaderFormValues) => void
   onFormationChange: (codeFormation: string) => void
   onUeChange: (codeUe: string) => void
+  onSaveHeader?: () => void
+  isHeaderSaved?: boolean
 }
 
 function SectionLabel({
@@ -71,6 +74,8 @@ export function EvaluationHeaderForm({
   onChange,
   onFormationChange,
   onUeChange,
+  onSaveHeader,
+  isHeaderSaved,
 }: EvaluationHeaderFormProps) {
   const [errors, setErrors] = useState<Record<string, string>>({})
   useEffect(() => {
@@ -87,6 +92,7 @@ export function EvaluationHeaderForm({
         codeEc: "",
       })
     }
+    console.log("EValuationHeader", values)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [values.codeFormation, values.codeUe])
   function RequiredLabel({ children }: { children: React.ReactNode }) {
@@ -100,12 +106,30 @@ export function EvaluationHeaderForm({
   return (
     <Card className="overflow-hidden rounded-xl border border-gray-200/90 bg-white shadow-sm py-0 gap-0">
       <CardHeader className="border-b border-gray-200/80 bg-gradient-to-b from-gray-50/80 to-white px-5 sm:px-6 pt-5 sm:pt-6 pb-5">
-        <CardTitle className="text-lg font-semibold tracking-tight text-gray-900">
-          Informations de l&apos;évaluation
-        </CardTitle>
-        <p className="text-sm text-gray-500 font-normal mt-1">
-          Contexte académique, unité d&apos;enseignement et période de réponses
-        </p>
+
+        <div className="flex items-start justify-between gap-4">
+
+          <div>
+            <CardTitle className="text-lg font-semibold tracking-tight text-gray-900">
+              Informations de l&apos;évaluation
+            </CardTitle>
+
+            <p className="text-sm text-gray-500 font-normal mt-1">
+              Contexte académique, unité d&apos;enseignement et période de réponses
+            </p>
+          </div>
+
+          <Button
+            type="button"
+            onClick={onSaveHeader}
+            disabled={disabled}
+            className="shrink-0"
+          >
+            Enregistrer
+          </Button>
+
+        </div>
+
       </CardHeader>
 
       <CardContent className="p-0">
@@ -119,6 +143,7 @@ export function EvaluationHeaderForm({
             <div className="space-y-2">
               <RequiredLabel>Code Formation</RequiredLabel>
               <Select
+                required
                 disabled={disabled}
                 value={values.codeFormation || undefined}
                 onValueChange={onFormationChange}
@@ -135,7 +160,7 @@ export function EvaluationHeaderForm({
                 </SelectContent>
               </Select>
             </div>
-            
+
             <div className="space-y-2">
               <RequiredLabel>Année universitaire</RequiredLabel>
               <TooltipProvider>
@@ -143,6 +168,7 @@ export function EvaluationHeaderForm({
                   <TooltipTrigger asChild>
                     <div>
                       <Select
+                        required
                         disabled={disabled || !values.codeFormation}
                         value={values.anneeUniversitaire || undefined}
                         onValueChange={(value) =>
@@ -193,25 +219,14 @@ export function EvaluationHeaderForm({
               <Label className="text-gray-600 text-sm font-medium">
                 État
               </Label>
-              <Select
-                disabled={disabled}
-                value="ELA"
-                onValueChange={(value) =>
-                  onChange({
-                    ...values,
-                    etat: value as "ELA" | "DIS" | "CLO",
-                  })
-                }
-              >
-                <SelectTrigger className="h-10 bg-white">
-                  <SelectValue placeholder="Sélectionner un état" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ELA">En cours d&apos;élaboration</SelectItem>
-                  <SelectItem value="DIS">Mise à disposition</SelectItem>
-                  <SelectItem value="CLO">Clôturée</SelectItem>
-                </SelectContent>
-              </Select>
+
+              <div className="text-base font-semibold text-gray-900 h-10 flex items-center">
+                {{
+                  ELA: "En cours d'élaboration",
+                  DIS: "Mise à disposition",
+                  CLO: "Clôturée",
+                }[values.etat]}
+              </div>
             </div>
           </div>
         </div>
@@ -231,6 +246,7 @@ export function EvaluationHeaderForm({
                   <TooltipTrigger asChild>
                     <div>
                       <Select
+                        required
                         disabled={disabled || !values.codeFormation}
                         value={values.codeUe || undefined}
                         onValueChange={onUeChange}
@@ -298,6 +314,7 @@ export function EvaluationHeaderForm({
             <div className="space-y-2 sm:col-span-2 lg:col-span-1">
               <RequiredLabel>Désignation</RequiredLabel>
               <Input
+                required
                 disabled={disabled}
                 placeholder="Ex: Évaluation intermédiaire S1"
                 value={values.designation}
@@ -335,6 +352,7 @@ export function EvaluationHeaderForm({
               <DatePickerField
                 disabled={disabled}
                 value={values.finReponse}
+                min={values.debutReponse}
                 onChange={(value) =>
                   onChange({ ...values, finReponse: value })
                 }
@@ -345,6 +363,7 @@ export function EvaluationHeaderForm({
             <div className="space-y-2">
               <RequiredLabel>Numéro d’évaluation</RequiredLabel>
               <Input
+                required
                 type="number"
                 min={1}
                 value={values.noEvaluation}

@@ -57,7 +57,7 @@ export function SettingsMenu() {
             to="/questions"
             className="py-2 cursor-pointer hover:bg-yellow-100 w-full"
           >
-            Questions
+            Gestion des Questions
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem className="py-2 cursor-pointer hover:bg-yellow-100" asChild>
@@ -65,7 +65,7 @@ export function SettingsMenu() {
             to="/rubriques"
             className="py-2 cursor-pointer hover:bg-yellow-100 w-full"
           >
-            Rubriques
+            Gestion des Rubriques
           </Link>
         </DropdownMenuItem> 
       </DropdownMenuContent>
