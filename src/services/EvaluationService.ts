@@ -103,6 +103,9 @@ export interface DroitResponseDTO {
   noEnseignant: number
   consultation: "O" | "N"
   duplication: "O" | "N"
+    nom?: string
+    prenom?: string
+    emailUbo?: string
 }
 
 export interface DroitRequestDTO {

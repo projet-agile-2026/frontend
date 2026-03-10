@@ -275,19 +275,23 @@ export function EvaluationsPage() {
         duplicatingId={duplicatingId}
       />
 
-      <Dialog
-        open={droitsDialogEvaluationId != null}
-        onOpenChange={(open) => !open && setDroitsDialogEvaluationId(null)}
-      >
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Gestion des droits de partage</DialogTitle>
-          </DialogHeader>
-          {droitsDialogEvaluationId != null && (
-            <DroitsSection evaluationId={droitsDialogEvaluationId} />
-          )}
-        </DialogContent>
-      </Dialog>
+        <Dialog
+            open={droitsDialogEvaluationId != null}
+            onOpenChange={(open) => !open && setDroitsDialogEvaluationId(null)}
+        >
+            <DialogContent className="!w-[96vw] !max-w-[1280px] max-h-[92vh] overflow-y-auto p-0">
+                <DialogHeader className="border-b border-gray-100 px-6 py-4">
+                    <DialogTitle>Gestion des droits de partage</DialogTitle>
+                </DialogHeader>
+
+                <div className="p-4 sm:p-6">
+                    {droitsDialogEvaluationId != null && (
+                        <DroitsSection evaluationId={droitsDialogEvaluationId} />
+                    )}
+                </div>
+            </DialogContent>
+        </Dialog>
+
       <AlertDialog
         open={deleteTarget != null}
         onOpenChange={(open) => !open && setDeleteTarget(null)}

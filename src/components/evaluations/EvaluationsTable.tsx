@@ -1,4 +1,4 @@
-import { Pencil, Trash2, Copy, Shield, Loader2, Eye } from "lucide-react"
+import { Pencil, Trash2, Copy, Shield, Share2, Loader2, Eye } from "lucide-react"
 import { Badge } from "../../components/ui/badge"
 import { Button } from "../../components/ui/button"
 import {
@@ -279,16 +279,15 @@ export function EvaluationsTable({
         {/* partage */}
         <td className="px-3 lg:px-4 py-3">
           {onOpenDroits ? (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-8 gap-1.5 text-xs"
-              onClick={() => onOpenDroits(evaluation)}
-              title="Gestion des droits"
-            >
-              <Shield className="h-3.5 w-3.5" />
-              Droits
-            </Button>
+              <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => onOpenDroits(evaluation)}
+                  title="Gestion des droits"
+              >
+                  <Share2 className="h-4 w-4" />
+              </Button>
           ) : (
             <span className="text-xs text-gray-400">—</span>
           )}
