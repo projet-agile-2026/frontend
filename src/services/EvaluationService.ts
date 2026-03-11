@@ -334,3 +334,15 @@ export async function updateEvaluationEtat(
   )
   return data
 }
+//ranya 
+export async function updateDesignationRubriqueEvaluation(
+  evaluationId: number,
+  rubriqueEvaluationId: number,
+  designation: string
+): Promise<RubriqueEvaluationDTO> {
+  const { data } = await api.put(
+    `/api/enseignant/evaluations/${evaluationId}/rubriques/${rubriqueEvaluationId}/designation`,
+    { designation }
+  )
+  return data
+}
