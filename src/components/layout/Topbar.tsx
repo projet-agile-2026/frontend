@@ -11,12 +11,12 @@ import type { UserInfo } from "@/services/authService"
 const APP_TITLE = "Plateforme d'évaluation"
 
 export function Topbar() {
-  const [userRole, setUserRole] = useState<string | null>(null)
+  const [role, setRole] = useState<string | null>(null)
 
   useEffect(() => {
     getCurrentUser()
-      .then(user => setUserRole(user.role))
-      .catch(() => setUserRole(null))
+      .then(user => setRole(user.role))
+      .catch(() => setRole(null))
   }, [])
 
   return (
@@ -46,13 +46,11 @@ export function Topbar() {
 
         {/* RIGHT */}
         <div className="flex items-center justify-end gap-2 sm:gap-3 flex-shrink-0">
-          <Promotion />
-          {userRole === "ETU" ? <EtudiantEvaluationsButton /> : <EvaluationsButton />}
-          <SettingsMenu />
+
+          {role === "ETU" && <EtudiantEvaluationsButton />}
           
           {/* ADMIN uniquement */}
           {role === "ADM" && <Promotion />}
-
           {/* ENSEIGNANT uniquement */}
           {role === "ENS" && <EvaluationsButton />}
 
