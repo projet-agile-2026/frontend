@@ -37,7 +37,8 @@ export interface EvaluationWithRubriquesDTO {
 
 export interface EvaluationListItem {
   idEvaluation: number
-  anneeUniversitaire: string
+    noEnseignant: number
+    anneeUniversitaire: string
   codeFormation: string
   libelleFormation?: string
   codeUe: string
@@ -69,6 +70,9 @@ export interface EvaluationRubriquePayload {
 
 export interface EvaluationDetailDTO {
   id?: number
+
+    idEvaluation?: number
+
   anneeUniversitaire: string
   codeFormation: string
   codeUe: string

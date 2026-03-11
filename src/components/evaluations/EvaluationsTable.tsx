@@ -24,6 +24,8 @@ interface EvaluationsTableProps {
   onOpenDroits?: (evaluation: EvaluationListItem) => void
   onView?: (evaluation: EvaluationListItem) => void
   duplicatingId?: number | null
+
+    isOwnEvaluations?: boolean
 }
 
 function getStatusLabel(status: EvaluationStatus) {
@@ -181,7 +183,8 @@ export function EvaluationsTable({
   onOpenDroits,
   onView,
   duplicatingId,
-}: EvaluationsTableProps) {
+                                     isOwnEvaluations = false,
+                                 }: EvaluationsTableProps) {
   const totalPages = Math.max(1, Math.ceil(total / pageSize))
   console.log("asssss",evaluations[1])
 
@@ -285,22 +288,26 @@ export function EvaluationsTable({
           {new Date(evaluation.finReponse).toLocaleDateString("fr-FR")}
         </td>
 
-        {/* partage */}
-        <td className="px-3 lg:px-4 py-3">
-          {onOpenDroits ? (
-              <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8"
-                  onClick={() => onOpenDroits(evaluation)}
-                  title="Gestion des droits"
-              >
-                  <Share2 className="h-4 w-4" />
-              </Button>
-          ) : (
-            <span className="text-xs text-gray-400">—</span>
-          )}
-        </td>
+                    {/* partage */}
+                    <td className="px-3 lg:px-4 py-3">
+                        {onOpenDroits ? (() => {
+                            const isOwner = isOwnEvaluations === true
+                            return (
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className={`h-8 w-8 ${!isOwner ? "cursor-not-allowed opacity-30" : ""}`}
+                                    onClick={() => isOwner && onOpenDroits(evaluation)}
+                                    disabled={!isOwner}
+                                    title={isOwner ? "Gestion des droits" : "Vous n'êtes pas propriétaire"}
+                                >
+                                    <Share2 className="h-4 w-4" />
+                                </Button>
+                            )
+                        })() : (
+                            <span className="text-xs text-gray-400">—</span>
+                        )}
+                    </td>
 
         {/* actions */}
         <td className="whitespace-nowrap px-3 lg:px-4 py-3 text-right">

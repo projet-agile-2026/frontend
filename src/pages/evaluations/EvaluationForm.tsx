@@ -1,5 +1,5 @@
 import { useEffect, useState, type FC } from "react"
-import { useNavigate, useParams } from "react-router-dom"
+import { useNavigate, useParams, useLocation } from "react-router-dom"
 import {
   type EvaluationDetailDTO,
   type EvaluationStatus,
@@ -34,6 +34,9 @@ export type EvaluationFormProps = {
 export const EvaluationForm: FC<EvaluationFormProps> = ({ readOnly = false }) => {
   const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
+
+    const location = useLocation()
+    const prefill = (location.state as any)?.prefill ?? null
 
   const isEdit = !!id
   const isViewMode = readOnly === true
@@ -131,33 +134,58 @@ export const EvaluationForm: FC<EvaluationFormProps> = ({ readOnly = false }) =>
         const formationsData = await getFormations()
         setFormations(formationsData)
 
-        if (isEdit && id) {
-          const evaluation = await getEvaluationFull(Number(id))
-          setEtat(evaluation.etat as EvaluationStatus)
-          setRubriques(evaluation.rubriques || [])
+          if (isEdit && id) {
+              const evaluation = await getEvaluationFull(Number(id))
+              setEtat(evaluation.etat as EvaluationStatus)
+              setRubriques(evaluation.rubriques || [])
 
-          setHeaderValues({
-            codeFormation: evaluation.codeFormation,
-            anneeUniversitaire: evaluation.anneeUniversitaire,
-            codeUe: evaluation.codeUe,
-            codeEc: evaluation.codeEc,
-            designation: evaluation.designation,
-            debutReponse: evaluation.debutReponse.slice(0, 10),
-            finReponse: evaluation.finReponse.slice(0, 10),
-            etat: evaluation.etat,
-            periode: evaluation.periode,
-            noEvaluation: evaluation.noEvaluation,
-          })
+              setHeaderValues({
+                  codeFormation: evaluation.codeFormation,
+                  anneeUniversitaire: evaluation.anneeUniversitaire,
+                  codeUe: evaluation.codeUe,
+                  codeEc: evaluation.codeEc,
+                  designation: evaluation.designation,
+                  debutReponse: evaluation.debutReponse.slice(0, 10),
+                  finReponse: evaluation.finReponse.slice(0, 10),
+                  etat: evaluation.etat,
+                  periode: evaluation.periode,
+                  noEvaluation: evaluation.noEvaluation,
+              })
 
-          const [anneesData, uesData, ecsData] = await Promise.all([
-            getAnneesUniversitaires(evaluation.codeFormation),
-            getUes(evaluation.codeFormation),
-            getEcs(evaluation.codeFormation, evaluation.codeUe),
-          ])
-          setAnnees(anneesData)
-          setUes(uesData)
-          setEcs(ecsData)
-        }
+              const [anneesData, uesData, ecsData] = await Promise.all([
+                  getAnneesUniversitaires(evaluation.codeFormation),
+                  getUes(evaluation.codeFormation),
+                  getEcs(evaluation.codeFormation, evaluation.codeUe),
+              ])
+              setAnnees(anneesData)
+              setUes(uesData)
+              setEcs(ecsData)
+
+          } else if (prefill) {
+
+              setEtat("ELA")
+              setHeaderValues({
+                  codeFormation: prefill.codeFormation ?? "",
+                  anneeUniversitaire: prefill.anneeUniversitaire ?? "",
+                  codeUe: prefill.codeUe ?? "",
+                  codeEc: prefill.codeEc ?? "",
+                  designation: prefill.designation ?? "",
+                  debutReponse: prefill.debutReponse?.slice(0, 10) ?? "",
+                  finReponse: prefill.finReponse?.slice(0, 10) ?? "",
+                  etat: "ELA",
+                  periode: prefill.periode ?? "",
+                  noEvaluation: "",
+              })
+
+              const [anneesData, uesData, ecsData] = await Promise.all([
+                  getAnneesUniversitaires(prefill.codeFormation),
+                  getUes(prefill.codeFormation),
+                  getEcs(prefill.codeFormation, prefill.codeUe),
+              ])
+              setAnnees(anneesData)
+              setUes(uesData)
+              setEcs(ecsData)
+          }
       } catch (e: any) {
         setError(
           e.message || "Erreur lors du chargement du formulaire d'évaluation.",

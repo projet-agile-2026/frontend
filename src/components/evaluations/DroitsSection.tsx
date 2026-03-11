@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react"
-import { Share2, Plus, Trash2, Pencil } from "lucide-react"
+import { useEffect, useRef, useState } from "react"
+import { Share2, Plus, Trash2, Pencil, ChevronDown } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "../ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card"
@@ -10,13 +10,6 @@ import {
     DialogTitle,
     DialogFooter,
 } from "../ui/dialog"
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "../ui/select"
 import {
     AlertDialog,
     AlertDialogAction,
@@ -35,9 +28,12 @@ import {
     type DroitResponseDTO,
     type DroitRequestDTO,
 } from "../../services/EvaluationService"
+import { getEnseignants, type EnseignantLightDTO } from "../../services/enseignantservice"
+import { getCurrentUser } from "../../services/authService"
 
 interface DroitsSectionProps {
     evaluationId: number
+    evaluationDesignation?: string
 }
 
 function getTeacherFullName(droit: DroitResponseDTO | null): string {
@@ -45,8 +41,10 @@ function getTeacherFullName(droit: DroitResponseDTO | null): string {
     return [droit.prenom, droit.nom].filter(Boolean).join(" ")
 }
 
-export function DroitsSection({ evaluationId }: DroitsSectionProps) {
+export function DroitsSection({ evaluationId, evaluationDesignation }: DroitsSectionProps) {
     const [droits, setDroits] = useState<DroitResponseDTO[]>([])
+    const [enseignants, setEnseignants] = useState<EnseignantLightDTO[]>([])
+    const [currentUserId, setCurrentUserId] = useState<number | null>(null)
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
 
@@ -55,9 +53,13 @@ export function DroitsSection({ evaluationId }: DroitsSectionProps) {
     const [deleteTarget, setDeleteTarget] = useState<DroitResponseDTO | null>(null)
 
     const [noEnseignant, setNoEnseignant] = useState<string>("")
-    const [consultation, setConsultation] = useState(true)
+    const [selectedLabel, setSelectedLabel] = useState<string>("")
     const [duplication, setDuplication] = useState(false)
     const [submitting, setSubmitting] = useState(false)
+
+    const [searchEnseignant, setSearchEnseignant] = useState<string>("")
+    const [dropdownOpen, setDropdownOpen] = useState(false)
+    const dropdownRef = useRef<HTMLDivElement>(null)
 
     const loadDroits = async () => {
         try {
@@ -69,9 +71,7 @@ export function DroitsSection({ evaluationId }: DroitsSectionProps) {
             const message =
                 e instanceof Error ? e.message : "Erreur lors du chargement des droits."
             setError(message)
-            toast.error("Erreur", {
-                description: message,
-            })
+            toast.error("Erreur", { description: message })
         } finally {
             setLoading(false)
         }
@@ -79,18 +79,43 @@ export function DroitsSection({ evaluationId }: DroitsSectionProps) {
 
     useEffect(() => {
         void loadDroits()
+
+        getCurrentUser()
+            .then((u) => {
+                getEnseignants()
+                    .then((data) => {
+                        const list = Array.isArray(data) ? data : []
+                        setEnseignants(list)
+                        const found = list.find(e => e.emailUbo === u?.email)
+                        if (found) setCurrentUserId(found.noEnseignant)
+                    })
+                    .catch(() => {})
+            })
+            .catch(() => {})
     }, [evaluationId])
+
+    // Fermer le dropdown si on clique en dehors
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+                setDropdownOpen(false)
+            }
+        }
+        document.addEventListener("mousedown", handleClickOutside)
+        return () => document.removeEventListener("mousedown", handleClickOutside)
+    }, [])
 
     const openUpsert = (droit?: DroitResponseDTO) => {
         setEditingDroit(droit ?? null)
+        setSearchEnseignant("")
+        setDropdownOpen(false)
+        setNoEnseignant("")
+        setSelectedLabel("")
 
         if (droit) {
             setNoEnseignant(String(droit.noEnseignant))
-            setConsultation(droit.consultation === "O")
             setDuplication(droit.duplication === "O")
         } else {
-            setNoEnseignant("")
-            setConsultation(true)
             setDuplication(false)
         }
 
@@ -112,7 +137,7 @@ export function DroitsSection({ evaluationId }: DroitsSectionProps) {
         try {
             const payload: DroitRequestDTO = {
                 noEnseignant: num,
-                consultation: consultation || duplication,
+                consultation: true,
                 duplication,
             }
 
@@ -127,9 +152,7 @@ export function DroitsSection({ evaluationId }: DroitsSectionProps) {
             const message =
                 e instanceof Error ? e.message : "Erreur lors de l'enregistrement."
             setError(message)
-            toast.error("Erreur", {
-                description: message,
-            })
+            toast.error("Erreur", { description: message })
         } finally {
             setSubmitting(false)
         }
@@ -142,12 +165,31 @@ export function DroitsSection({ evaluationId }: DroitsSectionProps) {
     const editingTeacherName = getTeacherFullName(editingDroit)
     const deleteTeacherName = getTeacherFullName(deleteTarget)
 
+    // Liste triée alphabétiquement par NOM, filtrée par recherche,
+    // en excluant ceux qui ont déjà un droit et l'enseignant connecté
+    const filteredEnseignants = enseignants
+        .filter(e =>
+            !droits.some(d => d.noEnseignant === e.noEnseignant) &&
+            e.noEnseignant !== currentUserId
+        )
+        .sort((a, b) =>
+            `${a.nom} ${a.prenom}`.localeCompare(`${b.nom} ${b.prenom}`)
+        )
+        .filter(e =>
+            `${e.nom} ${e.prenom}`.toLowerCase().includes(searchEnseignant.toLowerCase())
+        )
+
     return (
         <Card className="border-none shadow-none">
             <CardHeader className="flex flex-row items-center justify-between px-0 pb-4">
                 <div className="flex items-center gap-2">
                     <Share2 className="h-5 w-5 text-gray-600" />
-                    <CardTitle className="text-lg">Gestion des droits</CardTitle>
+                    <div>
+                        <CardTitle className="text-lg">Gestion des droits</CardTitle>
+                        {evaluationDesignation && (
+                            <p className="text-sm text-gray-500 mt-0.5">{evaluationDesignation}</p>
+                        )}
+                    </div>
                 </div>
 
                 <Button size="sm" className="gap-2" onClick={() => openUpsert()}>
@@ -188,40 +230,25 @@ export function DroitsSection({ evaluationId }: DroitsSectionProps) {
                                 <tr key={d.noEnseignant} className="border-b hover:bg-gray-50">
                                     <td className="px-6 py-5">
                                         <div className="flex flex-col">
-                        <span className="font-medium text-gray-900">
-                          {[d.prenom, d.nom].filter(Boolean).join(" ")}
-                        </span>
-
+                                            <span className="font-medium text-gray-900">
+                                                {[d.prenom, d.nom].filter(Boolean).join(" ")}
+                                            </span>
                                             {d.emailUbo && (
-                                                <span className="text-xs text-gray-500">
-                            {d.emailUbo}
-                          </span>
+                                                <span className="text-xs text-gray-500">{d.emailUbo}</span>
                                             )}
                                         </div>
                                     </td>
 
                                     <td className="px-6 py-5">
-                      <span
-                          className={
-                              d.consultation === "O"
-                                  ? "font-medium text-green-600"
-                                  : "text-gray-400"
-                          }
-                      >
-                        {d.consultation === "O" ? "Oui" : "Non"}
-                      </span>
+                                        <span className={d.consultation === "O" ? "font-medium text-green-600" : "text-gray-400"}>
+                                            {d.consultation === "O" ? "Oui" : "Non"}
+                                        </span>
                                     </td>
 
                                     <td className="px-6 py-5">
-                      <span
-                          className={
-                              d.duplication === "O"
-                                  ? "font-medium text-green-600"
-                                  : "text-gray-400"
-                          }
-                      >
-                        {d.duplication === "O" ? "Oui" : "Non"}
-                      </span>
+                                        <span className={d.duplication === "O" ? "font-medium text-green-600" : "text-gray-400"}>
+                                            {d.duplication === "O" ? "Oui" : "Non"}
+                                        </span>
                                     </td>
 
                                     <td className="px-6 py-5 text-right">
@@ -270,32 +297,73 @@ export function DroitsSection({ evaluationId }: DroitsSectionProps) {
                                     Enseignant
                                 </label>
 
-                                <Select value={noEnseignant} onValueChange={setNoEnseignant}>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Choisir un enseignant" />
-                                    </SelectTrigger>
+                                {/* Dropdown custom — évite le bug de repositionnement du SelectContent shadcn */}
+                                <div className="relative" ref={dropdownRef}>
+                                    {/* Trigger */}
+                                    <button
+                                        type="button"
+                                        onClick={() => setDropdownOpen(prev => !prev)}
+                                        className="flex h-9 w-full items-center justify-between rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm ring-offset-background focus:outline-none focus:ring-1 focus:ring-ring"
+                                    >
+                                        <span className={selectedLabel ? "text-gray-900" : "text-gray-400"}>
+                                            {selectedLabel || "Choisir un enseignant"}
+                                        </span>
+                                        <ChevronDown className="h-4 w-4 text-gray-400" />
+                                    </button>
 
-                                    <SelectContent>
-                                        {droits.map((d) => (
-                                            <SelectItem
-                                                key={d.noEnseignant}
-                                                value={String(d.noEnseignant)}
-                                            >
-                                                {[d.prenom, d.nom].filter(Boolean).join(" ")}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
+                                    {/* Liste déroulante fixe */}
+                                    {dropdownOpen && (
+                                        <div className="absolute z-50 mt-1 w-full rounded-md border border-gray-200 bg-white shadow-lg">
+                                            {/* Barre de recherche */}
+                                            <div className="p-2 border-b border-gray-100">
+                                                <input
+                                                    type="text"
+                                                    placeholder="Rechercher un enseignant..."
+                                                    value={searchEnseignant}
+                                                    onChange={(e) => setSearchEnseignant(e.target.value)}
+                                                    className="w-full rounded-md border border-gray-200 px-2 py-1.5 text-sm outline-none focus:border-gray-400"
+                                                    autoFocus
+                                                />
+                                            </div>
+
+                                            {/* Liste avec scroll fixe */}
+                                            <ul className="max-h-48 overflow-y-auto py-1">
+                                                {filteredEnseignants.length === 0 ? (
+                                                    <li className="px-3 py-2 text-sm text-gray-400">
+                                                        Aucun enseignant trouvé
+                                                    </li>
+                                                ) : (
+                                                    filteredEnseignants.map((e) => {
+                                                        const label = [e.nom, e.prenom].filter(Boolean).join(" ")
+                                                        return (
+                                                            <li
+                                                                key={e.noEnseignant}
+                                                                onClick={() => {
+                                                                    setNoEnseignant(String(e.noEnseignant))
+                                                                    setSelectedLabel(label)
+                                                                    setDropdownOpen(false)
+                                                                    setSearchEnseignant("")
+                                                                }}
+                                                                className={`cursor-pointer px-3 py-2 text-sm hover:bg-gray-100 ${
+                                                                    noEnseignant === String(e.noEnseignant)
+                                                                        ? "bg-gray-50 font-medium"
+                                                                        : ""
+                                                                }`}
+                                                            >
+                                                                {label}
+                                                            </li>
+                                                        )
+                                                    })
+                                                )}
+                                            </ul>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         )}
 
                         <label className="flex items-center gap-2">
-                            <input
-                                type="checkbox"
-                                checked={consultation || duplication}
-                                disabled={duplication}
-                                onChange={(e) => setConsultation(e.target.checked)}
-                            />
+                            <input type="checkbox" checked={true} disabled readOnly />
                             Consultation
                         </label>
 
@@ -303,13 +371,7 @@ export function DroitsSection({ evaluationId }: DroitsSectionProps) {
                             <input
                                 type="checkbox"
                                 checked={duplication}
-                                onChange={(e) => {
-                                    const checked = e.target.checked
-                                    setDuplication(checked)
-                                    if (checked) {
-                                        setConsultation(true)
-                                    }
-                                }}
+                                onChange={(e) => setDuplication(e.target.checked)}
                             />
                             Duplication
                         </label>
@@ -359,9 +421,7 @@ export function DroitsSection({ evaluationId }: DroitsSectionProps) {
                                             ? e.message
                                             : "Erreur lors de la suppression."
                                     setError(message)
-                                    toast.error("Erreur", {
-                                        description: message,
-                                    })
+                                    toast.error("Erreur", { description: message })
                                 } finally {
                                     setDeleteTarget(null)
                                 }

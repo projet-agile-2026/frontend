@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom"
 import {
   deleteEvaluation,
   dupliquerEvaluation,
+    getEvaluation,
   type EvaluationListItem,
   getEvaluations,
   getEvaluationsPartagees,
@@ -37,7 +38,7 @@ export function EvaluationsPage() {
 
   const [evaluations, setEvaluations] = useState<EvaluationListItem[]>([])
   const [user, setUser] = useState<UserInfo | null>(null)
-  const [loading, setLoading] = useState(true)
+    const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   console.log("Evaluations:", evaluations)
@@ -51,6 +52,8 @@ export function EvaluationsPage() {
   const [droitsDialogEvaluationId, setDroitsDialogEvaluationId] = useState<
     number | null
   >(null)
+
+    const [droitsDialogDesignation, setDroitsDialogDesignation] = useState<string>("")
   const [duplicatingId, setDuplicatingId] = useState<number | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<EvaluationListItem | null>(null)
 
@@ -127,11 +130,14 @@ export function EvaluationsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [viewMode])
 
-  useEffect(() => {
-    // Minimal user fetch for role-based UI
-    getCurrentUser().then(setUser).catch(() => setUser(null))
-  }, [])
+    useEffect(() => {
+        getCurrentUser()
+            .then((u) => {
+                setUser(u)
 
+            })
+            .catch(() => setUser(null))
+    }, [])
   const filteredEvaluations = useMemo(
     () => applyFilters(evaluations),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -152,23 +158,30 @@ export function EvaluationsPage() {
     setDeleteTarget(evaluation)
   }
 
-  const handleDuplicate = async (evaluation: EvaluationListItem) => {
-    setDuplicatingId(evaluation.idEvaluation)
-    try {
-      const created = await dupliquerEvaluation(evaluation.idEvaluation)
-      toast.success("Évaluation dupliquée")
-      await loadEvaluations()
-      if (created?.id != null) {
-        navigate(`/evaluations/${created.id}`)
-      }
-    } catch (e: any) {
-      toast.error("Erreur", {
-        description: e.message || "Impossible de dupliquer l'évaluation.",
-      })
-    } finally {
-      setDuplicatingId(null)
+
+    const handleDuplicate = async (evaluation: EvaluationListItem) => {
+        setDuplicatingId(evaluation.idEvaluation)
+        try {
+            const source = await getEvaluation(evaluation.idEvaluation)
+            navigate("/evaluations/new", {
+                state: {
+                    prefill: {
+                        ...source,
+                        idEvaluation: undefined,
+                        id: undefined,
+                        etat: "ELA",          // toujours ELA à la duplication
+                        noEvaluation: "",      // sera recalculé à la sauvegarde
+                    }
+                }
+            })
+        } catch (e: any) {
+            toast.error("Erreur", {
+                description: e.message || "Impossible de dupliquer l'évaluation.",
+            })
+        } finally {
+            setDuplicatingId(null)
+        }
     }
-  }
 
   if (loading) {
     return (
@@ -268,11 +281,15 @@ export function EvaluationsPage() {
         onDelete={isAdmin ? undefined : handleDelete}
         onDuplicate={isAdmin ? undefined : handleDuplicate}
         onOpenDroits={
-          isAdmin
-            ? undefined
-            : (evaluation) => setDroitsDialogEvaluationId(evaluation.idEvaluation)
+            isAdmin
+                ? undefined
+                : (evaluation) => {
+                    setDroitsDialogEvaluationId(evaluation.idEvaluation)
+                    setDroitsDialogDesignation(evaluation.designation ?? "")
+                }
         }
         duplicatingId={duplicatingId}
+        isOwnEvaluations={viewMode === "mine"}
       />
 
         <Dialog
@@ -281,12 +298,15 @@ export function EvaluationsPage() {
         >
             <DialogContent className="!w-[96vw] !max-w-[1280px] max-h-[92vh] overflow-y-auto p-0">
                 <DialogHeader className="border-b border-gray-100 px-6 py-4">
-                    <DialogTitle>Gestion des droits de partage</DialogTitle>
+                    <DialogTitle>
+                        Gestion des droits — {droitsDialogDesignation}
+                    </DialogTitle>
                 </DialogHeader>
 
                 <div className="p-4 sm:p-6">
                     {droitsDialogEvaluationId != null && (
-                        <DroitsSection evaluationId={droitsDialogEvaluationId} />
+                        <DroitsSection evaluationId={droitsDialogEvaluationId}
+                                       evaluationDesignation={droitsDialogDesignation} />
                     )}
                 </div>
             </DialogContent>

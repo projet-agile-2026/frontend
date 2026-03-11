@@ -1,4 +1,6 @@
-import axios from "axios"
+//import axios from "axios"
+
+import api from "./api"
 
 export interface EnseignantLightDTO {
   noEnseignant: number
@@ -8,6 +10,7 @@ export interface EnseignantLightDTO {
 }
 
 export const getEnseignants = async (): Promise<EnseignantLightDTO[]> => {
-  const response = await axios.get("/api/enseignants")
+  //const response = await axios.get("/api/enseignants")
+    const response = await api.get("/api/enseignants")
   return response.data
 }
