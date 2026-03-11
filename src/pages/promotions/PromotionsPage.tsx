@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
+import { getEnseignants, type EnseignantLightDTO } from "../../services/enseignantservice"
 import {
   getPromotions,
   createPromotion,
@@ -18,7 +19,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "../../components/ui/dialog"
-import { Loader2, AlertCircle, Plus, Pencil, Trash2, GraduationCap } from "lucide-react"
+import { Loader2, AlertCircle, Plus, Pencil, Trash2, GraduationCap, Eye , User } from "lucide-react"
 import { toast } from "sonner"
 import { useApiError } from "../../hooks/useApiError"
 
@@ -29,8 +30,12 @@ export function PromotionsPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<unknown>(null)
   const errorText = useApiError(error)
+  const [deletePromoDialogOpen, setDeletePromoDialogOpen] = useState(false)
+  const [enseignants, setEnseignants] = useState<EnseignantLightDTO[]>([])
+const [promotionToDelete, setPromotionToDelete] = useState<PromotionResponseDTO | null>(null)
 
   const [search, setSearch] = useState("")
+
 
   const [formOpen, setFormOpen] = useState(false)
   const [editingPromotion, setEditingPromotion] = useState<PromotionResponseDTO | null>(null)
@@ -48,23 +53,41 @@ export function PromotionsPage() {
     dateReponseLalp: "",
   })
   const [saving, setSaving] = useState(false)
-
-  const loadPromotions = async () => {
-    try {
-      setLoading(true)
-      setError(null)
-      const data = await getPromotions()
-      setPromotions(data)
-    } catch (e: any) {
-      setError(e)
-    } finally {
-      setLoading(false)
-    }
+  const [formations, setFormations] = useState<string[]>([])
+const anneesUniversitaires = useMemo(() => {
+  const currentYear = new Date().getFullYear()
+  const years: string[] = []
+  for (let y = currentYear - 5; y <= currentYear + 1; y++) {
+    years.push(`${y}-${y + 1}`)
   }
+  return years.reverse()
+}, [])
 
-  useEffect(() => {
-    loadPromotions()
-  }, [])
+const loadPromotions = async () => {
+  try {
+    setLoading(true)
+    setError(null)
+    const [data, ens] = await Promise.all([getPromotions(), getEnseignants()])
+    setPromotions(data)
+    setEnseignants(ens)
+    const codes = [...new Set(data.map((p) => p.codeFormation))]
+    setFormations(codes)
+  } catch (e: any) {
+    setError(e)
+  } finally {
+    setLoading(false)
+  }
+}
+
+useEffect(() => {
+  loadPromotions()
+
+}, [])
+useEffect(() => {
+  const handleFocus = () => loadPromotions()
+  window.addEventListener("focus", handleFocus)
+  return () => window.removeEventListener("focus", handleFocus)
+}, [])
 
   const filteredPromotions = useMemo(() => {
     const term = search.trim().toLowerCase()
@@ -156,21 +179,25 @@ export function PromotionsPage() {
     }
   }
 
-  const handleDelete = async (promotion: PromotionResponseDTO) => {
-    const confirmed = window.confirm(
-      `Supprimer la promotion ${promotion.codeFormation} - ${promotion.anneeUniversitaire} ?`,
-    )
-    if (!confirmed) return
-    try {
-      await deletePromotion(promotion.codeFormation, promotion.anneeUniversitaire)
-      toast.success("Promotion supprimée")
-      await loadPromotions()
-    } catch (e: any) {
-      toast.error("Erreur", {
-        description: e.message || "Impossible de supprimer la promotion.",
-      })
-    }
+const confirmDeletePromotion = (promotion: PromotionResponseDTO) => {
+  setPromotionToDelete(promotion)
+  setDeletePromoDialogOpen(true)
+}
+
+const handleDelete = async () => {
+  if (!promotionToDelete) return
+  try {
+    await deletePromotion(promotionToDelete.codeFormation, promotionToDelete.anneeUniversitaire)
+    toast.success(`Promotion « ${promotionToDelete.codeFormation} - ${promotionToDelete.anneeUniversitaire} » supprimée avec succès`)
+    setDeletePromoDialogOpen(false)
+    setPromotionToDelete(null)
+    await loadPromotions()
+  } catch (e: any) {
+    toast.error("Erreur", {
+      description: e.message || "Impossible de supprimer la promotion.",
+    })
   }
+}
 
   if (loading) {
     return (
@@ -201,7 +228,7 @@ export function PromotionsPage() {
         <div>
           <h1 className="mb-1 text-2xl sm:text-3xl font-bold text-gray-900 flex items-center gap-2">
             <GraduationCap className="h-6 w-6 text-gray-700" />
-            Promotions
+            Gestion des promotions
           </h1>
           <p className="text-xs sm:text-sm text-gray-500">
             Gestion des promotions et de leur capacité d&apos;accueil.
@@ -246,7 +273,7 @@ export function PromotionsPage() {
                   <th className="px-4 py-3 text-left">Année universitaire</th>
                   <th className="px-4 py-3 text-left">Diplôme</th>
                   <th className="px-4 py-3 text-left">Enseignant</th>
-                  <th className="px-4 py-3 text-left">Nb max étudiants</th>
+                  <th className="px-4 py-3 text-left">Étudiants</th>
                   <th className="px-4 py-3 text-right">Actions</th>
                 </tr>
               </thead>
@@ -280,7 +307,7 @@ export function PromotionsPage() {
                         {promotion.anneeUniversitaire}
                       </td>
                       <td className="px-4 py-3">
-                        {promotion.diplome || "-"}
+                        {promotion.diplome === "L" ? "Licence" : promotion.diplome === "M" ? "Master" : promotion.diplome || "-"}
                       </td>
                       <td className="px-4 py-3">
                         {promotion.enseignantNom
@@ -290,27 +317,37 @@ export function PromotionsPage() {
                           : "-"}
                       </td>
                       <td className="px-4 py-3">
-                        {promotion.nbMaxEtudiant}
+                        {promotion.nbEtudiantActuel !== undefined && promotion.nbEtudiantActuel !== null
+                        ? `${promotion.nbEtudiantActuel}/${promotion.nbMaxEtudiant}`
+                        : `–/${promotion.nbMaxEtudiant}`}
                       </td>
                       <td className="px-4 py-3 text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => openEdit(promotion)}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            className="h-8 w-8 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
-                            onClick={() => handleDelete(promotion)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
+                <div className="flex items-center justify-end gap-2">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8 text-blue-600 border-blue-200 hover:bg-blue-50"
+                    onClick={() => navigate(`/promotions/${promotion.codeFormation}/${promotion.anneeUniversitaire}`)}
+                  >
+                    <Eye className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => openEdit(promotion)}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+                   onClick={() => confirmDeletePromotion(promotion)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
                       </td>
                     </tr>
                   ))
@@ -345,7 +382,7 @@ export function PromotionsPage() {
                         {promotion.anneeUniversitaire}
                       </div>
                       <div className="mt-1 text-sm text-gray-600">
-                        {promotion.nomFormation || promotion.diplome || "-"}
+                        {promotion.nomFormation || (promotion.diplome === "L" ? "Licence" : promotion.diplome === "M" ? "Master" : promotion.diplome) || "-"}
                       </div>
                       <div className="mt-1 text-xs text-gray-500">
                         Enseignant :{" "}
@@ -356,7 +393,7 @@ export function PromotionsPage() {
                           : "-"}
                       </div>
                       <div className="mt-1 text-xs text-gray-500">
-                        Nb max étudiants : {promotion.nbMaxEtudiant}
+                        Étudiants : {(promotion as any).nbEtudiantActuel ?? 0}/{promotion.nbMaxEtudiant}
                       </div>
                     </div>
                     <div className="flex shrink-0 flex-col gap-2">
@@ -371,7 +408,7 @@ export function PromotionsPage() {
                         variant="outline"
                         size="icon-sm"
                         className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
-                        onClick={() => handleDelete(promotion)}
+                        onClick={() => confirmDeletePromotion(promotion)}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -393,192 +430,142 @@ export function PromotionsPage() {
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div>
-                <label className="text-sm font-medium text-gray-700">
-                  Code formation
-                </label>
-                <Input
-                  value={formValues.codeFormation}
-                  disabled={!!editingPromotion}
-                  onChange={(e) =>
-                    setFormValues((prev) => ({
-                      ...prev,
-                      codeFormation: e.target.value.toUpperCase(),
-                    }))
-                  }
-                  className="mt-1"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium text-gray-700">
-                  Année universitaire
-                </label>
-                <Input
-                  placeholder="2024-2025"
-                  value={formValues.anneeUniversitaire}
-                  disabled={!!editingPromotion}
-                  onChange={(e) =>
-                    setFormValues((prev) => ({
-                      ...prev,
-                      anneeUniversitaire: e.target.value,
-                    }))
-                  }
-                  className="mt-1"
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div>
-                <label className="text-sm font-medium text-gray-700">
-                  Sigle promotion
-                </label>
-                <Input
-                  value={formValues.siglePromotion ?? ""}
-                  onChange={(e) =>
-                    setFormValues((prev) => ({
-                      ...prev,
-                      siglePromotion: e.target.value,
-                    }))
-                  }
-                  className="mt-1"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium text-gray-700">
-                  Numéro enseignant (responsable)
-                </label>
-                <Input
-                  type="number"
-                  value={formValues.noEnseignant ?? ""}
-                  onChange={(e) =>
-                    setFormValues((prev) => ({
-                      ...prev,
-                      noEnseignant: e.target.value
-                        ? Number(e.target.value)
-                        : undefined,
-                    }))
-                  }
-                  className="mt-1"
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div>
-                <label className="text-sm font-medium text-gray-700">
-                  Nb max étudiants
-                </label>
-                <Input
-                  type="number"
-                  min={1}
-                  value={formValues.nbMaxEtudiant}
-                  onChange={(e) =>
-                    setFormValues((prev) => ({
-                      ...prev,
-                      nbMaxEtudiant: Number(e.target.value),
-                    }))
-                  }
-                  className="mt-1"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium text-gray-700">
-                  Lieu de rentrée
-                </label>
-                <Input
-                  value={formValues.lieuRentree ?? ""}
-                  onChange={(e) =>
-                    setFormValues((prev) => ({
-                      ...prev,
-                      lieuRentree: e.target.value,
-                    }))
-                  }
-                  className="mt-1"
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-              <div>
-                <label className="text-sm font-medium text-gray-700">
-                  Date de rentrée
-                </label>
-                <Input
-                  type="date"
-                  value={formValues.dateRentree ?? ""}
-                  onChange={(e) =>
-                    setFormValues((prev) => ({
-                      ...prev,
-                      dateRentree: e.target.value,
-                    }))
-                  }
-                  className="mt-1"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium text-gray-700">
-                  Date réponse LP
-                </label>
-                <Input
-                  type="date"
-                  value={formValues.dateReponseLp ?? ""}
-                  onChange={(e) =>
-                    setFormValues((prev) => ({
-                      ...prev,
-                      dateReponseLp: e.target.value,
-                    }))
-                  }
-                  className="mt-1"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium text-gray-700">
-                  Date réponse LALP
-                </label>
-                <Input
-                  type="date"
-                  value={formValues.dateReponseLalp ?? ""}
-                  onChange={(e) =>
-                    setFormValues((prev) => ({
-                      ...prev,
-                      dateReponseLalp: e.target.value,
-                    }))
-                  }
-                  className="mt-1"
-                />
-              </div>
-            </div>
-            <div>
-              <label className="text-sm font-medium text-gray-700">
-                Processus de stage
-              </label>
-              <Input
-                value={formValues.processusStage ?? ""}
-                onChange={(e) =>
-                  setFormValues((prev) => ({
-                    ...prev,
-                    processusStage: e.target.value,
-                  }))
-                }
-                className="mt-1"
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium text-gray-700">
-                Commentaire
-              </label>
-              <Input
-                value={formValues.commentaire ?? ""}
-                onChange={(e) =>
-                  setFormValues((prev) => ({
-                    ...prev,
-                    commentaire: e.target.value,
-                  }))
-                }
-                className="mt-1"
-              />
-            </div>
-          </div>
-          <DialogFooter>
+  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+    <div>
+      <label className="text-sm font-medium text-gray-700">
+        Code formation <span className="text-red-500">*</span>
+      </label>
+      {editingPromotion ? (
+        <Input value={formValues.codeFormation} disabled className="mt-1 bg-gray-50" />
+      ) : (
+        <select
+          value={formValues.codeFormation}
+          onChange={(e) => setFormValues((prev) => ({ ...prev, codeFormation: e.target.value }))}
+          className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+        >
+          <option value="">-- Sélectionner --</option>
+          {formations.map((code) => (
+            <option key={code} value={code}>{code}</option>
+          ))}
+        </select>
+      )}
+    </div>
+    <div>
+      <label className="text-sm font-medium text-gray-700">
+        Année universitaire <span className="text-red-500">*</span>
+      </label>
+      {editingPromotion ? (
+        <Input value={formValues.anneeUniversitaire} disabled className="mt-1 bg-gray-50" />
+      ) : (
+        <select
+          value={formValues.anneeUniversitaire}
+          onChange={(e) => setFormValues((prev) => ({ ...prev, anneeUniversitaire: e.target.value }))}
+          className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+        >
+          <option value="">-- Sélectionner --</option>
+          {anneesUniversitaires.map((a) => (
+            <option key={a} value={a}>{a}</option>
+          ))}
+        </select>
+      )}
+    </div>
+  </div>
+<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+  <div>
+    <label className="text-sm font-medium text-gray-700">
+      Sigle promotion <span className="text-red-500">*</span>
+    </label>
+    <Input
+      value={formValues.siglePromotion ?? ""}
+      onChange={(e) => setFormValues((prev) => ({ ...prev, siglePromotion: e.target.value }))}
+      className="mt-1"
+    />
+  </div>
+  <div>
+    <label className="text-sm font-medium text-gray-700">
+      Nombre maximum des étudiants <span className="text-red-500">*</span>
+    </label>
+    <Input
+      type="number"
+      min={1}
+      value={formValues.nbMaxEtudiant}
+      onChange={(e) => setFormValues((prev) => ({ ...prev, nbMaxEtudiant: Number(e.target.value) }))}
+      className="mt-1"
+    />
+  </div>
+</div>
+
+<div>
+  <label className="text-sm font-medium text-gray-700">
+    Enseignant responsable
+  </label>
+  <select
+    value={formValues.noEnseignant ?? ""}
+    onChange={(e) => setFormValues((prev) => ({ ...prev, noEnseignant: e.target.value ? Number(e.target.value) : undefined }))}
+    className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+  >
+    <option value="">-- Sélectionner --</option>
+    {(enseignants ?? []).map((e) => (
+      <option key={e.noEnseignant} value={e.noEnseignant}>
+        {e.prenom} {e.nom}
+      </option>
+    ))}
+  </select>
+</div>
+
+  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+    <div>
+      <label className="text-sm font-medium text-gray-700">Lieu de rentrée</label>
+      <select
+        value={formValues.lieuRentree ?? ""}
+        onChange={(e) => setFormValues((prev) => ({ ...prev, lieuRentree: e.target.value }))}
+        className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+      >
+        <option value="">-- Sélectionner --</option>
+        <option value="LC117A">LC117A – Salle de réunion n°1</option>
+        <option value="LC117B">LC117B – Salle de réunion n°2</option>
+        <option value="LC218">LC218 – Micro 2.2</option>
+      </select>
+    </div>
+    <div>
+      <label className="text-sm font-medium text-gray-700">Date de rentrée</label>
+      <Input
+        type="date"
+        value={formValues.dateRentree ?? ""}
+        onChange={(e) => setFormValues((prev) => ({ ...prev, dateRentree: e.target.value }))}
+        className="mt-1"
+      />
+    </div>
+  </div>
+
+  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+    <div>
+      <label className="text-sm font-medium text-gray-700">Processus de stage</label>
+      <select
+        value={formValues.processusStage ?? ""}
+        onChange={(e) => setFormValues((prev) => ({ ...prev, processusStage: e.target.value }))}
+        className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+      >
+        <option value="">-- Sélectionner --</option>
+        <option value="RECH">RECH – Recherche en cours</option>
+        <option value="EC">EC – Stage en cours</option>
+        <option value="TUT">TUT – Tuteur attribué</option>
+        <option value="SOUT">SOUT – Session de soutenance</option>
+        <option value="EVAL">EVAL – Stage évalué</option>
+      </select>
+    </div>
+    <div>
+      <label className="text-sm font-medium text-gray-700">Commentaire</label>
+      <Input
+        value={formValues.commentaire ?? ""}
+        onChange={(e) => setFormValues((prev) => ({ ...prev, commentaire: e.target.value }))}
+        className="mt-1"
+      />
+    </div>
+  </div>
+</div>
+
+ <DialogFooter>
             <Button
               type="button"
               variant="outline"
@@ -605,7 +592,32 @@ export function PromotionsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={deletePromoDialogOpen} onOpenChange={setDeletePromoDialogOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Confirmer la suppression</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-gray-600 py-2">
+            Êtes-vous sûr de vouloir supprimer la promotion{" "}
+            <span className="font-semibold">
+              {promotionToDelete?.codeFormation} - {promotionToDelete?.anneeUniversitaire}
+            </span>{" "}
+            ? Cette action est irréversible.
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeletePromoDialogOpen(false)}>
+              Annuler
+            </Button>
+            <Button
+              className="bg-red-600 hover:bg-red-700 text-white"
+              onClick={handleDelete}
+            >
+              Supprimer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
-

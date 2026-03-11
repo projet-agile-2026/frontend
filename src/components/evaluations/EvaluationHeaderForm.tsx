@@ -16,6 +16,9 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "../../components/ui/tooltip"
+import { DatePickerField } from "../DatePickerField"
+import { Button } from "../ui/button"
+
 
 export interface EvaluationHeaderFormValues {
   codeFormation: string
@@ -40,6 +43,8 @@ interface EvaluationHeaderFormProps {
   onChange: (values: EvaluationHeaderFormValues) => void
   onFormationChange: (codeFormation: string) => void
   onUeChange: (codeUe: string) => void
+  onSaveHeader?: () => void
+  isHeaderSaved?: boolean
 }
 
 function SectionLabel({
@@ -69,8 +74,12 @@ export function EvaluationHeaderForm({
   onChange,
   onFormationChange,
   onUeChange,
+  onSaveHeader,
+  isHeaderSaved,
 }: EvaluationHeaderFormProps) {
+  const [errors, setErrors] = useState<Record<string, string>>({})
   useEffect(() => {
+
     if (!values.codeFormation && (values.codeUe || values.codeEc)) {
       onChange({
         ...values,
@@ -83,32 +92,58 @@ export function EvaluationHeaderForm({
         codeEc: "",
       })
     }
+    console.log("EValuationHeader", values)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [values.codeFormation, values.codeUe])
+  function RequiredLabel({ children }: { children: React.ReactNode }) {
+    return (
+      <Label className="text-gray-600 text-sm font-medium">
+        {children} <span className="text-red-500">*</span>
+      </Label>
+    )
+  }
 
   return (
     <Card className="overflow-hidden rounded-xl border border-gray-200/90 bg-white shadow-sm py-0 gap-0">
       <CardHeader className="border-b border-gray-200/80 bg-gradient-to-b from-gray-50/80 to-white px-5 sm:px-6 pt-5 sm:pt-6 pb-5">
-        <CardTitle className="text-lg font-semibold tracking-tight text-gray-900">
-          Informations de l&apos;évaluation
-        </CardTitle>
-        <p className="text-sm text-gray-500 font-normal mt-1">
-          Contexte académique, unité d&apos;enseignement et période de réponses
-        </p>
+
+        <div className="flex items-start justify-between gap-4">
+
+          <div>
+            <CardTitle className="text-lg font-semibold tracking-tight text-gray-900">
+              Informations de l&apos;évaluation
+            </CardTitle>
+
+            <p className="text-sm text-gray-500 font-normal mt-1">
+              Contexte académique, unité d&apos;enseignement et période de réponses
+            </p>
+          </div>
+
+          <Button
+            type="button"
+            onClick={onSaveHeader}
+            disabled={disabled}
+            className="shrink-0"
+          >
+            Enregistrer
+          </Button>
+
+        </div>
+
       </CardHeader>
 
       <CardContent className="p-0">
         {/* 1. Contexte académique */}
         <div className="px-5 sm:px-6 py-5">
+
           <SectionLabel icon={GraduationCap}>
             Contexte académique
           </SectionLabel>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <div className="space-y-2">
-              <Label className="text-gray-600 text-sm font-medium">
-                Code Formation
-              </Label>
+              <RequiredLabel>Code Formation</RequiredLabel>
               <Select
+                required
                 disabled={disabled}
                 value={values.codeFormation || undefined}
                 onValueChange={onFormationChange}
@@ -125,29 +160,44 @@ export function EvaluationHeaderForm({
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
-              <Label className="text-gray-600 text-sm font-medium">
-                Année universitaire
-              </Label>
-              <Select
-                disabled={disabled || !values.codeFormation}
-                value={values.anneeUniversitaire || undefined}
-                onValueChange={(value) =>
-                  onChange({ ...values, anneeUniversitaire: value })
-                }
-              >
-                <SelectTrigger className="h-10 bg-white">
-                  <SelectValue placeholder="Sélectionner une année" />
-                </SelectTrigger>
-                <SelectContent>
-                  {annees.map((annee) => (
-                    <SelectItem key={annee} value={annee}>
-                      {annee}
-                    </SelectItem>
-                  ))}
 
-                </SelectContent>
-              </Select>
+            <div className="space-y-2">
+              <RequiredLabel>Année universitaire</RequiredLabel>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div>
+                      <Select
+                        required
+                        disabled={disabled || !values.codeFormation}
+                        value={values.anneeUniversitaire || undefined}
+                        onValueChange={(value) =>
+                          onChange({ ...values, anneeUniversitaire: value })
+                        }
+                      >
+                        <SelectTrigger className="h-10 bg-white">
+                          <SelectValue placeholder="Sélectionner une année" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {annees.map((annee) => (
+                            <SelectItem key={annee} value={annee}>
+                              {annee}
+                            </SelectItem>
+                          ))}
+
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </TooltipTrigger>
+
+                  {!values.codeFormation && (
+                    <TooltipContent>
+                      Sélectionnez d’abord une formation.
+                    </TooltipContent>
+                  )}
+
+                </Tooltip>
+              </TooltipProvider>
             </div>
 
             <div className="space-y-2">
@@ -169,25 +219,14 @@ export function EvaluationHeaderForm({
               <Label className="text-gray-600 text-sm font-medium">
                 État
               </Label>
-              <Select
-                disabled={disabled}
-                value={values.etat}
-                onValueChange={(value) =>
-                  onChange({
-                    ...values,
-                    etat: value as "ELA" | "DIS" | "CLO",
-                  })
-                }
-              >
-                <SelectTrigger className="h-10 bg-white">
-                  <SelectValue placeholder="Sélectionner un état" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ELA">En cours d&apos;élaboration</SelectItem>
-                  <SelectItem value="DIS">Mise à disposition</SelectItem>
-                  <SelectItem value="CLO">Clôturée</SelectItem>
-                </SelectContent>
-              </Select>
+
+              <div className="text-base font-semibold text-gray-900 h-10 flex items-center">
+                {{
+                  ELA: "En cours d'élaboration",
+                  DIS: "Mise à disposition",
+                  CLO: "Clôturée",
+                }[values.etat]}
+              </div>
             </div>
           </div>
         </div>
@@ -201,12 +240,13 @@ export function EvaluationHeaderForm({
           </SectionLabel>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <div className="space-y-2">
-              <Label className="text-gray-600 text-sm font-medium">UE</Label>
+              <RequiredLabel>Unité d’enseignement</RequiredLabel>
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <div>
                       <Select
+                        required
                         disabled={disabled || !values.codeFormation}
                         value={values.codeUe || undefined}
                         onValueChange={onUeChange}
@@ -236,7 +276,7 @@ export function EvaluationHeaderForm({
             </div>
 
             <div className="space-y-2">
-              <Label className="text-gray-600 text-sm font-medium">EC</Label>
+              <Label className="text-gray-600 text-sm font-medium">Élément constitutif</Label>
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -272,10 +312,9 @@ export function EvaluationHeaderForm({
             </div>
 
             <div className="space-y-2 sm:col-span-2 lg:col-span-1">
-              <Label className="text-gray-600 text-sm font-medium">
-                Désignation
-              </Label>
+              <RequiredLabel>Désignation</RequiredLabel>
               <Input
+                required
                 disabled={disabled}
                 placeholder="Ex: Évaluation intermédiaire S1"
                 value={values.designation}
@@ -297,51 +336,58 @@ export function EvaluationHeaderForm({
           </SectionLabel>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <div className="space-y-2">
-              <Label className="text-gray-600 text-sm font-medium">
-                Date début réponses
-              </Label>
-              <Input
+              <RequiredLabel>Date début réponses</RequiredLabel>
+              <DatePickerField
                 disabled={disabled}
-                type="date"
                 value={values.debutReponse}
-                onChange={(e) =>
-                  onChange({ ...values, debutReponse: e.target.value })
+                onChange={(value) =>
+                  onChange({ ...values, debutReponse: value })
                 }
-                className="h-10 bg-white"
+                placeholder="Sélectionner une date"
               />
             </div>
 
             <div className="space-y-2">
-              <Label className="text-gray-600 text-sm font-medium">
-                Date fin réponses
-              </Label>
-              <Input
+              <RequiredLabel>Date fin réponses</RequiredLabel>
+              <DatePickerField
                 disabled={disabled}
-                type="date"
                 value={values.finReponse}
-                onChange={(e) =>
-                  onChange({ ...values, finReponse: e.target.value })
+                min={values.debutReponse}
+                onChange={(value) =>
+                  onChange({ ...values, finReponse: value })
                 }
-                className="h-10 bg-white"
+                placeholder="Sélectionner une date"
               />
             </div>
 
             <div className="space-y-2">
-              <Label className="text-gray-600 text-sm font-medium">
-                Numéro d&apos;évaluation
-              </Label>
+              <RequiredLabel>Numéro d’évaluation</RequiredLabel>
               <Input
+                required
                 type="number"
                 min={1}
-                placeholder="Ex: 1"
                 value={values.noEvaluation}
-                onChange={(e) =>
+                onChange={(e) => {
+                  const val = Number(e.target.value)
+
+                  if (val <= 0) {
+                    setErrors(prev => ({
+                      ...prev,
+                      noEvaluation: "Le numéro doit être supérieur à 0"
+                    }))
+                  } else {
+                    setErrors(prev => {
+                      const next = { ...prev }
+                      delete next.noEvaluation
+                      return next
+                    })
+                  }
+
                   onChange({
                     ...values,
-                    noEvaluation:
-                      e.target.value === "" ? "" : Number(e.target.value),
+                    noEvaluation: val
                   })
-                }
+                }}
                 className="h-10 bg-white"
               />
             </div>

@@ -14,6 +14,9 @@ import VoirResultatPage from "@/pages/evaluations/VoirResultatPage"
 import { PromotionsPage } from "@/pages/promotions/PromotionsPage"
 import { PromotionDetailPage } from "@/pages/promotions/PromotionDetailPage"
 import UnauthorizedPage from "@/pages/UnauthorizedPage"
+import { EvaluationCreatePage } from "@/pages/evaluations/EvaluationCreatePage"
+import { EvaluationEditPage } from "@/pages/evaluations/EvaluationEditPage"
+import { EvaluationDetailPage } from "@/pages/evaluations/EvaluationDetailPage"
 
 export const router = createBrowserRouter([
   {
@@ -54,15 +57,15 @@ export const router = createBrowserRouter([
       },
       {
         path: "evaluations/new",
-        element: <EvaluationForm />,
+        element: <EvaluationCreatePage />,
+      },
+      {
+        path: "evaluations/:id/edit",
+        element: <EvaluationEditPage />,
       },
       {
         path: "evaluations/:id",
-        element: <EvaluationForm />,
-      },
-      {
-        path: "evaluations/:id/view",
-        element: <EvaluationForm {...({ readOnly: true } as any)} />,
+        element: <EvaluationDetailPage />,
       },
       {
         path: "promotions",
