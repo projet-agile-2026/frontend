@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react"
 import { useNavigate, useParams } from "react-router-dom"
 import { Button } from "@/components/ui/button"
-import { ArrowLeft, ChevronLeft, ChevronRight, Loader2, AlertCircle, Star } from "lucide-react"
+import { ArrowLeft, Loader2, AlertCircle, Star } from "lucide-react"
 import { getEvaluationResult, ReponseEvaluationResultDTO } from "@/services/EvaluationDetailService"
 import { toast } from "sonner"
 
@@ -11,7 +11,6 @@ export default function VoirResultatPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [result, setResult] = useState<ReponseEvaluationResultDTO | null>(null)
-  const [currentRubriqueIndex, setCurrentRubriqueIndex] = useState(0)
 
   useEffect(() => {
     const fetchResult = async () => {
@@ -114,32 +113,6 @@ export default function VoirResultatPage() {
     )
   }
 
-  const currentRubrique = rubriquesAvecQuestions[currentRubriqueIndex]
-  const isFirstRubrique = currentRubriqueIndex === 0
-  const isLastRubrique = currentRubriqueIndex === rubriquesAvecQuestions.length - 1
-  const totalRubriques = rubriquesAvecQuestions.length
-
-  const goToPreviousRubrique = () => {
-    if (!isFirstRubrique) {
-      setCurrentRubriqueIndex(currentRubriqueIndex - 1)
-      window.scrollTo({ top: 0, behavior: 'smooth' })
-    }
-  }
-
-  const goToNextRubrique = () => {
-    if (!isLastRubrique) {
-      setCurrentRubriqueIndex(currentRubriqueIndex + 1)
-      window.scrollTo({ top: 0, behavior: 'smooth' })
-    }
-  }
-
-  const handleRubriqueClick = (index: number) => {
-    setCurrentRubriqueIndex(index)
-    window.scrollTo({ top: 0, behavior: 'smooth' })
-  }
-
-  const currentRubriqueQuestions = currentRubrique.questions || []
-
   return (
     <div className="mx-auto w-full max-w-4xl px-4 py-4 sm:px-6 sm:py-6">
       {/* En-tête */}
@@ -167,7 +140,7 @@ export default function VoirResultatPage() {
               </span>
             </div>
             <div>
-              <span className="font-semibold text-gray-700">UE :</span>{" "}
+              <span className="font-semibold text-gray-700">Unité d'enseignement :</span>{" "}
               <span className="text-gray-600">
                 {result.codeUe} ({result.codeEc})
               </span>
@@ -181,95 +154,49 @@ export default function VoirResultatPage() {
               <span className="text-gray-600">{formatDate(result.finReponse)}</span>
             </div>
           </div>
-
-          <div className="mt-4 pt-4 border-t border-gray-200">
-            {/* Progression par rubrique */}
-            <div className="flex items-center justify-center gap-3">
-              <span className="text-sm text-gray-600">
-                Rubrique {currentRubriqueIndex + 1} sur {rubriquesAvecQuestions.length}
-              </span>
-              <div className="flex gap-1">
-                {rubriquesAvecQuestions.map((rubrique, index) => {
-                  const isCurrent = index === currentRubriqueIndex
-                  
-                  return (
-                    <button
-                      key={rubrique.idRubriqueEvaluation}
-                      onClick={() => handleRubriqueClick(index)}
-                      className={`
-                        h-2 w-8 rounded-full transition-all cursor-pointer hover:opacity-75
-                        ${isCurrent ? "bg-blue-600 ring-2 ring-blue-300 ring-offset-2" : "bg-gray-400"}
-                      `}
-                      title={rubrique.designation || `Rubrique ${index + 1}`}
-                    />
-                  )
-                })}
-              </div>
-            </div>
-          </div>
         </div>
       </div>
 
-      {/* Rubrique actuelle */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <h2 className="text-xl font-semibold text-gray-900 mb-6 pb-4 border-b border-gray-200">
-          {currentRubrique.designation || `Rubrique ${currentRubriqueIndex + 1}`}
-        </h2>
+      {/* Toutes les rubriques affichées */}
+      {rubriquesAvecQuestions.map((rubrique, rubriqueIndex) => (
+        <div key={rubrique.idRubriqueEvaluation} className="mb-6 bg-white rounded-lg border border-gray-200 p-6">
+          <h2 className="text-xl font-semibold text-gray-900 mb-6 pb-4 border-b border-gray-200">
+            {rubrique.designation || `Rubrique ${rubriqueIndex + 1}`}
+          </h2>
 
-        {!currentRubriqueQuestions || currentRubriqueQuestions.length === 0 ? (
-          <p className="text-gray-500 italic">Aucune question dans cette rubrique</p>
-        ) : (
-          <div className="space-y-6">
-            {currentRubriqueQuestions.map((question) => (
-              <div key={question.idQuestionEvaluation} className="space-y-2 pb-6 border-b border-gray-100 last:border-b-0">
-                <p className="text-base font-semibold text-gray-900">
-                  {question.intitule}
-                </p>
+          {!rubrique.questions || rubrique.questions.length === 0 ? (
+            <p className="text-gray-500 italic">Aucune question dans cette rubrique</p>
+          ) : (
+            <div className="space-y-6">
+              {rubrique.questions.map((question) => (
+                <div key={question.idQuestionEvaluation} className="space-y-2 pb-6 border-b border-gray-100 last:border-b-0">
+                  <p className="text-base font-semibold text-gray-900">
+                    {question.intitule}
+                  </p>
 
-                {/* Étoiles et qualificatifs sur la même ligne avec grid */}
-                <div className="grid grid-cols-3 items-center gap-4 py-2">
-                  {/* Qualificatif minimal */}
-                  <span className="text-sm font-semibold text-gray-600 text-left">
-                    {question.minimal || "Pas du tout"}
-                  </span>
-                  
-                  {/* Étoiles au centre */}
-                  <div className="flex items-center justify-center gap-1">
-                    {renderStars(question.positionnement)}
+                  {/* Étoiles et qualificatifs sur la même ligne avec grid */}
+                  <div className="grid grid-cols-3 items-center gap-4 py-2">
+                    {/* Qualificatif minimal */}
+                    <span className="text-sm font-semibold text-gray-600 text-left">
+                      {question.minimal || "Pas du tout"}
+                    </span>
+                    
+                    {/* Étoiles au centre */}
+                    <div className="flex items-center justify-center gap-1">
+                      {renderStars(question.positionnement)}
+                    </div>
+                    
+                    {/* Qualificatif maximal */}
+                    <span className="text-sm font-semibold text-gray-600 text-right">
+                      {question.maximal || "Tout à fait"}
+                    </span>
                   </div>
-                  
-                  {/* Qualificatif maximal */}
-                  <span className="text-sm font-semibold text-gray-600 text-right">
-                    {question.maximal || "Tout à fait"}
-                  </span>
                 </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Boutons de navigation */}
-        {totalRubriques > 1 && (
-          <div className="mt-6 flex items-center justify-between pt-6 border-t border-gray-200">
-            <Button
-              variant="outline"
-              onClick={goToPreviousRubrique}
-              disabled={isFirstRubrique}
-            >
-              <ChevronLeft className="mr-2 h-4 w-4" />
-              Précédent
-            </Button>
-
-            <Button
-              onClick={goToNextRubrique}
-              disabled={isLastRubrique}
-            >
-              Suivant
-              <ChevronRight className="ml-2 h-4 w-4" />
-            </Button>
-          </div>
-        )}
-      </div>
+              ))}
+            </div>
+          )}
+        </div>
+      ))}
 
       {/* Commentaire */}
       {result.commentaire && (

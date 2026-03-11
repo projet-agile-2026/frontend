@@ -117,7 +117,7 @@ export function EtudiantEvaluationsPage() {
               <TableHeader>
                 <TableRow className="bg-gray-50">
                   <TableHead className="font-semibold">Enseignant</TableHead>
-                  <TableHead className="font-semibold">UE</TableHead>
+                  <TableHead className="font-semibold">Unité d'enseignement</TableHead>
                   <TableHead className="font-semibold">N° Évaluation</TableHead>
                   <TableHead className="font-semibold">État</TableHead>
                   <TableHead className="font-semibold">Fin de réponse</TableHead>
@@ -156,7 +156,7 @@ export function EtudiantEvaluationsPage() {
                           {evaluation.dejaRepondu && (
                             <Button
                               size="sm"
-                              variant="secondary"
+                              variant="outline"
                               onClick={() => navigate(`/mes-evaluations/${evaluation.idEvaluation}/resultat`)}
                             >
                               Voir résultat
