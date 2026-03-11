@@ -8,6 +8,9 @@ import { QuestionsPage } from "@/pages/QuestionsPage"
 import { PageCouples } from "@/pages/PageCouples"
 import { EvaluationsPage } from "@/pages/evaluations/EvaluationsPage"
 import { EvaluationForm } from "@/pages/evaluations/EvaluationForm"
+import { EtudiantEvaluationsPage } from "@/pages/evaluations/EtudiantEvaluationsPage"
+import { RepondreEvaluationPage } from "@/pages/evaluations/RepondreEvaluationPage"
+import VoirResultatPage from "@/pages/evaluations/VoirResultatPage"
 import { PromotionsPage } from "@/pages/promotions/PromotionsPage"
 import { PromotionDetailPage } from "@/pages/promotions/PromotionDetailPage"
 import UnauthorizedPage from "@/pages/UnauthorizedPage"
@@ -69,7 +72,30 @@ export const router = createBrowserRouter([
         path: "promotions/:codeFormation/:anneeUniversitaire",
         element: <PromotionDetailPage />,
       },
-      
+      {
+        path: "mes-evaluations",
+        element: (
+          <ProtectedRoute allowedRoles={["ETU"]}>
+            <EtudiantEvaluationsPage />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: "mes-evaluations/:idEvaluation/repondre",
+        element: (
+          <ProtectedRoute allowedRoles={["ETU"]}>
+            <RepondreEvaluationPage />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: "mes-evaluations/:idEvaluation/resultat",
+        element: (
+          <ProtectedRoute allowedRoles={["ETU"]}>
+            <VoirResultatPage />
+          </ProtectedRoute>
+        ),
+      },
     ],
   },
 ])

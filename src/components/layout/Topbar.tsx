@@ -2,12 +2,23 @@ import { SettingsMenu } from "./SettingsMenu"
 import { UserMenu } from "./UserMenu"
 import { Link } from "react-router-dom"
 import { EvaluationsButton } from "./EvaluationsButton"
+import { EtudiantEvaluationsButton } from "./EtudiantEvaluationsButton"
 import { Promotion } from "./Promotion"
+import { useEffect, useState } from "react"
+import { getCurrentUser } from "../../services/authService"
 
 
-const APP_TITLE = "Plateforme d’évaluation"
+const APP_TITLE = "Plateforme d'évaluation"
 
 export function Topbar() {
+  const [userRole, setUserRole] = useState<string | null>(null)
+
+  useEffect(() => {
+    getCurrentUser()
+      .then(user => setUserRole(user.role))
+      .catch(() => setUserRole(null))
+  }, [])
+
   return (
     <header className="sticky top-0 z-50 bg-white border-b border-gray-100">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between px-4 py-3 sm:px-6 md:px-8 min-h-[4rem] sm:min-h-[5.5rem]">
@@ -47,7 +58,7 @@ export function Topbar() {
         {/* RIGHT : MENUS */}
         <div className="flex items-center justify-end gap-2 sm:gap-3 flex-shrink-0">
           <Promotion />
-          <EvaluationsButton />
+          {userRole === "ETU" ? <EtudiantEvaluationsButton /> : <EvaluationsButton />}
           <SettingsMenu />
           <UserMenu />
         </div>
