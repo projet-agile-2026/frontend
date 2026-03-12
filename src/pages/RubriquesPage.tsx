@@ -1,5 +1,6 @@
 import  React, { useState, useMemo, useEffect } from 'react';
-import { Search, Plus, GripVertical, Trash2, Edit2, ChevronDown, ChevronRight, AlertCircle, Loader2, CheckCircle } from 'lucide-react';
+import { Search, Plus, GripVertical, Trash2, Edit2, ChevronDown, ChevronRight, AlertCircle, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { Input } from "../components/ui/input";
 import { Button } from "../components/ui/button";
 import {
@@ -182,6 +183,7 @@ interface SortableRubriqueRowProps {
   onDeleteQuestion: (rubriqueId: number, questionId: number) => void;
   onDragQuestionEnd: (rubriqueId: number, event: DragEndEvent) => void;
   canEdit: boolean;
+  user: UserInfo | null;
 }
 
 const SortableRubriqueRow = ({
@@ -194,7 +196,8 @@ const SortableRubriqueRow = ({
                                onAddQuestion,
                                onDeleteQuestion,
                                onDragQuestionEnd,
-                               canEdit
+                               canEdit,
+                               user
                              }: SortableRubriqueRowProps) => {
   const sortable = canEdit ? useSortable({
     id: rubrique.idRubrique.toString()
@@ -209,6 +212,7 @@ const SortableRubriqueRow = ({
   const [questionSearch, setQuestionSearch] = useState("");
   const [selectedQuestionType, setSelectedQuestionType] = useState<"QUS" | "QUP">("QUS");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [editError, setEditError] = useState("");
 
   const questionSensors = useSensors(
       useSensor(PointerSensor),
@@ -291,10 +295,11 @@ const SortableRubriqueRow = ({
                 </DialogTrigger>
                 <DialogContent className="sm:max-w-lg">
                   <DialogHeader>
-                    <DialogTitle>Sélectionner une question</DialogTitle>
+                    <DialogTitle>Sélectionner {user?.role === "ADM" ? "une question" : "une question"} pour la rubrique: "{rubrique.designation}"</DialogTitle>
                   </DialogHeader>
                   <div className="space-y-4 py-4">
-                    {/* Type Tabs */}
+                    {/* Type Tabs - Hidden for Admin */}
+                    {user?.role !== "ADM" && (
                     <div className="bg-gray-50 p-1 rounded-lg border border-gray-200">
                       <div className="flex gap-1">
                         <button
@@ -325,6 +330,7 @@ const SortableRubriqueRow = ({
                         </button>
                       </div>
                     </div>
+                    )}
                     
                     <div className="space-y-2">
                       <label className="text-sm font-medium text-gray-700">Rechercher</label>
@@ -366,7 +372,8 @@ const SortableRubriqueRow = ({
                       <div className="max-h-80 overflow-y-auto border border-gray-200 rounded-md">
                         {filteredAvailableQuestions.length > 0 ? (
                             filteredAvailableQuestions.map((q) => {
-                              const qual = qualificatifs.find(qf => qf.idQualificatif === q.idQualificatif);
+                              const qual = qualificatifs.find(qf => qf.id == q.idQualificatif);
+                              const qualificatifLabel = qual ? `${qual.mot1} ↔ ${qual.mot2}` : 'Non défini';
                               const isSelected = selectedQuestionIds.includes(q.idQuestion.toString());
                               return (
                                   <div
@@ -394,11 +401,9 @@ const SortableRubriqueRow = ({
                                       </div>
                                       <div className="flex-1 min-w-0">
                                         <div className="font-medium text-sm text-gray-900">{q.intitule}</div>
-                                        {qual && (
-                                            <div className="text-xs text-gray-500 mt-1">
-                                              {qual.mot1} ↔ {qual.mot2}
-                                            </div>
-                                        )}
+                                        <div className="text-xs text-gray-500 mt-1">
+                                          <span className="font-semibold">Qualificatif:</span> {qualificatifLabel}
+                                        </div>
                                       </div>
                                     </div>
                                   </div>
@@ -424,7 +429,13 @@ const SortableRubriqueRow = ({
                 </DialogContent>
               </Dialog>
 
-              <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+              <Dialog open={isEditOpen} onOpenChange={(open) => {
+                if (open) {
+                  setEditValue(rubrique.designation);
+                  setEditError("");
+                }
+                setIsEditOpen(open);
+              }}>
                 <DialogTrigger asChild>
                   <button
                       disabled={rubrique.usedInEval}
@@ -446,14 +457,30 @@ const SortableRubriqueRow = ({
                     <label className="text-sm font-medium text-gray-700 mb-2 block">Désignation</label>
                     <Input
                         value={editValue}
-                        onChange={(e) => setEditValue(e.target.value)}
+                        onChange={(e) => {
+                          setEditValue(e.target.value);
+                          if (e.target.value.trim()) {
+                            setEditError("");
+                          }
+                        }}
+                        onBlur={(e) => setEditValue(e.target.value.trim())}
+                        className={editError ? "border-red-500" : ""}
                     />
+                    {editError && (
+                      <p className="text-xs text-red-600 mt-1">{editError}</p>
+                    )}
                   </div>
                   <DialogFooter>
                     <Button
                         onClick={() => {
+                          const trimmed = editValue.trim();
+                          if (!trimmed) {
+                            setEditError("Veuillez renseigner ce champ");
+                            return;
+                          }
                           onEditRubrique(rubrique.idRubrique, editValue);
                           setIsEditOpen(false);
+                          setEditError("");
                         }}
                         className="w-full"
                     >
@@ -572,8 +599,7 @@ export function RubriquesPage() {
   const [error, setError] = useState<string | null>(null);
   const [user, setUser] = useState<UserInfo | null>(null);
   const [selectedType, setSelectedType] = useState<"RBS" | "RBP">("RBS");
-  const [showSuccessNotification, setShowSuccessNotification] = useState(false);
-  const [successMessage, setSuccessMessage] = useState("");
+  const [addRubriqueError, setAddRubriqueError] = useState("");
 
   const sensors = useSensors(
       useSensor(PointerSensor),
@@ -655,20 +681,27 @@ export function RubriquesPage() {
   );
 
   const handleAddRubrique = async () => {
-    if (!newRubriqueTitle.trim()) return;
+    const trimmedTitle = newRubriqueTitle.trim();
+    if (!trimmedTitle) {
+      setAddRubriqueError("Veuillez renseigner ce champ");
+      return;
+    }
 
     try {
       const newRubrique = await createRubrique({
-        designation: newRubriqueTitle.toUpperCase(),
+        designation: trimmedTitle.toUpperCase(),
         type: selectedType
       });
 
       setRubriques(prev => [...prev, { ...newRubrique, questions: [], isExpanded: false }]);
       setNewRubriqueTitle("");
+      setAddRubriqueError("");
       setIsAddRubriqueOpen(false);
+      
+      toast.success(`Rubrique "${trimmedTitle.toUpperCase()}" créée avec succès`);
     } catch (err: any) {
       console.error('Error creating rubrique:', err);
-      alert('Erreur lors de la création de la rubrique');
+      //alert('Erreur lors de la création de la rubrique');
     }
   };
 
@@ -677,20 +710,20 @@ export function RubriquesPage() {
       const rubrique = rubriques.find(r => r.idRubrique === id);
       if (!rubrique) return;
 
+      const trimmedDesignation = newDesignation.trim();
+      if (!trimmedDesignation) return;
+
       await updateRubrique(id, {
-        designation: newDesignation.toUpperCase(),
+        designation: trimmedDesignation.toUpperCase(),
         type: rubrique.type,
         ordre: rubrique.ordre
       });
 
       setRubriques(prev => prev.map(r =>
-          r.idRubrique === id ? { ...r, designation: newDesignation.toUpperCase() } : r
+          r.idRubrique === id ? { ...r, designation: trimmedDesignation.toUpperCase() } : r
       ));
       
-      // Afficher la notification de succès
-      setSuccessMessage(`Rubrique "${newDesignation.toUpperCase()}" modifiée avec succès`);
-      setShowSuccessNotification(true);
-      setTimeout(() => setShowSuccessNotification(false), 3000);
+      toast.success(`Rubrique "${trimmedDesignation.toUpperCase()}" modifiée avec succès`);
     } catch (err: any) {
       console.error('Error updating rubrique:', err);
     }
@@ -704,10 +737,7 @@ export function RubriquesPage() {
       await deleteRubrique(id);
       setRubriques(prev => prev.filter(r => r.idRubrique !== id));
       
-      // Afficher la notification de succès
-      setSuccessMessage(`Rubrique "${rubriqueNom}" supprimée avec succès`);
-      setShowSuccessNotification(true);
-      setTimeout(() => setShowSuccessNotification(false), 3000);
+      toast.success(`Rubrique "${rubriqueNom}" supprimée avec succès`);
     } catch (err: any) {
       console.error('Error deleting rubrique:', err);
       //alert('Erreur lors de la suppression de la rubrique');
@@ -764,13 +794,10 @@ export function RubriquesPage() {
       if (count === 1) {
         const question = availableQuestions.find(q => q.idQuestion === selectedQuestionIds[0]);
         const questionNom = question?.intitule || '';
-        setSuccessMessage(`Question "${questionNom}" ajoutée avec succès à la rubrique`);
+        toast.success(`Question "${questionNom}" ajoutée avec succès à la rubrique`);
       } else {
-        setSuccessMessage(`${count} questions ajoutées avec succès à la rubrique`);
+        toast.success(`${count} questions ajoutées avec succès à la rubrique`);
       }
-      
-      setShowSuccessNotification(true);
-      setTimeout(() => setShowSuccessNotification(false), 3000);
     } catch (err: any) {
       console.error('Error adding questions:', err);
       //alert('Erreur lors de l\'ajout des questions');
@@ -791,10 +818,7 @@ export function RubriquesPage() {
               : r
       ));
       
-      // Afficher la notification de succès
-      setSuccessMessage(`Question "${questionNom}" retirée avec succès de la rubrique`);
-      setShowSuccessNotification(true);
-      setTimeout(() => setShowSuccessNotification(false), 3000);
+      toast.success(`Question "${questionNom}" retirée avec succès de la rubrique`);
     } catch (err: any) {
       console.error('Error deleting question:', err);
       //alert('Erreur lors de la suppression de la question');
@@ -854,24 +878,6 @@ export function RubriquesPage() {
 
   return (
       <div className="w-full max-w-7xl mx-auto px-4 py-4 sm:p-6 min-w-0">
-        {/* Success Notification */}
-        {showSuccessNotification && (
-          <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-top-5 duration-300">
-            <div className="bg-green-50 border-l-4 border-green-500 rounded-lg shadow-lg p-4 flex items-center gap-3 min-w-[320px]">
-              <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />
-              <div className="flex-1">
-                <p className="text-sm font-medium text-green-800">{successMessage}</p>
-              </div>
-              <button
-                onClick={() => setShowSuccessNotification(false)}
-                className="text-green-500 hover:text-green-700 transition-colors"
-              >
-                ×
-              </button>
-            </div>
-          </div>
-        )}
-        
         {/* Header */}
         <div className="mb-4 sm:mb-6">
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-4 sm:mb-6">
@@ -923,7 +929,12 @@ export function RubriquesPage() {
               </div>
 
               {canEdit && (
-                <Dialog open={isAddRubriqueOpen} onOpenChange={setIsAddRubriqueOpen}>
+                <Dialog open={isAddRubriqueOpen} onOpenChange={(open) => {
+                  setIsAddRubriqueOpen(open);
+                  if (!open) {
+                    setAddRubriqueError("");
+                  }
+                }}>
                   <DialogTrigger asChild>
                     <Button className={`${
                       selectedType === "RBS" 
@@ -945,9 +956,19 @@ export function RubriquesPage() {
                     <Input
                         placeholder="Nom de la rubrique"
                         value={newRubriqueTitle}
-                        onChange={(e) => setNewRubriqueTitle(e.target.value)}
+                        onChange={(e) => {
+                          setNewRubriqueTitle(e.target.value);
+                          if (e.target.value.trim()) {
+                            setAddRubriqueError("");
+                          }
+                        }}
+                        onBlur={(e) => setNewRubriqueTitle(e.target.value.trim())}
                         onKeyDown={(e) => e.key === 'Enter' && handleAddRubrique()}
+                        className={addRubriqueError ? "border-red-500" : ""}
                     />
+                    {addRubriqueError && (
+                      <p className="text-xs text-red-600 mt-1">{addRubriqueError}</p>
+                    )}
                   </div>
                   <DialogFooter>
                     <Button onClick={handleAddRubrique} className="w-full">
@@ -988,6 +1009,7 @@ export function RubriquesPage() {
                                 onDeleteQuestion={handleDeleteQuestion}
                                 onDragQuestionEnd={handleDragQuestionEnd}
                                 canEdit={canEdit}
+                                user={user}
                             />
                         ))}
                       </div>
@@ -1008,6 +1030,7 @@ export function RubriquesPage() {
                             onDeleteQuestion={handleDeleteQuestion}
                             onDragQuestionEnd={handleDragQuestionEnd}
                             canEdit={canEdit}
+                            user={user}
                         />
                     ))}
                   </div>

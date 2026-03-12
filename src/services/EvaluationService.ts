@@ -37,7 +37,8 @@ export interface EvaluationWithRubriquesDTO {
 
 export interface EvaluationListItem {
   idEvaluation: number
-  anneeUniversitaire: string
+    noEnseignant: number
+    anneeUniversitaire: string
   codeFormation: string
   libelleFormation?: string
   codeUe: string
@@ -69,6 +70,9 @@ export interface EvaluationRubriquePayload {
 
 export interface EvaluationDetailDTO {
   id?: number
+
+    idEvaluation?: number
+
   anneeUniversitaire: string
   codeFormation: string
   codeUe: string
@@ -105,6 +109,9 @@ export interface DroitResponseDTO {
   noEnseignant: number
   consultation: "O" | "N"
   duplication: "O" | "N"
+    nom?: string
+    prenom?: string
+    emailUbo?: string
 }
 
 export interface DroitRequestDTO {
@@ -400,4 +407,16 @@ export async function exportStatistiquesPdf(id: number): Promise<void> {
   link.click()
   link.remove()
   window.URL.revokeObjectURL(url)
+}
+//ranya
+export async function updateDesignationRubriqueEvaluation(
+  evaluationId: number,
+  rubriqueEvaluationId: number,
+  designation: string
+): Promise<RubriqueEvaluationDTO> {
+  const { data } = await api.put(
+    `/api/enseignant/evaluations/${evaluationId}/rubriques/${rubriqueEvaluationId}/designation`,
+    { designation }
+  )
+  return data
 }

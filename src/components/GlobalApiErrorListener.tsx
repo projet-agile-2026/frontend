@@ -13,7 +13,7 @@ export function GlobalApiErrorListener() {
       const description =
         detail.validationErrors && detail.validationErrors.length > 0
           ? detail.validationErrors
-              .map((v) => `${v.field}: ${v.message}`)
+              .map((v) => v.message)
               .join(" · ")
           : undefined
 
