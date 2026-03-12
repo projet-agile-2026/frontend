@@ -10,7 +10,6 @@ import {
   DialogTitle,
   DialogTrigger,
   DialogFooter,
-
 } from "../../components/ui/dialog"
 import {
   DndContext,
@@ -207,6 +206,7 @@ function SortableRubriqueCard({
           {isExpanded ? <ChevronDown className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
         </button>
 
+        {/* ← MODIFIÉ : titre sans crayon */}
         <div className="flex-1 min-w-0">
           {isEditing ? (
             <div className="flex items-center gap-2">
@@ -215,9 +215,7 @@ function SortableRubriqueCard({
                 onChange={(e) => onEditDesignationChange(e.target.value)}
                 className="h-7 text-sm"
                 autoFocus
-                onClick={(e) => e.stopPropagation()}
                 onKeyDown={(e) => {
-                  e.stopPropagation()
                   if (e.key === "Enter") onConfirmEdit(rubrique.idRubriqueEvaluation)
                   if (e.key === "Escape") onCancelEdit()
                 }}
@@ -227,10 +225,7 @@ function SortableRubriqueCard({
                 variant="ghost"
                 size="icon"
                 className="h-7 w-7 shrink-0 text-green-600 hover:text-green-700"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  onConfirmEdit(rubrique.idRubriqueEvaluation)
-                }}
+                onClick={() => onConfirmEdit(rubrique.idRubriqueEvaluation)}
               >
                 <Check className="h-4 w-4" />
               </Button>
@@ -239,46 +234,45 @@ function SortableRubriqueCard({
                 variant="ghost"
                 size="icon"
                 className="h-7 w-7 shrink-0 text-gray-400 hover:text-gray-600"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  onCancelEdit()
-                }}
+                onClick={onCancelEdit}
               >
                 <X className="h-4 w-4" />
               </Button>
             </div>
           ) : (
-            <div className="flex items-center gap-1">
+            <div>
               <h3 className="text-base font-semibold text-gray-900 truncate">{rubrique.designation}</h3>
-              {!readOnly && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="h-6 w-6 shrink-0 text-gray-400 hover:text-blue-600"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    onStartEdit(rubrique.idRubriqueEvaluation, rubrique.designation)
-                  }}
-                >
-                  <Pencil className="h-3.5 w-3.5" />
-                </Button>
+              {!isEditing && (
+                <div className="flex flex-wrap items-center gap-2 mt-0.5 text-xs text-gray-500">
+                  {rubrique.type && (
+                    <span className={`rounded-full border px-2 py-0.5 text-xs ${getRubriqueTypeStyle(rubrique.type)}`}>
+                      {getRubriqueTypeLabel(rubrique.type)}
+                    </span>
+                  )}
+                  <span>{questions.length} question{questions.length !== 1 ? "s" : ""}</span>
+                </div>
               )}
-            </div>
-          )}
-
-          {!isEditing && (
-            <div className="flex flex-wrap items-center gap-2 mt-0.5 text-xs text-gray-500">
-              {rubrique.type && (
-                <span className={`rounded-full border px-2 py-0.5 text-xs ${getRubriqueTypeStyle(rubrique.type)}`}>
-                  {getRubriqueTypeLabel(rubrique.type)}
-                </span>
-              )}
-              <span>{questions.length} question{questions.length !== 1 ? "s" : ""}</span>
             </div>
           )}
         </div>
 
+        {/* ← MODIFIÉ : crayon déplacé ici, à gauche de la poubelle */}
+        {!readOnly && !isEditing && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="shrink-0 text-gray-400 hover:text-blue-600"
+            onClick={(e) => {
+              e.stopPropagation()
+              onStartEdit(rubrique.idRubriqueEvaluation, rubrique.designation)
+            }}
+          >
+            <Pencil className="h-4 w-4" />
+          </Button>
+        )}
+
+        {/* Bouton supprimer */}
         <Button
           type="button"
           variant="ghost"
@@ -291,7 +285,7 @@ function SortableRubriqueCard({
         </Button>
       </div>
 
-      {/* Accordion body: questions (collapsible) — INCHANGÉ */}
+      {/* Accordion body: questions (collapsible) */}
       {isExpanded && (
         <div className="px-3 py-3 sm:px-4 sm:py-4 space-y-3 bg-white">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -461,20 +455,28 @@ export function RubriquesSection({
   }
 
   const handleConfirmEdit = async (rubriqueEvaluationId: number) => {
-    if (!evaluationId || !editingDesignation.trim()) return
+  if (!evaluationId) return
+if (!editingDesignation.trim()) {
+  toast.error("Champ obligatoire", {
+    description: "Veuillez insérer un nom pour la désignation.",
+    style: { background: "#991b1b", color: "#fff", border: "none" },
+  })
+  return
+}
     try {
-      await updateDesignationRubriqueEvaluation(evaluationId, rubriqueEvaluationId, editingDesignation)
-       toast.success(`Désignation mise à jour`, {
-        description: `"${editingDesignation}" a été sauvegardée avec succès.`,
-      })  // ← AJOUTER
+      await updateDesignationRubriqueEvaluation(evaluationId, rubriqueEvaluationId, editingDesignation.trim())
+      toast.success("Désignation de rubrique mise à jour", {
+        description: `"${editingDesignation.trim()}" a été sauvegardée avec succès.`,
+        style: { background: "#166534", color: "#fff", border: "none" },
+      })
       if (onReload) await onReload()
       setEditingRubriqueId(null)
       setEditingDesignation("")
     } catch (error) {
-      
       toast.error("Erreur", {
-        description: "Impossible de modifier la désignation.",
-      })  // ← AJOUTER
+        description: "Impossible de modifier la désignation de la rubrique.",
+        style: { background: "#991b1b", color: "#fff", border: "none" },
+      })
       console.error("Erreur lors de la modification de la désignation :", error)
     }
   }
