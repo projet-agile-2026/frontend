@@ -13,6 +13,8 @@ import UnauthorizedPage from "@/pages/UnauthorizedPage"
 import { EvaluationCreatePage } from "@/pages/evaluations/EvaluationCreatePage"
 import { EvaluationEditPage } from "@/pages/evaluations/EvaluationEditPage"
 import { EvaluationDetailPage } from "@/pages/evaluations/EvaluationDetailPage"
+import { EnseignantsAuthPage } from "./pages/auth/EnseignantsAuthPage"
+import { EtudiantAuthPage } from "./pages/auth/EtudiantsAuthPage"
 
 export const router = createBrowserRouter([
   {
@@ -70,6 +72,15 @@ export const router = createBrowserRouter([
       {
         path: "promotions/:codeFormation/:anneeUniversitaire",
         element: <PromotionDetailPage />,
+      },
+      {
+        path: "enseignants",
+        element: <EnseignantsAuthPage />,
+      },
+
+      {
+        path: "etudiants",
+        element: <EtudiantAuthPage />,
       },
       
     ],

@@ -1,11 +1,5 @@
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button"
-import { Settings } from "lucide-react"
+import { Users } from "lucide-react";
 import { Link } from "react-router-dom"
 
 export function Promotion() {
@@ -22,8 +16,8 @@ export function Promotion() {
       size="lg"
     >
       <Link to="/promotions">
-        <Settings className="size-5" />
-        Gestion des promotions
+        <Users size={20} />
+        Promotions
       </Link>
     </Button>
   )

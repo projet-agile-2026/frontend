@@ -45,8 +45,14 @@ export function LoginPage() {
       localStorage.setItem("token", res.token)
       navigate("/")
     } catch (error: any) {
+
+      const message =
+        error?.message || "Email ou mot de passe incorrect" 
+
       setErrors({
-        global: "Email ou mot de passe incorrect",
+        email: undefined,
+        password: undefined,
+        global: message
       })
     }
   }
@@ -93,6 +99,7 @@ export function LoginPage() {
           <div>
             <label className="text-sm font-medium">Email:*</label>
             <Input
+
               value={email}
               onChange={(e) => {
                 setEmail(e.target.value)
@@ -112,7 +119,10 @@ export function LoginPage() {
               <Input
                 type={showPassword ? "text" : "password"}
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) => {
+  setPassword(e.target.value)
+  setErrors({})
+}}
                 className="bg-yellow-100 border-yellow-400 rounded-r-none focus-visible:ring-yellow-400"
               />
               <button
@@ -124,8 +134,8 @@ export function LoginPage() {
               </button>
             </div>
             {errors.password && (
-                <p className="text-red-500 text-xs mt-1">{errors.password}</p>
-              )}
+              <p className="text-red-500 text-xs mt-1">{errors.password}</p>
+            )}
           </div>
 
           {errors.global && (
