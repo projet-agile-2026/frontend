@@ -13,6 +13,9 @@ import UnauthorizedPage from "@/pages/UnauthorizedPage"
 import { EvaluationCreatePage } from "@/pages/evaluations/EvaluationCreatePage"
 import { EvaluationEditPage } from "@/pages/evaluations/EvaluationEditPage"
 import { EvaluationDetailPage } from "@/pages/evaluations/EvaluationDetailPage"
+import { StatistiquesPage } from "@/pages/evaluations/StatistiquesPage"
+
+
 
 export const router = createBrowserRouter([
   {
@@ -70,6 +73,11 @@ export const router = createBrowserRouter([
       {
         path: "promotions/:codeFormation/:anneeUniversitaire",
         element: <PromotionDetailPage />,
+      },
+      // dans le tableau children, après evaluations/:id :
+      {
+        path: "evaluations/:id/statistiques",
+        element: <StatistiquesPage />,
       },
       
     ],
