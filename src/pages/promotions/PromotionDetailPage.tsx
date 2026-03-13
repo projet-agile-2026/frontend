@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react"
 import { useNavigate, useParams } from "react-router-dom"
-import { AlertCircle, Loader2, Plus, Pencil, Trash2, User } from "lucide-react"
 import {
   getPromotion,
   type PromotionResponseDTO,
@@ -16,6 +15,8 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card"
 import { Button } from "../../components/ui/button"
 import { Input } from "../../components/ui/input"
+import { getRefCodes, type RefCodeDTO } from "../../services/refCodesService"
+import { Loader2, AlertCircle, Plus, Pencil, Trash2, GraduationCap, Eye, User } from "lucide-react"
 import {
   Dialog,
   DialogContent,
@@ -36,8 +37,11 @@ export function PromotionDetailPage() {
   const [etudiants, setEtudiants] = useState<EtudiantResponseDTO[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-
+  const [pays, setPays] = useState<RefCodeDTO[]>([])
+  const [nationalites, setNationalites] = useState<RefCodeDTO[]>([])
   const [etudiantDialogOpen, setEtudiantDialogOpen] = useState(false)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+const [etudiantToDelete, setEtudiantToDelete] = useState<EtudiantResponseDTO | null>(null)
   const [editingEtudiant, setEditingEtudiant] = useState<EtudiantResponseDTO | null>(null)
   const [etudiantForm, setEtudiantForm] = useState<EtudiantRequestDTO>({
     nom: "",
@@ -84,7 +88,9 @@ export function PromotionDetailPage() {
   useEffect(() => {
     loadData()
   }, [codeFormation, anneeUniversitaire])
-
+  useEffect(() => {
+  getRefCodes("PAYS").then(setNationalites).catch(() => {})
+}, [])
   const openAddEtudiant = () => {
     setEditingEtudiant(null)
     setEtudiantForm({
@@ -134,53 +140,76 @@ export function PromotionDetailPage() {
   }
 
   const handleSaveEtudiant = async () => {
-    if (!codeFormation || !anneeUniversitaire) return
-    if (!etudiantForm.nom || !etudiantForm.prenom || !etudiantForm.email) {
-      toast.error("Champs obligatoires manquants", {
-        description: "Nom, prénom et email sont requis.",
-      })
-      return
-    }
-    setSavingEtudiant(true)
-    try {
-      if (editingEtudiant) {
-        await updateEtudiant(editingEtudiant.noEtudiant, etudiantForm)
-        toast.success("Étudiant mis à jour")
-      } else {
-        await addEtudiantToPromotion(
-          codeFormation,
-          anneeUniversitaire,
-          etudiantForm,
-        )
-        toast.success("Étudiant ajouté à la promotion")
-      }
-      setEtudiantDialogOpen(false)
-      await loadData()
-    } catch (e: any) {
-      toast.error("Erreur", {
-        description: e.message || "Impossible d'enregistrer l'étudiant.",
-      })
-    } finally {
-      setSavingEtudiant(false)
-    }
+  if (!codeFormation || !anneeUniversitaire) return
+
+  if (
+    !etudiantForm.nom ||
+    !etudiantForm.prenom ||
+    !etudiantForm.email ||
+    !etudiantForm.sexe ||
+    !etudiantForm.dateNaissance ||
+    !etudiantForm.lieuNaissance ||
+    !etudiantForm.nationalite ||
+    !etudiantForm.adresse ||
+    !etudiantForm.ville ||
+    !etudiantForm.paysOrigine ||
+    !etudiantForm.universiteOrigine
+  ) {
+    toast.error("Champs obligatoires manquants", {
+      description: "Veuillez remplir tous les champs obligatoires.",
+    })
+    return
   }
 
-  const handleDeleteEtudiant = async (etudiant: EtudiantResponseDTO) => {
-    const confirmed = window.confirm(
-      `Supprimer l'étudiant ${etudiant.prenom} ${etudiant.nom} ?`,
-    )
-    if (!confirmed) return
-    try {
-      await deleteEtudiant(etudiant.noEtudiant)
-      toast.success("Étudiant supprimé")
-      await loadData()
-    } catch (e: any) {
-      toast.error("Erreur", {
-        description: e.message || "Impossible de supprimer l'étudiant.",
-      })
-    }
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  if (!emailRegex.test(etudiantForm.email)) {
+    toast.error("Email invalide", {
+      description: "Veuillez saisir une adresse email valide.",
+    })
+    return
   }
 
+  setSavingEtudiant(true)
+  try {
+    if (editingEtudiant) {
+      await updateEtudiant(editingEtudiant.noEtudiant, etudiantForm)
+      toast.success("Étudiant mis à jour")
+    } else {
+      await addEtudiantToPromotion(codeFormation, anneeUniversitaire, etudiantForm)
+      toast.success("Étudiant ajouté à la promotion")
+    }
+    setEtudiantDialogOpen(false)
+    await loadData()
+  } catch (e: any) {
+    toast.error("Erreur", {
+      description: e.message || "Impossible d'enregistrer l'étudiant.",
+    })
+  } finally {
+    setSavingEtudiant(false)
+  }
+}
+useEffect(() => {
+  getRefCodes("PAYS").then(setPays).catch(() => {})
+}, [])
+ const confirmDeleteEtudiant = (etudiant: EtudiantResponseDTO) => {
+  setEtudiantToDelete(etudiant)
+  setDeleteDialogOpen(true)
+}
+
+const handleDeleteEtudiant = async () => {
+  if (!etudiantToDelete) return
+  try {
+    await deleteEtudiant(etudiantToDelete.noEtudiant)
+    toast.success("Étudiant supprimé")
+    setDeleteDialogOpen(false)
+    setEtudiantToDelete(null)
+    await loadData()
+  } catch (e: any) {
+    toast.error("Erreur", {
+      description: e.message || "Impossible de supprimer l'étudiant.",
+    })
+  }
+}
   if (loading) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
@@ -234,8 +263,8 @@ export function PromotionDetailPage() {
             Informations promotion
           </CardTitle>
         </CardHeader>
-        <CardContent className="px-4 py-4 sm:px-6 space-y-3">
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 text-sm">
+        <CardContent className="px-4 py-3 sm:px-6 space-y-2">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3 text-sm">
             <div>
               <div className="text-xs uppercase text-gray-500">
                 Code formation
@@ -249,16 +278,16 @@ export function PromotionDetailPage() {
                 Diplôme
               </div>
               <div className="font-medium text-gray-900">
-                {promotion.diplome || "-"}
+                {promotion.diplome === "L" ? "Licence" : promotion.diplome === "M" ? "Master" : promotion.diplome || "-"}
               </div>
             </div>
             <div>
-              <div className="text-xs uppercase text-gray-500">
-                Nombre max d&apos;étudiants
-              </div>
-              <div className="font-medium text-gray-900">
-                {promotion.nbMaxEtudiant}
-              </div>
+            <div className="text-xs uppercase text-gray-500">
+              Étudiants
+            </div>
+            <div className="font-medium text-gray-900">
+              {etudiants.length}/{promotion.nbMaxEtudiant}
+            </div>
             </div>
             <div>
               <div className="text-xs uppercase text-gray-500">
@@ -329,6 +358,7 @@ export function PromotionDetailPage() {
                   <th className="px-4 py-3 text-left">N° étudiant</th>
                   <th className="px-4 py-3 text-left">Nom</th>
                   <th className="px-4 py-3 text-left">Prénom</th>
+                  <th className="px-4 py-3 text-left">Date naissance</th>
                   <th className="px-4 py-3 text-left">Email</th>
                   <th className="px-4 py-3 text-left">Université d&apos;origine</th>
                   <th className="px-4 py-3 text-right">Actions</th>
@@ -338,7 +368,7 @@ export function PromotionDetailPage() {
                 {etudiants.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={6}
+                      colSpan={7}
                       className="px-4 py-10 text-center text-sm text-gray-400"
                     >
                       Aucun étudiant dans cette promotion.
@@ -350,10 +380,15 @@ export function PromotionDetailPage() {
                       key={etudiant.noEtudiant}
                       className="hover:bg-gray-50/70"
                     >
-                      <td className="px-4 py-3">{etudiant.noEtudiant}</td>
-                      <td className="px-4 py-3">{etudiant.nom}</td>
-                      <td className="px-4 py-3">{etudiant.prenom}</td>
-                      <td className="px-4 py-3">{etudiant.email}</td>
+                <td className="px-4 py-3">{etudiant.noEtudiant}</td>
+                <td className="px-4 py-3">{etudiant.nom}</td>
+                <td className="px-4 py-3">{etudiant.prenom}</td>
+                <td className="px-4 py-3">
+                  {etudiant.dateNaissance
+                    ? new Date(etudiant.dateNaissance).toLocaleDateString("fr-FR")
+                    : "-"}
+                </td>
+                <td className="px-4 py-3">{etudiant.email}</td>
                       <td className="px-4 py-3">
                         {etudiant.universiteOrigine}
                       </td>
@@ -371,7 +406,7 @@ export function PromotionDetailPage() {
                             variant="outline"
                             size="icon"
                             className="h-8 w-8 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
-                            onClick={() => handleDeleteEtudiant(etudiant)}
+                            onClick={() => confirmDeleteEtudiant(etudiant)}
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -423,7 +458,7 @@ export function PromotionDetailPage() {
                         variant="outline"
                         size="icon-sm"
                         className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
-                        onClick={() => handleDeleteEtudiant(etudiant)}
+                       onClick={() => confirmDeleteEtudiant(etudiant)}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -446,103 +481,70 @@ export function PromotionDetailPage() {
           </DialogHeader>
           <div className="space-y-4 py-2 text-sm">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+  <div>
+    <label className="text-sm font-medium text-gray-700">Nom <span className="text-red-500">*</span></label>
+    <Input
+      value={etudiantForm.nom}
+      onChange={(e) => setEtudiantForm((prev) => ({ ...prev, nom: e.target.value.toUpperCase() }))}
+      className="mt-1"
+    />
+  </div>
+  <div>
+    <label className="text-sm font-medium text-gray-700">Prénom <span className="text-red-500">*</span></label>
+    <Input
+      value={etudiantForm.prenom}
+      onChange={(e) => setEtudiantForm((prev) => ({ ...prev, prenom: e.target.value }))}
+      className="mt-1"
+    />
+  </div>
+</div>
+<div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+  <div>
+    <label className="text-sm font-medium text-gray-700">Sexe <span className="text-red-500">*</span></label>
+    <select
+      value={etudiantForm.sexe}
+      onChange={(e) => setEtudiantForm((prev) => ({ ...prev, sexe: e.target.value }))}
+      className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+    >
+      <option value="M">M – Masculin</option>
+      <option value="F">F – Féminin</option>
+    </select>
+  </div>
+  <div>
+    <label className="text-sm font-medium text-gray-700">Date de naissance <span className="text-red-500">*</span></label>
+    <Input
+      type="date"
+      value={etudiantForm.dateNaissance}
+      onChange={(e) => setEtudiantForm((prev) => ({ ...prev, dateNaissance: e.target.value }))}
+      className="mt-1"
+    />
+  </div>
+  <div>
+    <label className="text-sm font-medium text-gray-700">Lieu de naissance<span className="text-red-500">*</span></label>
+    <Input
+      value={etudiantForm.lieuNaissance}
+      onChange={(e) => setEtudiantForm((prev) => ({ ...prev, lieuNaissance: e.target.value }))}
+      className="mt-1"
+    />
+    </div>
+  </div>
+<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
-                <label className="text-sm font-medium text-gray-700">Nom</label>
-                <Input
-                  value={etudiantForm.nom}
-                  onChange={(e) =>
-                    setEtudiantForm((prev) => ({
-                      ...prev,
-                      nom: e.target.value.toUpperCase(),
-                    }))
-                  }
-                  className="mt-1"
-                />
+                <label className="text-sm font-medium text-gray-700">Nationalité<span className="text-red-500">*</span></label>
+              <select
+                value={etudiantForm.nationalite}
+                onChange={(e) => setEtudiantForm((prev) => ({ ...prev, nationalite: e.target.value }))}
+                className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+              >
+                <option value="">-- Sélectionner --</option>
+                {nationalites.map((n) => (
+                  <option key={n.code} value={n.nom}>{n.nom}</option>
+                ))}
+              </select>
               </div>
               <div>
                 <label className="text-sm font-medium text-gray-700">
-                  Prénom
-                </label>
-                <Input
-                  value={etudiantForm.prenom}
-                  onChange={(e) =>
-                    setEtudiantForm((prev) => ({
-                      ...prev,
-                      prenom: e.target.value,
-                    }))
-                  }
-                  className="mt-1"
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-              <div>
-                <label className="text-sm font-medium text-gray-700">
-                  Sexe (M/F)
-                </label>
-                <Input
-                  maxLength={1}
-                  value={etudiantForm.sexe}
-                  onChange={(e) =>
-                    setEtudiantForm((prev) => ({
-                      ...prev,
-                      sexe: e.target.value.toUpperCase(),
-                    }))
-                  }
-                  className="mt-1"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium text-gray-700">
-                  Date de naissance
-                </label>
-                <Input
-                  type="date"
-                  value={etudiantForm.dateNaissance}
-                  onChange={(e) =>
-                    setEtudiantForm((prev) => ({
-                      ...prev,
-                      dateNaissance: e.target.value,
-                    }))
-                  }
-                  className="mt-1"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium text-gray-700">
-                  Lieu de naissance
-                </label>
-                <Input
-                  value={etudiantForm.lieuNaissance}
-                  onChange={(e) =>
-                    setEtudiantForm((prev) => ({
-                      ...prev,
-                      lieuNaissance: e.target.value,
-                    }))
-                  }
-                  className="mt-1"
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div>
-                <label className="text-sm font-medium text-gray-700">
-                  Nationalité
-                </label>
-                <Input
-                  value={etudiantForm.nationalite}
-                  onChange={(e) =>
-                    setEtudiantForm((prev) => ({
-                      ...prev,
-                      nationalite: e.target.value,
-                    }))
-                  }
-                  className="mt-1"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium text-gray-700">
-                  Email
+                  Email<span className="text-red-500">*</span>
                 </label>
                 <Input
                   type="email"
@@ -560,7 +562,7 @@ export function PromotionDetailPage() {
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
                 <label className="text-sm font-medium text-gray-700">
-                  Adresse
+                  Adresse<span className="text-red-500">*</span>
                 </label>
                 <Input
                   value={etudiantForm.adresse}
@@ -575,7 +577,7 @@ export function PromotionDetailPage() {
               </div>
               <div>
                 <label className="text-sm font-medium text-gray-700">
-                  Ville
+                  Ville<span className="text-red-500">*</span>
                 </label>
                 <Input
                   value={etudiantForm.ville}
@@ -590,24 +592,22 @@ export function PromotionDetailPage() {
               </div>
             </div>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label className="text-sm font-medium text-gray-700">Pays d&apos;origine<span className="text-red-500">*</span></label>
+          <select
+            value={etudiantForm.paysOrigine}
+            onChange={(e) => setEtudiantForm((prev) => ({ ...prev, paysOrigine: e.target.value }))}
+            className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+          >
+            <option value="">-- Sélectionner --</option>
+            {pays.map((p) => (
+              <option key={p.code} value={p.code}>{p.nom}</option>
+            ))}
+          </select>
+            </div>
               <div>
                 <label className="text-sm font-medium text-gray-700">
-                  Pays d&apos;origine
-                </label>
-                <Input
-                  value={etudiantForm.paysOrigine}
-                  onChange={(e) =>
-                    setEtudiantForm((prev) => ({
-                      ...prev,
-                      paysOrigine: e.target.value,
-                    }))
-                  }
-                  className="mt-1"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium text-gray-700">
-                  Université d&apos;origine
+                  Université d&apos;origine<span className="text-red-500">*</span>
                 </label>
                 <Input
                   value={etudiantForm.universiteOrigine}
@@ -649,6 +649,31 @@ export function PromotionDetailPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+  <DialogContent className="max-w-sm">
+    <DialogHeader>
+      <DialogTitle>Confirmer la suppression</DialogTitle>
+    </DialogHeader>
+    <p className="text-sm text-gray-600 py-2">
+      Êtes-vous sûr de vouloir supprimer l'étudiant{" "}
+      <span className="font-semibold">
+        {etudiantToDelete?.prenom} {etudiantToDelete?.nom}
+      </span>{" "}
+      ? Cette action est irréversible.
+    </p>
+    <DialogFooter>
+      <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+        Annuler
+      </Button>
+      <Button
+        className="bg-red-600 hover:bg-red-700 text-white"
+        onClick={handleDeleteEtudiant}
+      >
+        Supprimer
+      </Button>
+    </DialogFooter>
+  </DialogContent>
+</Dialog>
     </div>
   )
 }

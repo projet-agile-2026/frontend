@@ -37,7 +37,8 @@ export interface EvaluationWithRubriquesDTO {
 
 export interface EvaluationListItem {
   idEvaluation: number
-  anneeUniversitaire: string
+    noEnseignant: number
+    anneeUniversitaire: string
   codeFormation: string
   libelleFormation?: string
   codeUe: string
@@ -69,6 +70,9 @@ export interface EvaluationRubriquePayload {
 
 export interface EvaluationDetailDTO {
   id?: number
+
+    idEvaluation?: number
+
   anneeUniversitaire: string
   codeFormation: string
   codeUe: string
@@ -105,6 +109,9 @@ export interface DroitResponseDTO {
   noEnseignant: number
   consultation: "O" | "N"
   duplication: "O" | "N"
+    nom?: string
+    prenom?: string
+    emailUbo?: string
 }
 
 export interface DroitRequestDTO {
@@ -331,6 +338,85 @@ export async function updateEvaluationEtat(
   const { data } = await api.put(
     `/api/enseignant/evaluations/${evaluationId}/etat`,
     { etat: etat }
+  )
+  return data
+}
+
+// ── Types Statistiques ────────────────────────────────────────────────────────
+
+export interface QuestionStatDTO {
+  idQuestionEvaluation: number
+  ordre: number
+  intitule: string
+  minimal: string
+  maximal: string
+  nbRepondants: number
+  moyenne: number | null
+  minimum: number | null
+  maximum: number | null
+  ecartType: number | null
+  mediane: number | null
+  nb1: number
+  nb2: number
+  nb3: number
+  nb4: number
+  nb5: number
+}
+
+export interface RubriqueStatDTO {
+  idRubriqueEvaluation: number
+  ordre: number
+  designation: string
+  questions: QuestionStatDTO[]
+}
+
+export interface StatistiquesEvaluationDTO {
+  idEvaluation: number
+  designation: string
+  codeFormation: string
+  anneeUniversitaire: string
+  codeUe: string
+  codeEc: string | null
+  noEvaluation: number
+  etat: string
+  periode: string
+  debutReponse: string
+  finReponse: string
+  totalRepondants: number
+  rubriques: RubriqueStatDTO[]
+}
+
+export async function getStatistiques(id: number): Promise<StatistiquesEvaluationDTO> {
+  const response = await api.get(`api/enseignant/evaluations/${id}/statistiques`)
+  return response.data
+
+
+
+
+
+}
+export async function exportStatistiquesPdf(id: number): Promise<void> {
+  const response = await api.get(`/api/enseignant/evaluations/${id}/export-pdf`, {
+    responseType: "blob",
+  })
+  const url = window.URL.createObjectURL(new Blob([response.data], { type: "application/pdf" }))
+  const link = document.createElement("a")
+  link.href = url
+  link.setAttribute("download", `statistiques-${id}.pdf`)
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+  window.URL.revokeObjectURL(url)
+}
+//ranya
+export async function updateDesignationRubriqueEvaluation(
+  evaluationId: number,
+  rubriqueEvaluationId: number,
+  designation: string
+): Promise<RubriqueEvaluationDTO> {
+  const { data } = await api.put(
+    `/api/enseignant/evaluations/${evaluationId}/rubriques/${rubriqueEvaluationId}/designation`,
+    { designation }
   )
   return data
 }

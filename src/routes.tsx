@@ -7,6 +7,10 @@ import { RubriquesPage } from "@/pages/RubriquesPage"
 import { QuestionsPage } from "@/pages/QuestionsPage"
 import { PageCouples } from "@/pages/PageCouples"
 import { EvaluationsPage } from "@/pages/evaluations/EvaluationsPage"
+import { EvaluationForm } from "@/pages/evaluations/EvaluationForm"
+import { EtudiantEvaluationsPage } from "@/pages/evaluations/EtudiantEvaluationsPage"
+import { RepondreEvaluationPage } from "@/pages/evaluations/RepondreEvaluationPage"
+import VoirResultatPage from "@/pages/evaluations/VoirResultatPage"
 import { PromotionsPage } from "@/pages/promotions/PromotionsPage"
 import { PromotionDetailPage } from "@/pages/promotions/PromotionDetailPage"
 import UnauthorizedPage from "@/pages/UnauthorizedPage"
@@ -15,6 +19,8 @@ import { EvaluationEditPage } from "@/pages/evaluations/EvaluationEditPage"
 import { EvaluationDetailPage } from "@/pages/evaluations/EvaluationDetailPage"
 import { EnseignantsAuthPage } from "./pages/auth/EnseignantsAuthPage"
 import { EtudiantAuthPage } from "./pages/auth/EtudiantsAuthPage"
+import { StatistiquesPage } from "@/pages/evaluations/StatistiquesPage"
+
 
 export const router = createBrowserRouter([
   {
@@ -82,7 +88,36 @@ export const router = createBrowserRouter([
         path: "etudiants",
         element: <EtudiantAuthPage />,
       },
-      
+      // dans le tableau children, après evaluations/:id :
+      {
+        path: "evaluations/:id/statistiques",
+        element: <StatistiquesPage />,
+      },
+
+      {
+        path: "mes-evaluations",
+        element: (
+          <ProtectedRoute allowedRoles={["ETU"]}>
+            <EtudiantEvaluationsPage />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: "mes-evaluations/:idEvaluation/repondre",
+        element: (
+          <ProtectedRoute allowedRoles={["ETU"]}>
+            <RepondreEvaluationPage />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: "mes-evaluations/:idEvaluation/resultat",
+        element: (
+          <ProtectedRoute allowedRoles={["ETU"]}>
+            <VoirResultatPage />
+          </ProtectedRoute>
+        ),
+      },
     ],
   },
 ])

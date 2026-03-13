@@ -1,7 +1,8 @@
 import { useEffect, useState, useCallback } from "react"
-import { Plus, Trash2, Check, LayoutList, GripVertical, ChevronDown, ChevronRight } from "lucide-react"
+import { Plus, Trash2, Check, LayoutList, GripVertical, ChevronDown, ChevronRight, Pencil, X } from "lucide-react"
 import { Button } from "../../components/ui/button"
 import { Input } from "../../components/ui/input"
+import { toast } from "sonner"
 import {
   Dialog,
   DialogContent,
@@ -37,6 +38,7 @@ import {
   removeRubriqueFromEvaluation,
   reorderRubriquesInEvaluation,
   reorderQuestionsInRubriqueEvaluation,
+  updateDesignationRubriqueEvaluation,
   type EvaluationWithRubriquesDTO,
   type RubriqueEvaluationDTO,
   type QuestionEvaluationDTO,
@@ -103,17 +105,14 @@ function SortableQuestionRow({
         <GripVertical className="h-4 w-4" />
       </div>
       <div className="flex-1 grid grid-cols-12 items-center gap-2 min-w-0">
-
         <span className="col-span-7 text-gray-800 truncate">
           {question.intitule}
         </span>
-
         <span className="col-span-4 text-xs text-gray-500 truncate">
           {question.maximal && question.minimal
             ? `${question.maximal} ↔ ${question.minimal}`
             : "Échelle non définie"}
         </span>
-
       </div>
       <Button
         type="button"
@@ -140,6 +139,12 @@ function SortableRubriqueCard({
   onQuestionDragEnd,
   openQuestionDialog,
   readOnly,
+  editingRubriqueId,
+  editingDesignation,
+  onStartEdit,
+  onConfirmEdit,
+  onCancelEdit,
+  onEditDesignationChange,
 }: {
   rubrique: RubriqueEvaluationDTO
   isExpanded: boolean
@@ -150,6 +155,12 @@ function SortableRubriqueCard({
   onQuestionDragEnd: (rubriqueEvaluationId: number, event: DragEndEvent) => void
   openQuestionDialog: (rubriqueEvaluationId: number) => void
   readOnly: boolean
+  editingRubriqueId: number | null
+  editingDesignation: string
+  onStartEdit: (id: number, currentDesignation: string) => void
+  onConfirmEdit: (id: number) => void
+  onCancelEdit: () => void
+  onEditDesignationChange: (value: string) => void
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: rubrique.idRubriqueEvaluation.toString(),
@@ -165,6 +176,9 @@ function SortableRubriqueCard({
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   )
+
+  const isEditing = editingRubriqueId === rubrique.idRubriqueEvaluation
+
   return (
     <div
       ref={setNodeRef}
@@ -191,17 +205,74 @@ function SortableRubriqueCard({
         >
           {isExpanded ? <ChevronDown className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
         </button>
+
+        {/* ← MODIFIÉ : titre sans crayon */}
         <div className="flex-1 min-w-0">
-          <h3 className="text-base font-semibold text-gray-900 truncate">{rubrique.designation}</h3>
-          <div className="flex flex-wrap items-center gap-2 mt-0.5 text-xs text-gray-500">
-            {rubrique.type && (
-              <span className={`rounded-full border px-2 py-0.5 text-xs ${getRubriqueTypeStyle(rubrique.type)}`}>
-                {getRubriqueTypeLabel(rubrique.type)}
-              </span>
-            )}
-            <span>{questions.length} question{questions.length !== 1 ? "s" : ""}</span>
-          </div>
+          {isEditing ? (
+            <div className="flex items-center gap-2">
+              <Input
+                value={editingDesignation}
+                onChange={(e) => onEditDesignationChange(e.target.value)}
+                className="h-7 text-sm"
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") onConfirmEdit(rubrique.idRubriqueEvaluation)
+                  if (e.key === "Escape") onCancelEdit()
+                }}
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 shrink-0 text-green-600 hover:text-green-700"
+                onClick={() => onConfirmEdit(rubrique.idRubriqueEvaluation)}
+              >
+                <Check className="h-4 w-4" />
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 shrink-0 text-gray-400 hover:text-gray-600"
+                onClick={onCancelEdit}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          ) : (
+            <div>
+              <h3 className="text-base font-semibold text-gray-900 truncate">{rubrique.designation}</h3>
+              {!isEditing && (
+                <div className="flex flex-wrap items-center gap-2 mt-0.5 text-xs text-gray-500">
+                  {rubrique.type && (
+                    <span className={`rounded-full border px-2 py-0.5 text-xs ${getRubriqueTypeStyle(rubrique.type)}`}>
+                      {getRubriqueTypeLabel(rubrique.type)}
+                    </span>
+                  )}
+                  <span>{questions.length} question{questions.length !== 1 ? "s" : ""}</span>
+                </div>
+              )}
+            </div>
+          )}
         </div>
+
+        {/* ← MODIFIÉ : crayon déplacé ici, à gauche de la poubelle */}
+        {!readOnly && !isEditing && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="shrink-0 text-gray-400 hover:text-blue-600"
+            onClick={(e) => {
+              e.stopPropagation()
+              onStartEdit(rubrique.idRubriqueEvaluation, rubrique.designation)
+            }}
+          >
+            <Pencil className="h-4 w-4" />
+          </Button>
+        )}
+
+        {/* Bouton supprimer */}
         <Button
           type="button"
           variant="ghost"
@@ -284,14 +355,13 @@ export function RubriquesSection({
   const [isRubriqueDialogOpen, setIsRubriqueDialogOpen] = useState(false)
   const [expandedRubriqueIds, setExpandedRubriqueIds] = useState<Set<number>>(new Set())
 
-  const [activeRubriqueEvaluationId, setActiveRubriqueEvaluationId] = useState<
-    number | null
-  >(null)
-  const [selectedQuestionId, setSelectedQuestionId] = useState<number | null>(
-    null,
-  )
+  const [activeRubriqueEvaluationId, setActiveRubriqueEvaluationId] = useState<number | null>(null)
+  const [selectedQuestionId, setSelectedQuestionId] = useState<number | null>(null)
   const [questionSearch, setQuestionSearch] = useState("")
   const [isQuestionDialogOpen, setIsQuestionDialogOpen] = useState(false)
+
+  const [editingRubriqueId, setEditingRubriqueId] = useState<number | null>(null)
+  const [editingDesignation, setEditingDesignation] = useState("")
 
   useEffect(() => {
     void loadRubriques()
@@ -305,22 +375,18 @@ export function RubriquesSection({
 
   const loadQuestions = async () => {
     const data = await getQuestions()
-    
     setAvailableQuestions(data)
   }
 
   const handleAddRubrique = async () => {
     if (!selectedRubriqueIds || !evaluationId || readOnly) return
-
     try {
       await Promise.all(
         selectedRubriqueIds.map((id) =>
           addRubriqueToEvaluation(evaluationId, id)
         )
       )
-      if (onReload) {
-        await onReload()
-      }
+      if (onReload) await onReload()
       setSelectedRubriqueIds(null)
       setIsRubriqueDialogOpen(false)
     } catch (error) {
@@ -332,9 +398,7 @@ export function RubriquesSection({
     if (!evaluationId || readOnly) return
     try {
       await removeRubriqueFromEvaluation(evaluationId, rubriqueEvaluationId)
-      if (onReload) {
-        await onReload()
-      }
+      if (onReload) await onReload()
     } catch (error) {
       console.error("Erreur lors de la suppression de la rubrique :", error)
     }
@@ -349,22 +413,14 @@ export function RubriquesSection({
   }
 
   const handleAddQuestion = async () => {
-    if (
-      !evaluationId ||
-      !activeRubriqueEvaluationId ||
-      !selectedQuestionId ||
-      readOnly
-    )
-      return
+    if (!evaluationId || !activeRubriqueEvaluationId || !selectedQuestionId || readOnly) return
     try {
       await addQuestionToRubriqueEvaluation(
         evaluationId,
         activeRubriqueEvaluationId,
         selectedQuestionId,
       )
-      if (onReload) {
-        await onReload()
-      }
+      if (onReload) await onReload()
       setIsQuestionDialogOpen(false)
     } catch (error) {
       console.error("Erreur lors de l'ajout de la question :", error)
@@ -382,11 +438,46 @@ export function RubriquesSection({
         rubriqueEvaluationId,
         questionEvaluationId,
       )
-      if (onReload) {
-        await onReload()
-      }
+      if (onReload) await onReload()
     } catch (error) {
       console.error("Erreur lors de la suppression de la question :", error)
+    }
+  }
+
+  const handleStartEdit = (id: number, currentDesignation: string) => {
+    setEditingRubriqueId(id)
+    setEditingDesignation(currentDesignation)
+  }
+
+  const handleCancelEdit = () => {
+    setEditingRubriqueId(null)
+    setEditingDesignation("")
+  }
+
+  const handleConfirmEdit = async (rubriqueEvaluationId: number) => {
+  if (!evaluationId) return
+if (!editingDesignation.trim()) {
+  toast.error("Champ obligatoire", {
+    description: "Veuillez insérer un nom pour la désignation.",
+    style: { background: "#991b1b", color: "#fff", border: "none" },
+  })
+  return
+}
+    try {
+      await updateDesignationRubriqueEvaluation(evaluationId, rubriqueEvaluationId, editingDesignation.trim())
+      toast.success("Désignation de rubrique mise à jour", {
+        description: `"${editingDesignation.trim()}" a été sauvegardée avec succès.`,
+        style: { background: "#166534", color: "#fff", border: "none" },
+      })
+      if (onReload) await onReload()
+      setEditingRubriqueId(null)
+      setEditingDesignation("")
+    } catch (error) {
+      toast.error("Erreur", {
+        description: "Impossible de modifier la désignation de la rubrique.",
+        style: { background: "#991b1b", color: "#fff", border: "none" },
+      })
+      console.error("Erreur lors de la modification de la désignation :", error)
     }
   }
 
@@ -402,7 +493,6 @@ export function RubriquesSection({
   const toggleRubriqueSelection = (id: number) => {
     setSelectedRubriqueIds((prev) => {
       const list = prev ?? []
-
       return list.includes(id)
         ? list.filter((r) => r !== id)
         : [...list, id]
@@ -539,12 +629,11 @@ export function RubriquesSection({
 
               {!evaluationId && (
                 <TooltipContent>
-                  Enregistrez d’abord les informations de l’évaluation.
+                  Enregistrez d'abord les informations de l'évaluation.
                 </TooltipContent>
               )}
             </Tooltip>
           </TooltipProvider>
-
 
           <DialogContent className="w-[calc(100%-2rem)] max-w-lg max-h-[90vh] overflow-hidden flex flex-col sm:max-h-[85vh]">
             <DialogHeader className="pb-2">
@@ -652,12 +741,17 @@ export function RubriquesSection({
                 onQuestionDragEnd={handleQuestionDragEnd}
                 openQuestionDialog={openQuestionDialog}
                 readOnly={readOnly}
+                editingRubriqueId={editingRubriqueId}
+                editingDesignation={editingDesignation}
+                onStartEdit={handleStartEdit}
+                onConfirmEdit={handleConfirmEdit}
+                onCancelEdit={handleCancelEdit}
+                onEditDesignationChange={setEditingDesignation}
               />
             ))}
           </div>
         </SortableContext>
       </DndContext>
-
 
       <Dialog open={isQuestionDialogOpen} onOpenChange={setIsQuestionDialogOpen}>
         <DialogContent className="w-[calc(100%-2rem)] max-w-lg max-h-[90vh] overflow-y-auto sm:max-h-none">
