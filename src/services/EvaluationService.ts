@@ -408,6 +408,7 @@ export async function exportStatistiquesPdf(id: number): Promise<void> {
   link.remove()
   window.URL.revokeObjectURL(url)
 }
+
 //ranya
 export async function updateDesignationRubriqueEvaluation(
   evaluationId: number,
@@ -417,6 +418,31 @@ export async function updateDesignationRubriqueEvaluation(
   const { data } = await api.put(
     `/api/enseignant/evaluations/${evaluationId}/rubriques/${rubriqueEvaluationId}/designation`,
     { designation }
+  )
+  return data
+}
+export async function updateIntituleQuestionEvaluation(
+  evaluationId: number,
+  rubriqueEvaluationId: number,
+  questionEvaluationId: number,
+  intitule: string
+): Promise<QuestionEvaluationDTO> {
+  const { data } = await api.put(
+    `/api/enseignant/evaluations/${evaluationId}/rubriques/${rubriqueEvaluationId}/questions/${questionEvaluationId}/intitule`,
+    { intitule }
+  )
+  return data
+}
+
+export async function updateQualificatifQuestionEvaluation(
+  evaluationId: number,
+  rubriqueEvaluationId: number,
+  questionEvaluationId: number,
+  idQualificatif: number
+): Promise<QuestionEvaluationDTO> {
+  const { data } = await api.put(
+    `/api/enseignant/evaluations/${evaluationId}/rubriques/${rubriqueEvaluationId}/questions/${questionEvaluationId}/qualificatif`,
+    { idQualificatif }
   )
   return data
 }

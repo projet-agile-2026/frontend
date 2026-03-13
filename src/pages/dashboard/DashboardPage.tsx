@@ -10,6 +10,19 @@ export function DashboardPage() {
       .catch(() => {})
   }, [])
 
+  const getUserDisplayName = () => {
+    if (!user) return "Chargement..."
+    
+    if (user.role === "ADM") return "Administrateur"
+
+    const prenom = user.prenom?.trim()
+    const nom = user.nom?.trim()
+
+    if (prenom === null && nom === null) return "Utilisateur inconnu"
+    
+    return `${prenom || ""} ${nom || ""}`.trim()
+  }
+
   return (
     <div className="flex items-center justify-center h-[70vh]">
       <div className="text-center space-y-4">
@@ -19,9 +32,7 @@ export function DashboardPage() {
         </h1>
 
         <p className="text-xl text-gray-600">
-          {user
-            ? `${user.prenom} ${user.nom}`
-            : "Chargement..."}
+          {getUserDisplayName()}
         </p>
 
         <p className="text-gray-400 text-sm">
