@@ -8,6 +8,7 @@ export interface QuestionEvaluationDTO {
   intitule: string
   maximal?: string
   minimal?: string
+  idQualificatif?: number | null
 }
 
 export interface RubriqueEvaluationDTO {

@@ -553,6 +553,12 @@ export function RubriquesSection({
       })
       return
     }
+    const currentRubrique = rubriques.find(r => r.idRubriqueEvaluation === rubriqueEvaluationId)
+    if (currentRubrique && currentRubrique.designation === editingDesignation.trim()) {
+      setEditingRubriqueId(null)
+      setEditingDesignation("")
+      return
+    }
     try {
       await updateDesignationRubriqueEvaluation(evaluationId, rubriqueEvaluationId, editingDesignation.trim())
       toast.success("Désignation de rubrique mise à jour", {
@@ -593,6 +599,12 @@ export function RubriquesSection({
       })
       return
     }
+    const rubrique = rubriques.find(r => r.idRubriqueEvaluation === rubriqueEvaluationId)
+    const currentQuestion = rubrique?.questions.find(q => q.idQuestionEvaluation === questionEvaluationId)
+    if (currentQuestion && currentQuestion.intitule === editingQuestionIntitule.trim()) {
+      handleCancelEditQuestion()
+      return
+    }
     try {
       await updateIntituleQuestionEvaluation(
         evaluationId, rubriqueEvaluationId, questionEvaluationId, editingQuestionIntitule.trim()
@@ -613,35 +625,52 @@ export function RubriquesSection({
 
   // ── Qualificatif question — ranya ───────────────────────────────────────────
   const openQualificatifDialog = async (rubriqueId: number, questionId: number) => {
+    // Load data first, set state after — prevents race condition
+    const data = await getQualificatifs()
+
+    const rubrique = rubriques.find(r => r.idRubriqueEvaluation === rubriqueId)
+    const question = rubrique?.questions.find(q => q.idQuestionEvaluation === questionId)
+    const rawId = question?.idQualificatif
+    const currentId = rawId != null ? Number(rawId) : null
+
+    // Set all dialog state atomically before opening
+    setAvailableQualificatifs(data)
     setQualificatifDialogRubriqueId(rubriqueId)
     setQualificatifDialogQuestionId(questionId)
-    setSelectedQualificatifId(null)
-    if (availableQualificatifs.length === 0) {
-      const data = await getQualificatifs()
-      setAvailableQualificatifs(data)
-    }
+    setSelectedQualificatifId(currentId && !isNaN(currentId) ? currentId : null)
     setIsQualificatifDialogOpen(true)
   }
 
   const handleConfirmQualificatif = async () => {
-    if (!evaluationId || !qualificatifDialogRubriqueId || !qualificatifDialogQuestionId || !selectedQualificatifId) return
+    // Capture to locals immediately — state can change during await
+    const evalId = evaluationId
+    const rubriqueId = qualificatifDialogRubriqueId
+    const questionId = qualificatifDialogQuestionId
+    const qualifId = selectedQualificatifId
+
+    if (!evalId || !rubriqueId || !questionId || !qualifId) {
+      console.warn("Guard failed:", { evalId, rubriqueId, questionId, qualifId })
+      return
+    }
     try {
-      await updateQualificatifQuestionEvaluation(
-        evaluationId, qualificatifDialogRubriqueId, qualificatifDialogQuestionId, selectedQualificatifId
-      )
+      await updateQualificatifQuestionEvaluation(evalId, rubriqueId, questionId, qualifId)
       toast.success("Qualificatif mis à jour", {
         style: { background: "#166534", color: "#fff", border: "none" },
       })
-      if (onReload) await onReload()
       setIsQualificatifDialogOpen(false)
-    } catch {
+      // Reset dialog state AFTER closing
+      setQualificatifDialogRubriqueId(null)
+      setQualificatifDialogQuestionId(null)
+      setSelectedQualificatifId(null)
+      if (onReload) await onReload()
+    } catch (err: any) {
+      console.error("Erreur updateQualificatif:", err?.response?.status, err?.response?.data)
       toast.error("Erreur", {
-        description: "Impossible de modifier le qualificatif.",
+        description: `Impossible de modifier le qualificatif. (${err?.response?.status ?? "réseau"})`,
         style: { background: "#991b1b", color: "#fff", border: "none" },
       })
     }
   }
-
   // ── Accordion ───────────────────────────────────────────────────────────────
   const toggleRubriqueExpanded = useCallback((id: number) => {
     setExpandedRubriqueIds((prev) => {
@@ -944,16 +973,16 @@ export function RubriquesSection({
               </div>
             ) : (
               availableQualificatifs.map((q) => {
-                const id = q.idQualificatif
+                const id = q.id ?? q.idQualificatif ?? null
                 // backend retourne maximal/minimal, le service front utilise mot1/mot2
                 const label1 = q.maximal ?? q.mot1
                 const label2 = q.minimal ?? q.mot2
                 return (
                   <div
                     key={id}
-                    onClick={() => setSelectedQualificatifId(id ?? null)}
+                    onClick={() => { if (id !== null && id !== undefined) setSelectedQualificatifId(Number(id)) }}
                     className={`cursor-pointer px-3 py-2 text-sm hover:bg-gray-100 border-b last:border-b-0 ${
-                      selectedQualificatifId === id ? "bg-blue-50" : "bg-white"
+                      selectedQualificatifId === Number(id) ? "bg-blue-50" : "bg-white"
                     }`}
                   >
                     <span className="font-medium">{label1}</span>
@@ -973,7 +1002,7 @@ export function RubriquesSection({
             </Button>
             <Button
               type="button"
-              disabled={!selectedQualificatifId}
+              disabled={selectedQualificatifId === null || selectedQualificatifId === undefined}
               onClick={handleConfirmQualificatif}
             >
               Confirmer
