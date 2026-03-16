@@ -341,3 +341,47 @@ export async function updateEvaluationEtat(
   )
   return data
 }
+
+
+
+export async function addRubriqueSpecifiqueToEvaluation(
+    evaluationId: number,
+    designation: string
+): Promise<RubriqueEvaluationDTO> {
+    const { data } = await api.post(
+        `/api/enseignant/evaluations/${evaluationId}/rubriques/specifique`,
+        { designation }
+    )
+    return data
+}
+
+
+
+export async function updateRubriqueSpecifique(
+    evaluationId: number,
+    rubriqueEvaluationId: number,
+    designation: string
+): Promise<RubriqueEvaluationDTO> {
+    const { data } = await api.put(
+        `/api/enseignant/evaluations/${evaluationId}/rubriques/${rubriqueEvaluationId}/specifique`,
+        { designation }
+    )
+    return data
+}
+
+
+
+export async function downloadEvaluationPdf(evaluationId: number): Promise<void> {
+    const response = await api.get(
+        `/api/enseignant/evaluations/${evaluationId}/pdf`,
+        { responseType: "blob" }
+    )
+    const url = window.URL.createObjectURL(new Blob([response.data]))
+    const link = document.createElement("a")
+    link.href = url
+    link.setAttribute("download", `evaluation-${evaluationId}.pdf`)
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    window.URL.revokeObjectURL(url)
+}
