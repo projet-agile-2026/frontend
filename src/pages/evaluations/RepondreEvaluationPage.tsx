@@ -2,6 +2,16 @@ import { useEffect, useState } from "react"
 import { useParams, useNavigate } from "react-router-dom"
 import { Loader2, AlertCircle, Send, ArrowLeft, ChevronLeft, ChevronRight, Star } from "lucide-react"
 import { Button } from "../../components/ui/button"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "../../components/ui/alert-dialog"
 import { 
   getEvaluationDetail, 
   submitReponses,
@@ -24,6 +34,7 @@ export function RepondreEvaluationPage() {
   const [commentaire, setCommentaire] = useState("")
   const [currentRubriqueIndex, setCurrentRubriqueIndex] = useState(0)
   const [showRecap, setShowRecap] = useState(false)
+  const [showCancelDialog, setShowCancelDialog] = useState(false)
 
   useEffect(() => {
     if (!idEvaluation) return
@@ -407,33 +418,47 @@ export function RepondreEvaluationPage() {
             <div className="space-y-6">
               {currentRubriqueQuestions.map((question) => (
                 <div key={question.idQuestionEvaluation} className="space-y-2">
-                  <p className="text-sm font-medium text-gray-900">
+                  <p className="text-base font-semibold text-gray-900">
                     {question.intitule}
                   </p>
 
-                  <div className="flex items-center gap-2">
-                    {[1, 2, 3, 4, 5].map((value) => (
-                      <button
-                        key={value}
-                        type="button"
-                        onClick={() => handlePositionnementChange(question.idQuestionEvaluation, value)}
-                        className={`
-                          flex-1 py-2 px-4 rounded-md border-2 text-sm font-medium transition-all
-                          ${
-                            reponses.get(question.idQuestionEvaluation) === value
-                              ? "border-blue-600 bg-blue-50 text-blue-700"
-                              : "border-gray-300 bg-white text-gray-700 hover:border-blue-400 hover:bg-gray-50"
-                          }
-                        `}
-                      >
-                        {value}
-                      </button>
-                    ))}
-                  </div>
-                  
-                  <div className="flex justify-between text-sm text-gray-600 px-1">
-                    <span className="font-semibold">{question.minimal || "Pas du tout"}</span>
-                    <span className="font-semibold">{question.maximal || "Tout à fait"}</span>
+                  <div className="flex items-center justify-center gap-4">
+                    <span className="w-32 text-base font-semibold text-gray-700 text-right whitespace-nowrap">
+                      {question.minimal || "Pas du tout"}
+                    </span>
+
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {[1, 2, 3, 4, 5].map((value) => {
+                        const selectedValue = reponses.get(question.idQuestionEvaluation) || 0
+                        const isActive = value <= selectedValue
+                        const color =
+                          selectedValue === 1
+                            ? "text-red-500"
+                            : selectedValue === 5
+                            ? "text-green-500"
+                            : selectedValue >= 3
+                            ? "text-yellow-500"
+                            : "text-orange-500"
+
+                        return (
+                          <button
+                            key={value}
+                            type="button"
+                            onClick={() => handlePositionnementChange(question.idQuestionEvaluation, value)}
+                            className="p-1 transition-transform hover:scale-110"
+                            aria-label={`Noter ${value} sur 5`}
+                          >
+                            <Star
+                              className={`h-8 w-8 ${isActive ? `${color} fill-current` : "text-gray-300"}`}
+                            />
+                          </button>
+                        )
+                      })}
+                    </div>
+
+                    <span className="w-32 text-base font-semibold text-gray-700 whitespace-nowrap">
+                      {question.maximal || "Tout à fait"}
+                    </span>
                   </div>
                 </div>
               ))}
@@ -512,7 +537,7 @@ export function RepondreEvaluationPage() {
 
       {/* Récapitulatif - affiché à la place des questions quand l'utilisateur clique sur Soumettre */}
       {showRecap && (
-        <div className="mt-6 bg-blue-50 rounded-lg border border-blue-200 p-6">
+        <div className="mt-6 bg-white rounded-lg border border-gray-200 p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
             📋 Récapitulatif de vos réponses
           </h3>
@@ -532,21 +557,21 @@ export function RepondreEvaluationPage() {
                     
                     return (
                       <div key={question.idQuestionEvaluation} className="space-y-2 pb-4 border-b border-gray-100 last:border-b-0 last:pb-0">
-                        <p className="text-sm font-medium text-gray-900">
+                        <p className="text-base font-semibold text-gray-900">
                           {question.intitule}
                         </p>
 
                         {positionnement && (
-                          <div className="grid grid-cols-3 items-center gap-4">
-                            <span className="text-xs font-semibold text-gray-600 text-left">
+                          <div className="flex items-center justify-center gap-2">
+                            <span className="w-28 text-base font-semibold text-gray-700 text-right whitespace-nowrap">
                               {question.minimal || "Pas du tout"}
                             </span>
                             
-                            <div className="flex items-center justify-center gap-1">
+                            <div className="flex items-center justify-center gap-0.5 shrink-0">
                               {renderStars(positionnement)}
                             </div>
                             
-                            <span className="text-xs font-semibold text-gray-600 text-right">
+                            <span className="w-28 text-base font-semibold text-gray-700 whitespace-nowrap">
                               {question.maximal || "Tout à fait"}
                             </span>
                           </div>
@@ -572,59 +597,89 @@ export function RepondreEvaluationPage() {
         </div>
       )}
 
-      {/* Boutons de soumission */}
-      <div className="mt-6 flex justify-end gap-3">
-        {showRecap ? (
-          <>
-            <Button
-              variant="outline"
-              onClick={() => setShowRecap(false)}
-              disabled={submitting}
-              size="lg"
-            >
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Modifier mes réponses
-            </Button>
-            <Button
-              onClick={handleConfirmSubmit}
-              disabled={submitting}
-              size="lg"
-              className="min-w-[200px]"
-            >
-              {submitting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Envoi en cours...
-                </>
-              ) : (
-                <>
-                  <Send className="mr-2 h-4 w-4" />
-                  Confirmer et soumettre
-                </>
-              )}
-            </Button>
-          </>
-        ) : (
-          <Button
-            onClick={handleSubmit}
-            disabled={submitting || completedRubriquesCount < totalRubriques}
-            size="lg"
-            className="min-w-[200px]"
-          >
-            {submitting ? (
+      {/* Boutons bas de page */}
+      <div className="mt-6 flex items-center justify-between gap-3">
+        <Button
+          variant="outline"
+          onClick={() => setShowCancelDialog(true)}
+          disabled={submitting}
+          size="lg"
+        >
+          Annuler
+        </Button>
+
+        {(showRecap || isLastRubrique) && (
+          <div className="flex justify-end gap-3">
+            {showRecap ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Envoi en cours...
+                <Button
+                  variant="outline"
+                  onClick={() => setShowRecap(false)}
+                  disabled={submitting}
+                  size="lg"
+                >
+                  <ArrowLeft className="mr-2 h-4 w-4" />
+                  Modifier mes réponses
+                </Button>
+                <Button
+                  onClick={handleConfirmSubmit}
+                  disabled={submitting}
+                  size="lg"
+                  className="min-w-[200px]"
+                >
+                  {submitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Envoi en cours...
+                    </>
+                  ) : (
+                    <>
+                      <Send className="mr-2 h-4 w-4" />
+                      Confirmer et soumettre
+                    </>
+                  )}
+                </Button>
               </>
             ) : (
-              <>
-                <Send className="mr-2 h-4 w-4" />
-                Voir le récapitulatif
-              </>
+              <Button
+                onClick={handleSubmit}
+                disabled={submitting || completedRubriquesCount < totalRubriques}
+                size="lg"
+                className="min-w-[200px]"
+              >
+                {submitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Envoi en cours...
+                  </>
+                ) : (
+                  <>
+                    <Send className="mr-2 h-4 w-4" />
+                    Voir le récapitulatif
+                  </>
+                )}
+              </Button>
             )}
-          </Button>
+          </div>
         )}
       </div>
+
+      <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmer l'annulation</AlertDialogTitle>
+            <AlertDialogDescription>
+              Vous êtes sûr ? Vos réponses seront abandonnées.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Non</AlertDialogCancel>
+            <AlertDialogAction onClick={() => navigate("/mes-evaluations")}>
+              Oui
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

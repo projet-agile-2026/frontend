@@ -64,8 +64,9 @@ export function QuestionsPage() {
   const filteredQuestions = useMemo(() => {
     return questions
       .filter(q => q.intitule.toLowerCase().includes(search.toLowerCase()))
+      .filter(q => role !== "ENS" || q.type === activeTab)
       .sort((a, b) => a.intitule.localeCompare(b.intitule));
-  }, [questions, search]);
+  }, [questions, search, activeTab, role]);
 
   const totalPages = Math.ceil(filteredQuestions.length / itemsPerPage);
   const currentData = filteredQuestions.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
@@ -127,6 +128,34 @@ export function QuestionsPage() {
           <AddQuestionDialog onAdd={handleAdd} qualificatifs={qualificatifs} role={role}/>
         </div>
 
+        {/* TYPE TABS - affiché uniquement pour ENS */}
+        {role === "ENS" && (
+          <div className="bg-white p-2 rounded-lg shadow-sm border border-gray-200 mb-4">
+            <div className="flex gap-2">
+              <button
+                onClick={() => { setActiveTab("QUS"); setCurrentPage(1); }}
+                className={`flex-1 px-4 py-2.5 rounded-md text-sm font-medium transition-all ${
+                  activeTab === "QUS"
+                    ? "bg-blue-600 text-white shadow-sm"
+                    : "bg-gray-50 text-gray-600 hover:bg-gray-100"
+                }`}
+              >
+                Questions Standard
+              </button>
+              <button
+                onClick={() => { setActiveTab("QUP"); setCurrentPage(1); }}
+                className={`flex-1 px-4 py-2.5 rounded-md text-sm font-medium transition-all ${
+                  activeTab === "QUP"
+                    ? "bg-purple-600 text-white shadow-sm"
+                    : "bg-gray-50 text-gray-600 hover:bg-gray-100"
+                }`}
+              >
+                Questions Personnelles
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* RECHERCHE */}
         <div className="bg-white border rounded-2xl p-6 mb-8 shadow-sm">
           <div className="relative">
@@ -150,41 +179,9 @@ export function QuestionsPage() {
 
           <div className="divide-y divide-slate-100">
             {currentData.length > 0 ? (
-           user?.role === "ENS" ? (
-  <>
-    {/* ONGLETS */}
-    <div className="flex gap-2 p-3 bg-white border-b">
-      <button
-        onClick={() => setActiveTab("QUP")}
-        className={`flex-1 py-2 px-4 rounded-lg text-xs font-bold uppercase tracking-widest transition-all
-          ${activeTab === "QUP" ? "bg-blue-600 text-white shadow" : "bg-slate-100 text-slate-500 hover:bg-slate-200"}`}
-      >
-        Mes questions personnelles
-      </button>
-      <button
-        onClick={() => setActiveTab("QUS")}
-        className={`flex-1 py-2 px-4 rounded-lg text-xs font-bold uppercase tracking-widest transition-all
-          ${activeTab === "QUS" ? "bg-slate-700 text-white shadow" : "bg-slate-100 text-slate-500 hover:bg-slate-200"}`}
-      >
-        Questions standards
-      </button>
-    </div>
-
-    {/* CONTENU selon onglet actif */}
-    {currentData.filter(q => q.type === activeTab).length > 0
-      ? currentData.filter(q => q.type === activeTab).map(q => (
-          <QuestionRow key={q.idQuestion} question={q} qualificatifs={qualificatifs} onDelete={handleDelete} onUpdate={handleUpdate} role={user?.role} />
-        ))
-      : <div className="py-10 text-center text-slate-300 text-xs uppercase tracking-widest">
-          Aucune question {activeTab === "QUP" ? "personnelle" : "standard"}
-        </div>
-    }
-  </>
-) : (
-  currentData.map(q => (
-    <QuestionRow key={q.idQuestion} question={q} qualificatifs={qualificatifs} onDelete={handleDelete} onUpdate={handleUpdate} role={user?.role} />
-  ))
-)
+              currentData.map(q => (
+                <QuestionRow key={q.idQuestion} question={q} qualificatifs={qualificatifs} onDelete={handleDelete} onUpdate={handleUpdate} role={user?.role} />
+              ))
             ) : (
               <div className="py-20 text-center text-slate-300 font-medium uppercase text-xs tracking-widest">
                 Aucune question trouvée

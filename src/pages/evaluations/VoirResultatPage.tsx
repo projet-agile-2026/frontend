@@ -2,7 +2,7 @@ import { useEffect, useState } from "react"
 import { useNavigate, useParams } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft, Loader2, AlertCircle, Star } from "lucide-react"
-import { getEvaluationResult, ReponseEvaluationResultDTO } from "@/services/EvaluationDetailService"
+import { getEvaluationResult, type ReponseEvaluationResultDTO } from "@/services/EvaluationDetailService"
 import { toast } from "sonner"
 
 export default function VoirResultatPage() {
@@ -159,35 +159,29 @@ export default function VoirResultatPage() {
 
       {/* Toutes les rubriques affichées */}
       {rubriquesAvecQuestions.map((rubrique, rubriqueIndex) => (
-        <div key={rubrique.idRubriqueEvaluation} className="mb-6 bg-white rounded-lg border border-gray-200 p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-6 pb-4 border-b border-gray-200">
+        <div key={rubrique.idRubriqueEvaluation} className="mb-3 bg-white rounded-lg border border-gray-200 p-4">
+          <h2 className="text-xl font-semibold text-gray-900 mb-3 pb-2 border-b border-gray-200">
             {rubrique.designation || `Rubrique ${rubriqueIndex + 1}`}
           </h2>
 
           {!rubrique.questions || rubrique.questions.length === 0 ? (
             <p className="text-gray-500 italic">Aucune question dans cette rubrique</p>
           ) : (
-            <div className="space-y-6">
+            <div className="space-y-2">
               {rubrique.questions.map((question) => (
-                <div key={question.idQuestionEvaluation} className="space-y-2 pb-6 border-b border-gray-100 last:border-b-0">
-                  <p className="text-base font-semibold text-gray-900">
+                <div key={question.idQuestionEvaluation} className="pb-2 border-b border-gray-100 last:border-b-0">
+                  <p className="text-base font-semibold text-gray-900 mb-1">
                     {question.intitule}
                   </p>
 
-                  {/* Étoiles et qualificatifs sur la même ligne avec grid */}
-                  <div className="grid grid-cols-3 items-center gap-4 py-2">
-                    {/* Qualificatif minimal */}
-                    <span className="text-sm font-semibold text-gray-600 text-left">
+                  <div className="flex items-center justify-center gap-2">
+                    <span className="w-28 text-base font-semibold text-gray-700 text-right whitespace-nowrap">
                       {question.minimal || "Pas du tout"}
                     </span>
-                    
-                    {/* Étoiles au centre */}
-                    <div className="flex items-center justify-center gap-1">
+                    <div className="flex items-center gap-0.5 shrink-0">
                       {renderStars(question.positionnement)}
                     </div>
-                    
-                    {/* Qualificatif maximal */}
-                    <span className="text-sm font-semibold text-gray-600 text-right">
+                    <span className="w-28 text-base font-semibold text-gray-700 whitespace-nowrap">
                       {question.maximal || "Tout à fait"}
                     </span>
                   </div>
