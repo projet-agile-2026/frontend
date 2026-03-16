@@ -35,8 +35,8 @@ export const EvaluationForm: FC<EvaluationFormProps> = ({ readOnly = false }) =>
   const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
 
-    const location = useLocation()
-    const prefill = (location.state as any)?.prefill ?? null
+  const location = useLocation()
+  const prefill = (location.state as any)?.prefill ?? null
 
   const isEdit = !!id
   const isViewMode = readOnly === true
@@ -53,8 +53,10 @@ export const EvaluationForm: FC<EvaluationFormProps> = ({ readOnly = false }) =>
     id ? Number(id) : undefined
   )
 
-  const handleSaveHeader = async () => {
+  // ranya - bloquer le bouton Enregistrer pendant une édition inline
+  const [isEditingRubrique, setIsEditingRubrique] = useState(false)
 
+  const handleSaveHeader = async () => {
     try {
       setSaving(true)
 
@@ -74,17 +76,14 @@ export const EvaluationForm: FC<EvaluationFormProps> = ({ readOnly = false }) =>
 
       if (evaluationId) {
         await updateEvaluation(evaluationId, payload)
-
         setSuccessMessage(
-          `L’évaluation "${headerValues.designation}" a bien été mise à jour.`
+          `L'évaluation "${headerValues.designation}" a bien été mise à jour.`
         )
       } else {
         const created = await createEvaluation(payload)
-
         setEvaluationId(created.idEvaluation)
-
         setSuccessMessage(
-          `L’évaluation "${headerValues.designation}" a bien été enregistrée. Vous pouvez maintenant ajouter les rubriques.`
+          `L'évaluation "${headerValues.designation}" a bien été enregistrée. Vous pouvez maintenant ajouter les rubriques.`
         )
       }
 
@@ -96,8 +95,6 @@ export const EvaluationForm: FC<EvaluationFormProps> = ({ readOnly = false }) =>
       setSaving(false)
     }
   }
-
-  
 
   const [headerValues, setHeaderValues] = useState<EvaluationHeaderFormValues>({
     codeFormation: "",
@@ -115,14 +112,12 @@ export const EvaluationForm: FC<EvaluationFormProps> = ({ readOnly = false }) =>
   const [etat, setEtat] = useState<EvaluationStatus>("ELA")
   const [rubriques, setRubriques] = useState<EvaluationWithRubriquesDTO["rubriques"]>([])
 
-
   const [annees, setAnnees] = useState<string[]>([])
   const [successDialogOpen, setSuccessDialogOpen] = useState(false)
   const [successMessage, setSuccessMessage] = useState("")
 
   const reloadEvaluation = async (evaluationId: number) => {
     const data = await getEvaluationFull(evaluationId)
-    
     setRubriques(data.rubriques || [])
   }
 
@@ -135,58 +130,57 @@ export const EvaluationForm: FC<EvaluationFormProps> = ({ readOnly = false }) =>
         const formationsData = await getFormations()
         setFormations(formationsData)
 
-          if (isEdit && id) {
-              const evaluation = await getEvaluationFull(Number(id))
-              setEtat(evaluation.etat as EvaluationStatus)
-              setRubriques(evaluation.rubriques || [])
+        if (isEdit && id) {
+          const evaluation = await getEvaluationFull(Number(id))
+          setEtat(evaluation.etat as EvaluationStatus)
+          setRubriques(evaluation.rubriques || [])
 
-              setHeaderValues({
-                  codeFormation: evaluation.codeFormation,
-                  anneeUniversitaire: evaluation.anneeUniversitaire,
-                  codeUe: evaluation.codeUe,
-                  codeEc: evaluation.codeEc,
-                  designation: evaluation.designation,
-                  debutReponse: evaluation.debutReponse.slice(0, 10),
-                  finReponse: evaluation.finReponse.slice(0, 10),
-                  etat: evaluation.etat,
-                  periode: evaluation.periode,
-                  noEvaluation: evaluation.noEvaluation,
-              })
+          setHeaderValues({
+            codeFormation: evaluation.codeFormation,
+            anneeUniversitaire: evaluation.anneeUniversitaire,
+            codeUe: evaluation.codeUe,
+            codeEc: evaluation.codeEc,
+            designation: evaluation.designation,
+            debutReponse: evaluation.debutReponse.slice(0, 10),
+            finReponse: evaluation.finReponse.slice(0, 10),
+            etat: evaluation.etat,
+            periode: evaluation.periode,
+            noEvaluation: evaluation.noEvaluation,
+          })
 
-              const [anneesData, uesData, ecsData] = await Promise.all([
-                  getAnneesUniversitaires(evaluation.codeFormation),
-                  getUes(evaluation.codeFormation),
-                  getEcs(evaluation.codeFormation, evaluation.codeUe),
-              ])
-              setAnnees(anneesData)
-              setUes(uesData)
-              setEcs(ecsData)
+          const [anneesData, uesData, ecsData] = await Promise.all([
+            getAnneesUniversitaires(evaluation.codeFormation),
+            getUes(evaluation.codeFormation),
+            getEcs(evaluation.codeFormation, evaluation.codeUe),
+          ])
+          setAnnees(anneesData)
+          setUes(uesData)
+          setEcs(ecsData)
 
-          } else if (prefill) {
+        } else if (prefill) {
+          setEtat("ELA")
+          setHeaderValues({
+            codeFormation: prefill.codeFormation ?? "",
+            anneeUniversitaire: prefill.anneeUniversitaire ?? "",
+            codeUe: prefill.codeUe ?? "",
+            codeEc: prefill.codeEc ?? "",
+            designation: prefill.designation ?? "",
+            debutReponse: prefill.debutReponse?.slice(0, 10) ?? "",
+            finReponse: prefill.finReponse?.slice(0, 10) ?? "",
+            etat: "ELA",
+            periode: prefill.periode ?? "",
+            noEvaluation: "",
+          })
 
-              setEtat("ELA")
-              setHeaderValues({
-                  codeFormation: prefill.codeFormation ?? "",
-                  anneeUniversitaire: prefill.anneeUniversitaire ?? "",
-                  codeUe: prefill.codeUe ?? "",
-                  codeEc: prefill.codeEc ?? "",
-                  designation: prefill.designation ?? "",
-                  debutReponse: prefill.debutReponse?.slice(0, 10) ?? "",
-                  finReponse: prefill.finReponse?.slice(0, 10) ?? "",
-                  etat: "ELA",
-                  periode: prefill.periode ?? "",
-                  noEvaluation: "",
-              })
-
-              const [anneesData, uesData, ecsData] = await Promise.all([
-                  getAnneesUniversitaires(prefill.codeFormation),
-                  getUes(prefill.codeFormation),
-                  getEcs(prefill.codeFormation, prefill.codeUe),
-              ])
-              setAnnees(anneesData)
-              setUes(uesData)
-              setEcs(ecsData)
-          }
+          const [anneesData, uesData, ecsData] = await Promise.all([
+            getAnneesUniversitaires(prefill.codeFormation),
+            getUes(prefill.codeFormation),
+            getEcs(prefill.codeFormation, prefill.codeUe),
+          ])
+          setAnnees(anneesData)
+          setUes(uesData)
+          setEcs(ecsData)
+        }
       } catch (e: any) {
         setError(
           e.message || "Erreur lors du chargement du formulaire d'évaluation.",
@@ -291,8 +285,6 @@ export const EvaluationForm: FC<EvaluationFormProps> = ({ readOnly = false }) =>
     )
   }
 
-  
-
   return (
     <form
       onSubmit={handleSubmit}
@@ -332,8 +324,6 @@ export const EvaluationForm: FC<EvaluationFormProps> = ({ readOnly = false }) =>
         onSaveHeader={handleSaveHeader}
       />
 
-
-
       <RubriquesSection
         rubriques={rubriques}
         onChange={setRubriques}
@@ -344,6 +334,7 @@ export const EvaluationForm: FC<EvaluationFormProps> = ({ readOnly = false }) =>
             : () => evaluationId && reloadEvaluation(evaluationId)
         }
         readOnly={isViewMode}
+        onEditingChange={setIsEditingRubrique}
       />
 
       {!isViewMode && (
@@ -356,7 +347,11 @@ export const EvaluationForm: FC<EvaluationFormProps> = ({ readOnly = false }) =>
           >
             Annuler
           </Button>
-          <Button type="submit" disabled={saving} className="w-full sm:w-auto">
+          <Button
+            type="submit"
+            disabled={saving || isEditingRubrique}
+            className="w-full sm:w-auto"
+          >
             {saving ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -389,4 +384,3 @@ export const EvaluationForm: FC<EvaluationFormProps> = ({ readOnly = false }) =>
     </form>
   )
 }
-

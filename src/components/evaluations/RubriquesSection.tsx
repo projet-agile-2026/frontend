@@ -65,6 +65,7 @@ interface RubriquesSectionProps {
   evaluationId?: number
   onReload?: () => void
   readOnly?: boolean
+  onEditingChange?: (isEditing: boolean) => void
 }
 
 /* ── Sortable question row ─────────────────────────────────────────────────── */
@@ -117,13 +118,12 @@ function SortableQuestionRow({
         className={`flex-shrink-0 touch-none ${readOnly
           ? "cursor-default text-gray-300"
           : "cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600"
-        }`}
+          }`}
       >
         <GripVertical className="h-4 w-4" />
       </div>
 
       {isEditing ? (
-        /* ── Mode édition intitulé ── */
         <div className="flex flex-1 items-center gap-2 min-w-0">
           <Input
             value={editingIntitule}
@@ -152,7 +152,6 @@ function SortableQuestionRow({
           </Button>
         </div>
       ) : (
-        /* ── Mode affichage ── */
         <div className="flex-1 grid grid-cols-12 items-center gap-2 min-w-0">
           <span className="col-span-7 text-gray-800 truncate">{question.intitule}</span>
           <span className="col-span-4 text-xs text-gray-500 truncate">
@@ -165,7 +164,6 @@ function SortableQuestionRow({
 
       {!readOnly && !isEditing && (
         <>
-          {/* Crayon intitulé */}
           <Button
             type="button" variant="ghost" size="icon"
             className="h-7 w-7 shrink-0 text-gray-400 hover:text-blue-600"
@@ -173,7 +171,6 @@ function SortableQuestionRow({
           >
             <Pencil className="h-3.5 w-3.5" />
           </Button>
-          {/* Bouton qualificatif */}
           <Button
             type="button" variant="ghost" size="icon"
             className="h-7 w-7 shrink-0 text-gray-400 hover:text-purple-600"
@@ -270,7 +267,6 @@ function SortableRubriqueCard({
       style={style}
       className={`rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden ${isDragging ? "shadow-lg ring-2 ring-gray-200" : ""}`}
     >
-      {/* Accordion header */}
       <div className="flex items-center gap-2 border-b border-gray-100 bg-gray-50/50 px-3 py-2.5 sm:px-4 sm:py-3 min-w-0">
         <div
           {...(!readOnly ? attributes : {})}
@@ -278,7 +274,7 @@ function SortableRubriqueCard({
           className={`flex-shrink-0 touch-none ${readOnly
             ? "cursor-default text-gray-300"
             : "cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600"
-          }`}
+            }`}
         >
           <GripVertical className="h-5 w-5" />
         </div>
@@ -334,7 +330,6 @@ function SortableRubriqueCard({
           )}
         </div>
 
-        {/* Crayon désignation rubrique */}
         {!readOnly && !isEditing && (
           <Button
             type="button" variant="ghost" size="icon"
@@ -348,7 +343,6 @@ function SortableRubriqueCard({
           </Button>
         )}
 
-        {/* Bouton supprimer rubrique */}
         <Button
           type="button" variant="ghost" size="icon"
           className="shrink-0 text-gray-400 hover:text-red-600"
@@ -359,7 +353,6 @@ function SortableRubriqueCard({
         </Button>
       </div>
 
-      {/* Accordion body */}
       {isExpanded && (
         <div className="px-3 py-3 sm:px-4 sm:py-4 space-y-3 bg-white">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -436,6 +429,7 @@ export function RubriquesSection({
   evaluationId,
   onReload,
   readOnly = false,
+  onEditingChange,
 }: RubriquesSectionProps) {
   const [availableRubriques, setAvailableRubriques] = useState<Rubrique[]>([])
   const [availableQuestions, setAvailableQuestions] = useState<Question[]>([])
@@ -504,24 +498,38 @@ export function RubriquesSection({
     }
   }
 
-  const openQuestionDialog = (rubriqueEvaluationId: number) => {
+  const [selectedQualificatifIdForAdd, setSelectedQualificatifIdForAdd] = useState<number | null>(null)
+
+  const openQuestionDialog = async (rubriqueEvaluationId: number) => {
     if (!evaluationId || readOnly) return
     setActiveRubriqueEvaluationId(rubriqueEvaluationId)
     setSelectedQuestionId(null)
+    setSelectedQualificatifIdForAdd(null) // reset
     setQuestionSearch("")
+    const data = await getQualificatifs()  // ✅ charger ici
+    setAvailableQualificatifs(data)
     setIsQuestionDialogOpen(true)
   }
 
+
+
   const handleAddQuestion = async () => {
-    if (!evaluationId || !activeRubriqueEvaluationId || !selectedQuestionId || readOnly) return
+    if (!evaluationId || !activeRubriqueEvaluationId || !selectedQuestionId || !selectedQualificatifIdForAdd || readOnly) return
     try {
-      await addQuestionToRubriqueEvaluation(evaluationId, activeRubriqueEvaluationId, selectedQuestionId)
-      if (onReload) await onReload()
-      setIsQuestionDialogOpen(false)
+      await addQuestionToRubriqueEvaluation(
+        evaluationId,
+        activeRubriqueEvaluationId,
+        selectedQuestionId,
+        selectedQualificatifIdForAdd
+      )
+      if (onReload) await onReload()          // ✅ manquait
+      setIsQuestionDialogOpen(false)          // ✅ manquait
+      setSelectedQualificatifIdForAdd(null)   // ✅ reset
     } catch (error) {
       console.error("Erreur lors de l'ajout de la question :", error)
     }
   }
+
 
   const handleRemoveQuestion = async (rubriqueEvaluationId: number, questionEvaluationId: number) => {
     if (!evaluationId || readOnly) return
@@ -537,11 +545,13 @@ export function RubriquesSection({
   const handleStartEdit = (id: number, currentDesignation: string) => {
     setEditingRubriqueId(id)
     setEditingDesignation(currentDesignation)
+    onEditingChange?.(true)
   }
 
   const handleCancelEdit = () => {
     setEditingRubriqueId(null)
     setEditingDesignation("")
+    onEditingChange?.(false)
   }
 
   const handleConfirmEdit = async (rubriqueEvaluationId: number) => {
@@ -557,6 +567,7 @@ export function RubriquesSection({
     if (currentRubrique && currentRubrique.designation === editingDesignation.trim()) {
       setEditingRubriqueId(null)
       setEditingDesignation("")
+      onEditingChange?.(false)
       return
     }
     try {
@@ -568,11 +579,13 @@ export function RubriquesSection({
       if (onReload) await onReload()
       setEditingRubriqueId(null)
       setEditingDesignation("")
+      onEditingChange?.(false)
     } catch (error) {
       toast.error("Erreur", {
         description: "Impossible de modifier la désignation de la rubrique.",
         style: { background: "#991b1b", color: "#fff", border: "none" },
       })
+      onEditingChange?.(false)
       console.error("Erreur lors de la modification de la désignation :", error)
     }
   }
@@ -582,12 +595,14 @@ export function RubriquesSection({
     setEditingQuestionRubriqueId(rubriqueId)
     setEditingQuestionId(questionId)
     setEditingQuestionIntitule(currentIntitule)
+    onEditingChange?.(true)
   }
 
   const handleCancelEditQuestion = () => {
     setEditingQuestionId(null)
     setEditingQuestionIntitule("")
     setEditingQuestionRubriqueId(null)
+    onEditingChange?.(false)
   }
 
   const handleConfirmEditQuestion = async (rubriqueEvaluationId: number, questionEvaluationId: number) => {
@@ -620,12 +635,12 @@ export function RubriquesSection({
         description: "Impossible de modifier l'intitulé.",
         style: { background: "#991b1b", color: "#fff", border: "none" },
       })
+      onEditingChange?.(false)
     }
   }
 
   // ── Qualificatif question — ranya ───────────────────────────────────────────
   const openQualificatifDialog = async (rubriqueId: number, questionId: number) => {
-    // Load data first, set state after — prevents race condition
     const data = await getQualificatifs()
 
     const rubrique = rubriques.find(r => r.idRubriqueEvaluation === rubriqueId)
@@ -633,7 +648,6 @@ export function RubriquesSection({
     const rawId = question?.idQualificatif
     const currentId = rawId != null ? Number(rawId) : null
 
-    // Set all dialog state atomically before opening
     setAvailableQualificatifs(data)
     setQualificatifDialogRubriqueId(rubriqueId)
     setQualificatifDialogQuestionId(questionId)
@@ -642,7 +656,6 @@ export function RubriquesSection({
   }
 
   const handleConfirmQualificatif = async () => {
-    // Capture to locals immediately — state can change during await
     const evalId = evaluationId
     const rubriqueId = qualificatifDialogRubriqueId
     const questionId = qualificatifDialogQuestionId
@@ -658,7 +671,6 @@ export function RubriquesSection({
         style: { background: "#166534", color: "#fff", border: "none" },
       })
       setIsQualificatifDialogOpen(false)
-      // Reset dialog state AFTER closing
       setQualificatifDialogRubriqueId(null)
       setQualificatifDialogQuestionId(null)
       setSelectedQualificatifId(null)
@@ -671,6 +683,7 @@ export function RubriquesSection({
       })
     }
   }
+
   // ── Accordion ───────────────────────────────────────────────────────────────
   const toggleRubriqueExpanded = useCallback((id: number) => {
     setExpandedRubriqueIds((prev) => {
@@ -814,7 +827,7 @@ export function RubriquesSection({
                       className={`group relative w-full text-left rounded-xl border-2 p-4 transition-all duration-200 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-gray-400 ${isSelected
                         ? "border-blue-500 bg-blue-50/80 shadow-sm ring-0"
                         : "border-transparent bg-white hover:border-gray-200 hover:bg-white hover:shadow-sm"
-                      }`}
+                        }`}
                     >
                       {isSelected && (
                         <div className="absolute top-3 right-3 flex h-6 w-6 items-center justify-center rounded-full bg-blue-500 text-white">
@@ -839,8 +852,7 @@ export function RubriquesSection({
                 })}
               </div>
             </div>
-
-            <DialogFooter className="border-t border-gray-100 pt-4 mt-2">
+           <DialogFooter className="border-t border-gray-100 pt-4 mt-2">
               <Button
                 type="button" variant="outline"
                 onClick={() => setIsRubriqueDialogOpen(false)}
@@ -899,7 +911,6 @@ export function RubriquesSection({
                 onConfirmEdit={handleConfirmEdit}
                 onCancelEdit={handleCancelEdit}
                 onEditDesignationChange={setEditingDesignation}
-                // ranya - question editing
                 editingQuestionId={editingQuestionId}
                 editingQuestionIntitule={editingQuestionIntitule}
                 editingQuestionRubriqueId={editingQuestionRubriqueId}
@@ -927,7 +938,7 @@ export function RubriquesSection({
               onChange={(e) => setQuestionSearch(e.target.value)}
               className="h-9 text-sm"
             />
-            <div className="max-h-80 overflow-y-auto rounded-md border">
+            <div className="max-h-60 overflow-y-auto rounded-md border">
               {filteredQuestions.length === 0 ? (
                 <div className="px-4 py-6 text-center text-sm text-gray-400">
                   Aucune question disponible.
@@ -937,21 +948,43 @@ export function RubriquesSection({
                   <div
                     key={q.idQuestion}
                     onClick={() => setSelectedQuestionId(q.idQuestion)}
-                    className={`cursor-pointer border-b px-3 py-2 text-sm hover:bg-gray-100 ${
-                      selectedQuestionId === q.idQuestion ? "bg-blue-50" : "bg-white"
-                    }`}
+                    className={`cursor-pointer border-b px-3 py-2 text-sm hover:bg-gray-100 ${selectedQuestionId === q.idQuestion ? "bg-blue-50" : "bg-white"
+                      }`}
                   >
                     {q.intitule}
                   </div>
                 ))
               )}
             </div>
+
+            {/* ✅ Ajouter ici le sélecteur de qualificatif */}
+            <div>
+              <p className="text-xs font-semibold text-gray-500 mb-1">Choisir un qualificatif</p>
+              <div className="max-h-40 overflow-y-auto rounded-md border">
+                {availableQualificatifs.map((q) => {
+                  const id = q.id ?? q.idQualificatif ?? null
+                  return (
+                    <div
+                      key={id}
+                      onClick={() => setSelectedQualificatifIdForAdd(Number(id))}
+                      className={`cursor-pointer px-3 py-2 text-sm hover:bg-gray-100 border-b ${selectedQualificatifIdForAdd === Number(id) ? "bg-blue-50" : "bg-white"
+                        }`}
+                    >
+                      <span className="font-medium">{q.maximal ?? q.mot1}</span>
+                      <span className="text-gray-400 mx-2">↔</span>
+                      <span className="font-medium">{q.minimal ?? q.mot2}</span>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
           </div>
+
           <DialogFooter>
             <Button
               type="button"
               onClick={handleAddQuestion}
-              disabled={!selectedQuestionId}
+              disabled={!selectedQuestionId || !selectedQualificatifIdForAdd}  
               className="w-full"
             >
               Ajouter la question
@@ -959,7 +992,6 @@ export function RubriquesSection({
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
       {/* Dialog modifier qualificatif — ranya */}
       <Dialog open={isQualificatifDialogOpen} onOpenChange={setIsQualificatifDialogOpen}>
         <DialogContent className="w-[calc(100%-2rem)] max-w-md">
@@ -974,16 +1006,14 @@ export function RubriquesSection({
             ) : (
               availableQualificatifs.map((q) => {
                 const id = q.id ?? q.idQualificatif ?? null
-                // backend retourne maximal/minimal, le service front utilise mot1/mot2
                 const label1 = q.maximal ?? q.mot1
                 const label2 = q.minimal ?? q.mot2
                 return (
                   <div
                     key={id}
                     onClick={() => { if (id !== null && id !== undefined) setSelectedQualificatifId(Number(id)) }}
-                    className={`cursor-pointer px-3 py-2 text-sm hover:bg-gray-100 border-b last:border-b-0 ${
-                      selectedQualificatifId === Number(id) ? "bg-blue-50" : "bg-white"
-                    }`}
+                    className={`cursor-pointer px-3 py-2 text-sm hover:bg-gray-100 border-b last:border-b-0 ${selectedQualificatifId === Number(id) ? "bg-blue-50" : "bg-white"
+                      }`}
                   >
                     <span className="font-medium">{label1}</span>
                     <span className="text-gray-400 mx-2">↔</span>

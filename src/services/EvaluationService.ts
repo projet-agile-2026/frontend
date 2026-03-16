@@ -208,11 +208,13 @@ export async function addRubriqueToEvaluation(
 export async function addQuestionToRubriqueEvaluation(
   evaluationId: number,
   rubriqueEvaluationId: number,
-  idQuestion: number
+  idQuestion: number,
+  idQualificatif: number   
+
 ): Promise<RubriqueEvaluationDTO> {
   const { data } = await api.post(
     `/api/enseignant/evaluations/${evaluationId}/rubriques/${rubriqueEvaluationId}/questions`,
-    { idQuestion }
+    { idQuestion,idQualificatif }
   )
   return data
 }
