@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from "react"
 import { Plus, Trash2, Check, LayoutList, GripVertical, ChevronDown, ChevronRight, Loader2, Pencil } from "lucide-react"
 import { Button } from "../../components/ui/button"
 import { Input } from "../../components/ui/input"
+import { getQualificatifs, type QualificatifDTO } from "../../services/Qualificatifservice"
 import {
     Dialog,
     DialogContent,
@@ -300,6 +301,9 @@ export function RubriquesSection({
     const [availableRubriques, setAvailableRubriques] = useState<Rubrique[]>([])
     const [availableQuestions, setAvailableQuestions] = useState<Question[]>([])
 
+
+    const [qualificatifs, setQualificatifs] = useState<QualificatifDTO[]>([])
+
     const [selectedRubriqueIds, setSelectedRubriqueIds] = useState<number[] | null>([])
     const [isRubriqueDialogOpen, setIsRubriqueDialogOpen] = useState(false)
     const [expandedRubriqueIds, setExpandedRubriqueIds] = useState<Set<number>>(new Set())
@@ -316,6 +320,8 @@ export function RubriquesSection({
     const [specifiqueLoading, setSpecifiqueLoading] = useState(false)
 
     // States édition rubrique spécifique
+    const [specifiqueSelectedQuestions, setSpecifiqueSelectedQuestions] = useState<number[]>([])
+    const [specifiqueQuestionSearch, setSpecifiqueQuestionSearch] = useState("")
     const [isEditSpecifiqueDialogOpen, setIsEditSpecifiqueDialogOpen] = useState(false)
     const [editSpecifiqueId, setEditSpecifiqueId] = useState<number | null>(null)
     const [editSpecifiqueDesignation, setEditSpecifiqueDesignation] = useState("")
@@ -325,8 +331,14 @@ export function RubriquesSection({
     useEffect(() => {
         void loadRubriques()
         void loadQuestions()
+        void loadQualificatifs()
     }, [])
 
+
+    const loadQualificatifs = async () => {
+        const data = await getQualificatifs()
+        setQualificatifs(data)
+    }
     const loadRubriques = async () => {
         const data = await getRubriques()
         setAvailableRubriques(data)
@@ -370,10 +382,26 @@ export function RubriquesSection({
         setSpecifiqueLoading(true)
         setSpecifiqueError("")
         try {
-            await addRubriqueSpecifiqueToEvaluation(evaluationId, specifiqueDesignation.trim())
+            // 1. Créer la rubrique spécifique
+            const rubrique = await addRubriqueSpecifiqueToEvaluation(
+                evaluationId,
+                specifiqueDesignation.trim()
+            )
+
+            // 2. Ajouter les questions sélectionnées
+            for (const idQuestion of specifiqueSelectedQuestions) {
+                await addQuestionToRubriqueEvaluation(
+                    evaluationId,
+                    rubrique.idRubriqueEvaluation,
+                    idQuestion
+                )
+            }
+
             if (onReload) await onReload()
             setIsSpecifiqueDialogOpen(false)
             setSpecifiqueDesignation("")
+            setSpecifiqueSelectedQuestions([])
+            setSpecifiqueQuestionSearch("")
         } catch (error) {
             setSpecifiqueError("Erreur lors de la création de la rubrique.")
             console.error(error)
@@ -520,6 +548,10 @@ export function RubriquesSection({
     const usedRubriqueIds = new Set((rubriques ?? []).map((r) => r.idRubrique))
     const filteredRubriques = availableRubriques.filter((r) => !usedRubriqueIds.has(r.idRubrique))
     const sortedRubriques = filteredRubriques.sort((a, b) => a.designation.localeCompare(b.designation))
+    const getQualificatifLabel = (idQualificatif: number): string => {
+        const q = qualificatifs.find(q => q.idQualificatif === idQualificatif)
+        return q ? `${q.mot1} ↔ ${q.mot2}` : ""
+    }
 
     return (
         <div className="space-y-4 rounded-lg border border-gray-200 bg-white p-4 sm:p-6 min-w-0">
@@ -546,6 +578,8 @@ export function RubriquesSection({
                                         onClick={() => {
                                             setSpecifiqueDesignation("")
                                             setSpecifiqueError("")
+                                            setSpecifiqueSelectedQuestions([])   // ← ajouter
+                                            setSpecifiqueQuestionSearch("")
                                             setIsSpecifiqueDialogOpen(true)
                                         }}
                                     >
@@ -708,14 +742,16 @@ export function RubriquesSection({
 
             {/* ===== Dialog création rubrique spécifique ===== */}
             <Dialog open={isSpecifiqueDialogOpen} onOpenChange={setIsSpecifiqueDialogOpen}>
-                <DialogContent className="w-[calc(100%-2rem)] max-w-md">
+                <DialogContent className="w-[calc(100%-2rem)] max-w-lg max-h-[90vh] overflow-hidden flex flex-col">
                     <DialogHeader>
                         <DialogTitle>Créer une rubrique spécifique</DialogTitle>
                     </DialogHeader>
-                    <div className="space-y-3 py-2">
+                    <div className="space-y-4 py-2 flex-1 overflow-y-auto">
                         <p className="text-sm text-gray-500">
                             Cette rubrique sera propre à cette évaluation et ne sera pas ajoutée au catalogue.
                         </p>
+
+                        {/* Désignation */}
                         <div className="space-y-1">
                             <label className="text-sm font-medium text-gray-700">
                                 Désignation <span className="text-red-500">*</span>
@@ -734,9 +770,76 @@ export function RubriquesSection({
                                 <p className="text-xs text-red-500">{specifiqueError}</p>
                             )}
                         </div>
+
+                        {/* Sélection des questions */}
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium text-gray-700">
+                                Questions <span className="text-gray-400 font-normal">(optionnel)</span>
+                            </label>
+                            <Input
+                                placeholder="Rechercher une question..."
+                                value={specifiqueQuestionSearch}
+                                onChange={(e) => setSpecifiqueQuestionSearch(e.target.value)}
+                                className="h-9 text-sm"
+                            />
+                            <div className="max-h-52 overflow-y-auto rounded-md border border-gray-200">
+                                {availableQuestions
+                                    .filter(q =>
+                                        q.intitule.toLowerCase().includes(specifiqueQuestionSearch.toLowerCase())
+                                    )
+                                    .map((q) => {
+                                        const isSelected = specifiqueSelectedQuestions.includes(q.idQuestion)
+                                        const qualifLabel = getQualificatifLabel(q.idQualificatif)
+                                        return (
+                                            <div
+                                                key={q.idQuestion}
+                                                onClick={() => {
+                                                    setSpecifiqueSelectedQuestions(prev =>
+                                                        isSelected
+                                                            ? prev.filter(id => id !== q.idQuestion)
+                                                            : [...prev, q.idQuestion]
+                                                    )
+                                                }}
+                                                className={`cursor-pointer border-b border-gray-100 px-3 py-2.5 text-sm transition select-none ${
+                                                    isSelected ? "bg-blue-50" : "bg-white hover:bg-gray-50"
+                                                }`}
+                                            >
+                                                <div className="flex items-center justify-between gap-3">
+                <span className={`truncate ${isSelected ? "font-medium text-blue-800" : "text-gray-800"}`}>
+                    {q.intitule}
+                </span>
+                                                    {qualifLabel && (
+                                                        <span className="shrink-0 text-xs text-gray-400 italic">
+                        {qualifLabel}
+                    </span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )
+                                    })
+                                }
+                                {availableQuestions.filter(q =>
+                                    q.intitule.toLowerCase().includes(specifiqueQuestionSearch.toLowerCase())
+                                ).length === 0 && (
+                                    <div className="px-3 py-4 text-center text-sm text-gray-400">
+                                        Aucune question trouvée.
+                                    </div>
+                                )}
+                            </div>
+                            {specifiqueSelectedQuestions.length > 0 && (
+                                <p className="text-xs text-blue-600">
+                                    {specifiqueSelectedQuestions.length} question{specifiqueSelectedQuestions.length > 1 ? "s" : ""} sélectionnée{specifiqueSelectedQuestions.length > 1 ? "s" : ""}
+                                </p>
+                            )}
+                        </div>
                     </div>
-                    <DialogFooter>
-                        <Button type="button" variant="outline" onClick={() => setIsSpecifiqueDialogOpen(false)}>
+
+                    <DialogFooter className="border-t border-gray-100 pt-3 mt-2">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setIsSpecifiqueDialogOpen(false)}
+                        >
                             Annuler
                         </Button>
                         <Button
