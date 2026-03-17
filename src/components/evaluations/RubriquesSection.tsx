@@ -498,37 +498,45 @@ export function RubriquesSection({
     }
   }
 
-  const [selectedQualificatifIdForAdd, setSelectedQualificatifIdForAdd] = useState<number | null>(null)
+ 
 
-  const openQuestionDialog = async (rubriqueEvaluationId: number) => {
-    if (!evaluationId || readOnly) return
-    setActiveRubriqueEvaluationId(rubriqueEvaluationId)
-    setSelectedQuestionId(null)
-    setSelectedQualificatifIdForAdd(null) // reset
-    setQuestionSearch("")
-    const data = await getQualificatifs()  // ✅ charger ici
-    setAvailableQualificatifs(data)
-    setIsQuestionDialogOpen(true)
-  }
+  const openQuestionDialog = (rubriqueEvaluationId: number) => {
+  if (!evaluationId || readOnly) return
+  setActiveRubriqueEvaluationId(rubriqueEvaluationId)
+  setSelectedQuestionId(null)
+  setQuestionSearch("")
+  setIsQuestionDialogOpen(true)
+}
 
 
 
   const handleAddQuestion = async () => {
-    if (!evaluationId || !activeRubriqueEvaluationId || !selectedQuestionId || !selectedQualificatifIdForAdd || readOnly) return
-    try {
-      await addQuestionToRubriqueEvaluation(
-        evaluationId,
-        activeRubriqueEvaluationId,
-        selectedQuestionId,
-        selectedQualificatifIdForAdd
-      )
-      if (onReload) await onReload()          // ✅ manquait
-      setIsQuestionDialogOpen(false)          // ✅ manquait
-      setSelectedQualificatifIdForAdd(null)   // ✅ reset
-    } catch (error) {
-      console.error("Erreur lors de l'ajout de la question :", error)
-    }
+  if (!evaluationId || !activeRubriqueEvaluationId || !selectedQuestionId || readOnly) return
+  
+  const selectedQuestion = availableQuestions.find(q => q.idQuestion === selectedQuestionId)
+  const idQualificatif = selectedQuestion?.idQualificatif ? Number(selectedQuestion.idQualificatif) : null
+  
+  if (!idQualificatif) {
+    toast.error("Erreur", {
+      description: "Cette question n'a pas de qualificatif associé.",
+      style: { background: "#991b1b", color: "#fff", border: "none" },
+    })
+    return
   }
+  
+  try {
+    await addQuestionToRubriqueEvaluation(
+      evaluationId,
+      activeRubriqueEvaluationId,
+      selectedQuestionId,
+      idQualificatif
+    )
+    if (onReload) await onReload()
+    setIsQuestionDialogOpen(false)
+  } catch (error) {
+    console.error("Erreur lors de l'ajout de la question :", error)
+  }
+}
 
 
   const handleRemoveQuestion = async (rubriqueEvaluationId: number, questionEvaluationId: number) => {
@@ -926,72 +934,50 @@ export function RubriquesSection({
       </DndContext>
 
       {/* Dialog ajouter question */}
-      <Dialog open={isQuestionDialogOpen} onOpenChange={setIsQuestionDialogOpen}>
-        <DialogContent className="w-[calc(100%-2rem)] max-w-lg max-h-[90vh] overflow-y-auto sm:max-h-none">
-          <DialogHeader>
-            <DialogTitle>Ajouter une question à la rubrique</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3 py-2">
-            <Input
-              placeholder="Rechercher une question..."
-              value={questionSearch}
-              onChange={(e) => setQuestionSearch(e.target.value)}
-              className="h-9 text-sm"
-            />
-            <div className="max-h-60 overflow-y-auto rounded-md border">
-              {filteredQuestions.length === 0 ? (
-                <div className="px-4 py-6 text-center text-sm text-gray-400">
-                  Aucune question disponible.
-                </div>
-              ) : (
-                filteredQuestions.map((q) => (
-                  <div
-                    key={q.idQuestion}
-                    onClick={() => setSelectedQuestionId(q.idQuestion)}
-                    className={`cursor-pointer border-b px-3 py-2 text-sm hover:bg-gray-100 ${selectedQuestionId === q.idQuestion ? "bg-blue-50" : "bg-white"
-                      }`}
-                  >
-                    {q.intitule}
-                  </div>
-                ))
-              )}
-            </div>
-
-            {/* ✅ Ajouter ici le sélecteur de qualificatif */}
-            <div>
-              <p className="text-xs font-semibold text-gray-500 mb-1">Choisir un qualificatif</p>
-              <div className="max-h-40 overflow-y-auto rounded-md border">
-                {availableQualificatifs.map((q) => {
-                  const id = q.id ?? q.idQualificatif ?? null
-                  return (
-                    <div
-                      key={id}
-                      onClick={() => setSelectedQualificatifIdForAdd(Number(id))}
-                      className={`cursor-pointer px-3 py-2 text-sm hover:bg-gray-100 border-b ${selectedQualificatifIdForAdd === Number(id) ? "bg-blue-50" : "bg-white"
-                        }`}
-                    >
-                      <span className="font-medium">{q.maximal ?? q.mot1}</span>
-                      <span className="text-gray-400 mx-2">↔</span>
-                      <span className="font-medium">{q.minimal ?? q.mot2}</span>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
+  <Dialog open={isQuestionDialogOpen} onOpenChange={setIsQuestionDialogOpen}>
+  <DialogContent className="w-[calc(100%-2rem)] max-w-lg max-h-[90vh] overflow-y-auto sm:max-h-none">
+    <DialogHeader>
+      <DialogTitle>Ajouter une question à la rubrique</DialogTitle>
+    </DialogHeader>
+    <div className="space-y-3 py-2">
+      <Input
+        placeholder="Rechercher une question..."
+        value={questionSearch}
+        onChange={(e) => setQuestionSearch(e.target.value)}
+        className="h-9 text-sm"
+      />
+      <div className="max-h-60 overflow-y-auto rounded-md border">
+        {filteredQuestions.length === 0 ? (
+          <div className="px-4 py-6 text-center text-sm text-gray-400">
+            Aucune question disponible.
           </div>
-
-          <DialogFooter>
-            <Button
-              type="button"
-              onClick={handleAddQuestion}
-              disabled={!selectedQuestionId || !selectedQualificatifIdForAdd}  
-              className="w-full"
+        ) : (
+          filteredQuestions.map((q) => (
+            <div
+              key={q.idQuestion}
+              onClick={() => setSelectedQuestionId(q.idQuestion)}
+              className={`cursor-pointer border-b px-3 py-2 text-sm hover:bg-gray-100 ${
+                selectedQuestionId === q.idQuestion ? "bg-blue-50" : "bg-white"
+              }`}
             >
-              Ajouter la question
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+              {q.intitule}
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+    <DialogFooter>
+      <Button
+        type="button"
+        onClick={handleAddQuestion}
+        disabled={!selectedQuestionId}
+        className="w-full"
+      >
+        Ajouter la question
+      </Button>
+    </DialogFooter>
+  </DialogContent>
+</Dialog>
       {/* Dialog modifier qualificatif — ranya */}
       <Dialog open={isQualificatifDialogOpen} onOpenChange={setIsQualificatifDialogOpen}>
         <DialogContent className="w-[calc(100%-2rem)] max-w-md">
