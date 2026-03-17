@@ -69,7 +69,12 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     const normalized = normalizeAxiosError(error)
-    emitGlobalApiError(normalized)
+    const skipGlobalError = Boolean((error?.config as any)?.skipGlobalError)
+
+    if (!skipGlobalError) {
+      emitGlobalApiError(normalized)
+    }
+
     return Promise.reject(normalized)
   },
 )
