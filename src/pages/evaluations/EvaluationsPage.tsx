@@ -258,6 +258,7 @@ export function EvaluationsPage() {
           }
           onClearStates={() => setSelectedStates([])}
           onNewEvaluation={() => navigate("/evaluations/new")}
+          onNewFromTemplate={!isAdmin ? () => navigate("/evaluations/templates") : undefined}
           showTeacherActions={!isAdmin}
         />
       </div>
@@ -322,8 +323,7 @@ export function EvaluationsPage() {
             <AlertDialogDescription>
               Êtes-vous sûr de vouloir supprimer l’évaluation{" "}
               <strong>
-                {deleteTarget?.anneeUniversitaire} (
-                {deleteTarget?.codeFormation} - {deleteTarget?.codeUe})
+                {deleteTarget?.designation}
               </strong>{" "}
               ?
               <br />

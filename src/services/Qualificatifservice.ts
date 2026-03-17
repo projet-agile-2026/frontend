@@ -1,7 +1,7 @@
 import api from "./api"
 
 export type QualificatifDTO = {
-  idQualificatif?: number
+  id?: number
   mot1: string
   mot2: string
   count?: number

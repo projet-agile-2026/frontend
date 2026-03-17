@@ -74,6 +74,8 @@ export function EvaluationHeaderView({ evaluation, onReload }: Props) {
     }
   }
 
+  console.log("evaluation", evaluation)
+
   return (
     <Card className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm py-0 gap-0">
 

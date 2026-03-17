@@ -40,6 +40,7 @@ interface EvaluationHeaderFormProps {
   ecs: String[]
   disabled?: boolean
   annees: string[]
+  isEdit?: boolean
   onChange: (values: EvaluationHeaderFormValues) => void
   onFormationChange: (codeFormation: string) => void
   onUeChange: (codeUe: string) => void
@@ -71,6 +72,7 @@ export function EvaluationHeaderForm({
   ecs,
   annees,
   disabled,
+  isEdit,
   onChange,
   onFormationChange,
   onUeChange,
@@ -360,37 +362,17 @@ export function EvaluationHeaderForm({
               />
             </div>
 
-            <div className="space-y-2">
-              <RequiredLabel>Numéro d’évaluation</RequiredLabel>
-              <Input
-                required
-                type="number"
-                min={1}
-                value={values.noEvaluation}
-                onChange={(e) => {
-                  const val = Number(e.target.value)
+            {isEdit && (
+              <div className="space-y-2">
+                <Label className="text-gray-600 text-sm font-medium">
+                  Numéro d’évaluation
+                </Label>
 
-                  if (val <= 0) {
-                    setErrors(prev => ({
-                      ...prev,
-                      noEvaluation: "Le numéro doit être supérieur à 0"
-                    }))
-                  } else {
-                    setErrors(prev => {
-                      const next = { ...prev }
-                      delete next.noEvaluation
-                      return next
-                    })
-                  }
-
-                  onChange({
-                    ...values,
-                    noEvaluation: val
-                  })
-                }}
-                className="h-10 bg-white"
-              />
-            </div>
+                <div className="text-base font-semibold text-gray-900 h-10 flex items-center">
+                  {values.noEvaluation}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </CardContent>

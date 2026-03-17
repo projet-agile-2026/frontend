@@ -74,6 +74,14 @@ export function SettingsMenu() {
             Gestion des Rubriques
           </Link>
         </DropdownMenuItem> 
+        <DropdownMenuItem className="py-2 cursor-pointer hover:bg-yellow-100" asChild>
+          <Link
+            to="/questionnaires"
+            className="py-2 cursor-pointer hover:bg-yellow-100 w-full"
+          >
+            Gestion des Questionnaires
+          </Link>
+        </DropdownMenuItem> 
       </DropdownMenuContent>
     </DropdownMenu>
   )

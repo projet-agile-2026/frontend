@@ -66,6 +66,7 @@ function EvaluationCard({
   const isDuplicating = duplicatingId === evaluation.idEvaluation
   const isLocked =
     evaluation.etat === "DIS" || evaluation.etat === "CLO"
+    
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -220,7 +221,7 @@ export function EvaluationsTable({
         <table className="min-w-[48rem] w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-              <th className="px-3 lg:px-4 py-3 text-left">N°</th>
+              {/* <th className="px-3 lg:px-4 py-3 text-left">N°</th> */}
               <th className="px-3 lg:px-4 py-3 text-left">Année universitaire</th>
               <th className="px-3 lg:px-4 py-3 text-left">Désignation</th>
               <th className="px-3 lg:px-4 py-3 text-left">Formation</th>
@@ -250,9 +251,9 @@ export function EvaluationsTable({
 
                 <tr key={evaluation.idEvaluation} className="hover:bg-gray-50/60">
                   {/* numéro evaluation */}
-                  <td className="px-3 lg:px-4 py-3 font-medium">
+                  {/* <td className="px-3 lg:px-4 py-3 font-medium">
                     {evaluation.noEvaluation}
-                  </td>
+                  </td> */}
 
                   {/* année universitaire */}
                   <td className="whitespace-nowrap px-3 lg:px-4 py-3">

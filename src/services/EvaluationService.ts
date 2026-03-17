@@ -37,8 +37,10 @@ export interface EvaluationWithRubriquesDTO {
 
 export interface EvaluationListItem {
   idEvaluation: number
-    noEnseignant: number
-    anneeUniversitaire: string
+  noEnseignant: number
+  noEvaluation: number
+  designation: string
+  anneeUniversitaire: string
   codeFormation: string
   libelleFormation?: string
   codeUe: string
@@ -71,7 +73,7 @@ export interface EvaluationRubriquePayload {
 export interface EvaluationDetailDTO {
   id?: number
 
-    idEvaluation?: number
+  idEvaluation?: number
 
   anneeUniversitaire: string
   codeFormation: string
@@ -83,7 +85,6 @@ export interface EvaluationDetailDTO {
   etat: "ELA" | "DIS" | "CLO"
   periode: string
   rubriques: EvaluationRubriquePayload[]
-  noEvaluation: number
 }
 
 export interface RubriqueEvaluationOrder {
@@ -109,9 +110,9 @@ export interface DroitResponseDTO {
   noEnseignant: number
   consultation: "O" | "N"
   duplication: "O" | "N"
-    nom?: string
-    prenom?: string
-    emailUbo?: string
+  nom?: string
+  prenom?: string
+  emailUbo?: string
 }
 
 export interface DroitRequestDTO {
@@ -125,6 +126,67 @@ export interface DroitTousRequestDTO {
   duplication: boolean
 }
 
+export interface QuestionQuestionnaireTemplateDTO {
+  idQuestion: number
+  intitule: string
+  ordre: number
+  idQuestionQuestionnaire?: number
+  idQualificatif?: number
+  maximal?: string
+  minimal?: string
+}
+
+export interface RubriqueQuestionnaireTemplateDTO {
+  idRubriqueQuestionnaire: number
+  idQuestionnaire: number
+  idRubrique: number
+  ordre: number
+  designation: string
+  type?: string
+  questions: QuestionQuestionnaireTemplateDTO[]
+}
+
+export interface QuestionnaireTemplateListItemDTO {
+  idQuestionnaire: number
+  designation: string
+}
+
+export interface QuestionnaireTemplateDetailDTO {
+  idQuestionnaire: number
+  designation: string
+  rubriques: RubriqueQuestionnaireTemplateDTO[]
+}
+
+export interface CreateEvaluationFromQuestionnairePayload {
+  idQuestionnaire: number
+  codeFormation: string
+  anneeUniversitaire: string
+  codeUe: string
+  codeEc?: string
+  designation: string
+  periode?: string
+  debutReponse: string
+  finReponse: string
+}
+
+export interface EvaluationResponseDTO {
+  idEvaluation: number
+  noEnseignant: number
+  nomEnseignant?: string | null
+  prenomEnseignant?: string | null
+  codeFormation: string
+  anneeUniversitaire: string
+  codeUe: string
+  codeEc?: string | null
+  noEvaluation?: number | null
+  designation: string
+  etat: "ELA" | "DIS" | "CLO"
+  periode?: string | null
+  debutReponse: string
+  finReponse: string
+  dejaRepondu?: boolean | null
+}
+
 export async function getEvaluations(
   filters?: EvaluationFilters,
 ): Promise<EvaluationListItem[]> {
@@ -132,7 +194,7 @@ export async function getEvaluations(
     "/api/enseignant/evaluations",
     {
       params: filters,
-    },  
+    },
   )
   return data
 }
@@ -202,7 +264,7 @@ export async function addRubriqueToEvaluation(
     { idRubrique }
   )
   return data
-} 
+}
 
 export async function addQuestionToRubriqueEvaluation(
   evaluationId: number,
@@ -418,5 +480,37 @@ export async function updateDesignationRubriqueEvaluation(
     `/api/enseignant/evaluations/${evaluationId}/rubriques/${rubriqueEvaluationId}/designation`,
     { designation }
   )
+  return data
+}
+
+export async function getQuestionnaireTemplates(): Promise<QuestionnaireTemplateListItemDTO[]> {
+  const { data } = await api.get<QuestionnaireTemplateListItemDTO[]>(
+    "/api/admin/questionnaires"
+  )
+  return data
+}
+
+export async function getQuestionnaireTemplateById(
+  idQuestionnaire: number
+): Promise<QuestionnaireTemplateDetailDTO> {
+  const { data } = await api.get<QuestionnaireTemplateDetailDTO>(
+    `/api/admin/questionnaires/${idQuestionnaire}`
+  )
+  return data
+}
+
+export async function createEvaluationFromQuestionnaire(
+  payload: CreateEvaluationFromQuestionnairePayload,
+  noEnseignant: number
+): Promise<EvaluationResponseDTO> {
+
+  const { data } = await api.post<EvaluationResponseDTO>(
+    "/api/enseignant/evaluations/from-questionnaire",
+    payload,
+    {
+      params: { noEnseignant }
+    }
+  )
+
   return data
 }

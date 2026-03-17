@@ -43,13 +43,10 @@ export function EvaluationDetailPage() {
 
       setLoading(true)
 
-      const evalData = await getEvaluation(evaluationId)
+      const data = await getEvaluationFull(evaluationId)
 
-      const rubriquesData = await getEvaluationFull(evaluationId)
-
-      setEvaluation(evalData)
-
-      setRubriques(rubriquesData.rubriques)
+setEvaluation(data)
+setRubriques(data.rubriques)
 
     } catch (error) {
 

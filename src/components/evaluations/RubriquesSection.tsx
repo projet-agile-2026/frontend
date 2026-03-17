@@ -30,6 +30,7 @@ import {
 import { CSS } from "@dnd-kit/utilities"
 
 import { getRubriques } from "../../services/Rubriqueservice"
+import { getQualificatifs, type QualificatifDTO } from "../../services/Qualificatifservice"
 import type { Rubrique } from "../../services/Rubriqueservice"
 import {
   addRubriqueToEvaluation,
@@ -356,17 +357,29 @@ export function RubriquesSection({
   const [expandedRubriqueIds, setExpandedRubriqueIds] = useState<Set<number>>(new Set())
 
   const [activeRubriqueEvaluationId, setActiveRubriqueEvaluationId] = useState<number | null>(null)
-  const [selectedQuestionId, setSelectedQuestionId] = useState<number | null>(null)
+  const [selectedQuestionIds, setSelectedQuestionIds] = useState<number[]>([])
   const [questionSearch, setQuestionSearch] = useState("")
   const [isQuestionDialogOpen, setIsQuestionDialogOpen] = useState(false)
 
   const [editingRubriqueId, setEditingRubriqueId] = useState<number | null>(null)
   const [editingDesignation, setEditingDesignation] = useState("")
 
+  const [qualificatifs, setQualificatifs] = useState<QualificatifDTO[]>([])
+
+  const loadQualificatifs = async () => {
+    const data = await getQualificatifs()
+    setQualificatifs(data)
+  }
+
   useEffect(() => {
     void loadRubriques()
     void loadQuestions()
+    void loadQualificatifs()
   }, [])
+
+  const getScale = (idQualificatif: number | string) => {
+    return qualificatifs.find(q => q.id === Number(idQualificatif))
+  }
 
   const loadRubriques = async () => {
     const data = await getRubriques()
@@ -407,18 +420,22 @@ export function RubriquesSection({
   const openQuestionDialog = (rubriqueEvaluationId: number) => {
     if (!evaluationId || readOnly) return
     setActiveRubriqueEvaluationId(rubriqueEvaluationId)
-    setSelectedQuestionId(null)
+    setSelectedQuestionIds([])
     setQuestionSearch("")
     setIsQuestionDialogOpen(true)
   }
 
   const handleAddQuestion = async () => {
-    if (!evaluationId || !activeRubriqueEvaluationId || !selectedQuestionId || readOnly) return
+    if (!evaluationId || !activeRubriqueEvaluationId || !selectedQuestionIds || readOnly) return
     try {
-      await addQuestionToRubriqueEvaluation(
-        evaluationId,
-        activeRubriqueEvaluationId,
-        selectedQuestionId,
+      await Promise.all(
+        selectedQuestionIds.map((id) =>
+          addQuestionToRubriqueEvaluation(
+            evaluationId,
+            activeRubriqueEvaluationId,
+            id
+          )
+        )
       )
       if (onReload) await onReload()
       setIsQuestionDialogOpen(false)
@@ -455,14 +472,14 @@ export function RubriquesSection({
   }
 
   const handleConfirmEdit = async (rubriqueEvaluationId: number) => {
-  if (!evaluationId) return
-if (!editingDesignation.trim()) {
-  toast.error("Champ obligatoire", {
-    description: "Veuillez insérer un nom pour la désignation.",
-    style: { background: "#991b1b", color: "#fff", border: "none" },
-  })
-  return
-}
+    if (!evaluationId) return
+    if (!editingDesignation.trim()) {
+      toast.error("Champ obligatoire", {
+        description: "Veuillez insérer un nom pour la désignation.",
+        style: { background: "#991b1b", color: "#fff", border: "none" },
+      })
+      return
+    }
     try {
       await updateDesignationRubriqueEvaluation(evaluationId, rubriqueEvaluationId, editingDesignation.trim())
       toast.success("Désignation de rubrique mise à jour", {
@@ -635,7 +652,7 @@ if (!editingDesignation.trim()) {
             </Tooltip>
           </TooltipProvider>
 
-          <DialogContent className="w-[calc(100%-2rem)] max-w-lg max-h-[90vh] overflow-hidden flex flex-col sm:max-h-[85vh]">
+          <DialogContent className="w-[95vw] max-w-3xl max-h-[85vh] flex flex-col">
             <DialogHeader className="pb-2">
               <div className="flex items-center gap-2 text-gray-500">
                 <LayoutList className="h-5 w-5 shrink-0" />
@@ -754,7 +771,7 @@ if (!editingDesignation.trim()) {
       </DndContext>
 
       <Dialog open={isQuestionDialogOpen} onOpenChange={setIsQuestionDialogOpen}>
-        <DialogContent className="w-[calc(100%-2rem)] max-w-lg max-h-[90vh] overflow-y-auto sm:max-h-none">
+        <DialogContent className="w-[95vw] max-w-3xl max-h-[85vh] flex flex-col max-w-lg max-h-[90vh] overflow-y-auto sm:max-h-none">
           <DialogHeader>
             <DialogTitle>Ajouter une question à la rubrique</DialogTitle>
           </DialogHeader>
@@ -766,26 +783,48 @@ if (!editingDesignation.trim()) {
               onChange={(e) => setQuestionSearch(e.target.value)}
               className="h-9 text-sm"
             />
+            <div className="text-xs text-gray-500">
+              {selectedQuestionIds.length} question(s) sélectionnée(s)
+            </div>
 
-            <div className="max-h-80 overflow-y-auto rounded-md border">
-              {filteredQuestions.length === 0 ? (
-                <div className="px-4 py-6 text-center text-sm text-gray-400">
-                  Aucune question disponible.
-                </div>
-              ) : (
-                filteredQuestions.map((q) => (
-                  <div
-                    key={q.idQuestion}
-                    onClick={() => setSelectedQuestionId(q.idQuestion)}
-                    className={`cursor-pointer border-b px-3 py-2 text-sm hover:bg-gray-100 ${selectedQuestionId === q.idQuestion
-                      ? "bg-blue-50"
-                      : "bg-white"
-                      }`}
-                  >
-                    {q.intitule}
+            <div className="max-h-[420px] overflow-y-auto rounded-lg border bg-gray-50 p-3">
+              <div className="grid grid-cols-1 sm:grid-cols-1 gap-2">
+                {filteredQuestions.length === 0 ? (
+                  <div className="px-4 py-6 text-center text-sm text-gray-400">
+                    Aucune question disponible.
                   </div>
-                ))
-              )}
+                ) : (
+                  filteredQuestions.map((q) => {
+                    console.log("question", q)
+                    const scale = getScale(q.idQualificatif)
+
+                    return (
+                      <div
+                        key={q.idQuestion}
+                        onClick={() => {
+                          setSelectedQuestionIds(prev =>
+                            prev.includes(q.idQuestion)
+                              ? prev.filter(id => id !== q.idQuestion)
+                              : [...prev, q.idQuestion]
+                          )
+                        }}
+                        className={`cursor-pointer rounded-lg border p-3 text-sm transition flex items-center justify-between
+      ${selectedQuestionIds.includes(q.idQuestion)
+                            ? "border-blue-500 bg-blue-50"
+                            : "border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-100"
+                          }`}
+                      >
+                        <span className="text-gray-800">{q.intitule}</span>
+
+                        <span className="text-xs text-gray-500 whitespace-nowrap">
+                          {scale ? `${scale.mot1} ↔ ${scale.mot2}` : "Échelle non définie"}
+                        </span>
+                      </div>
+                    )
+                  })
+                )}
+
+              </div>
             </div>
           </div>
 
@@ -793,10 +832,10 @@ if (!editingDesignation.trim()) {
             <Button
               type="button"
               onClick={handleAddQuestion}
-              disabled={!selectedQuestionId}
+              disabled={selectedQuestionIds.length === 0}
               className="w-full"
             >
-              Ajouter la question
+              Ajouter {selectedQuestionIds.length} question(s)
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -68,7 +68,6 @@ export const EvaluationForm: FC<EvaluationFormProps> = ({ readOnly = false }) =>
         periode: headerValues.periode,
         debutReponse: headerValues.debutReponse,
         finReponse: headerValues.finReponse,
-        noEvaluation: Number(headerValues.noEvaluation),
         rubriques: []
       }
 
@@ -260,7 +259,6 @@ export const EvaluationForm: FC<EvaluationFormProps> = ({ readOnly = false }) =>
       periode: headerValues.periode,
       debutReponse: headerValues.debutReponse,
       finReponse: headerValues.finReponse,
-      noEvaluation: Number(headerValues.noEvaluation),
       rubriques: [],
     }
 
@@ -289,6 +287,8 @@ export const EvaluationForm: FC<EvaluationFormProps> = ({ readOnly = false }) =>
       </div>
     )
   }
+
+  
 
 
   return (
@@ -324,6 +324,7 @@ export const EvaluationForm: FC<EvaluationFormProps> = ({ readOnly = false }) =>
         ecs={ecs}
         annees={annees}
         disabled={isViewMode}
+        isEdit={isEdit}
         onChange={setHeaderValues}
         onFormationChange={handleFormationChange}
         onUeChange={handleUeChange}

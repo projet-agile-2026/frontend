@@ -86,6 +86,7 @@ export function DroitsSection({ evaluationId, evaluationDesignation }: DroitsSec
                     .then((data) => {
                         const list = Array.isArray(data) ? data : []
                         setEnseignants(list)
+                        console.log("LISTE ENSEIGNANTS API:", list)
                         const found = list.find(e => e.emailUbo === u?.email)
                         if (found) setCurrentUserId(found.noEnseignant)
                     })
@@ -180,6 +181,11 @@ export function DroitsSection({ evaluationId, evaluationDesignation }: DroitsSec
             `${e.nom} ${e.prenom}`.toLowerCase().includes(searchEnseignant.toLowerCase())
         )
 
+
+        console.log("droits:", droits)
+console.log("enseignants:", enseignants)
+console.log("currentUserId:", currentUserId)
+console.log("filteredEnseignants:", filteredEnseignants)
     return (
         <Card className="border-none shadow-none">
             <CardHeader className="flex flex-row items-center justify-between px-0 pb-4">

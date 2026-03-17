@@ -22,6 +22,7 @@ interface EvaluationFiltersProps {
   onToggleState: (state: EvaluationStatus) => void
   onClearStates: () => void
   onNewEvaluation: () => void
+  onNewFromTemplate?: () => void
   showTeacherActions?: boolean
 }
 
@@ -34,6 +35,7 @@ export function EvaluationFilters({
   onToggleState,
   onClearStates,
   onNewEvaluation,
+  onNewFromTemplate,
   showTeacherActions = true,
 }: EvaluationFiltersProps) {
   const stateCount = selectedStates.length
@@ -148,13 +150,25 @@ export function EvaluationFilters({
             </DropdownMenu>
 
             {showTeacherActions && (
-              <Button
-                type="button"
-                onClick={onNewEvaluation}
-                className="h-10 sm:h-11 rounded-xl bg-black px-4 sm:px-5 font-semibold text-white shadow hover:bg-black/90 w-full sm:w-auto"
-              >
-                + Nouvelle évaluation
-              </Button>
+              <>
+                {onNewFromTemplate && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={onNewFromTemplate}
+                    className="h-10 sm:h-11 rounded-xl px-4 sm:px-5 font-medium w-full sm:w-auto"
+                  >
+                    Depuis un template
+                  </Button>
+                )}
+                <Button
+                  type="button"
+                  onClick={onNewEvaluation}
+                  className="h-10 sm:h-11 rounded-xl bg-black px-4 sm:px-5 font-semibold text-white shadow hover:bg-black/90 w-full sm:w-auto"
+                >
+                  + Nouvelle évaluation
+                </Button>
+              </>
             )}
           </div>
         </div>
