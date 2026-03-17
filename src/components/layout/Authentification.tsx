@@ -1,4 +1,3 @@
-import { useEffect } from "react"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -6,22 +5,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button"
-import { Settings } from "lucide-react"
+import { UserLock } from "lucide-react";
 import { Link } from "react-router-dom"
-import { getCurrentUser } from "@/services/authService"
-import type { UserInfo } from "@/services/authService"
-import { useState } from "react"
 
-export function SettingsMenu() {
-  const [user, setUser] = useState<UserInfo | null>(null)
-
-  useEffect(() => {
-      getCurrentUser().then(setUser)
-    }, [])
-
-  const role = user?.role
-  console.log("role", role)
-  
+export function Authentification() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -35,8 +22,9 @@ export function SettingsMenu() {
           variant="outline"
           size="lg"
         >
-          <Settings className="size-5" />
-          Paramétrage
+          
+          <UserLock size={20} />
+          Authentification
         </Button>
       </DropdownMenuTrigger>
 
@@ -48,40 +36,22 @@ export function SettingsMenu() {
           shadow-lg
         "
       >
-        {role === "ADM" && 
         <DropdownMenuItem className="py-2 cursor-pointer hover:bg-yellow-100" asChild>
           <Link
-            to="/couples"
+            to="/enseignants"
             className="py-2 cursor-pointer hover:bg-yellow-100 w-full"
           >
-            Gestion des Couples
-          </Link>
-        </DropdownMenuItem>
-        }
-        <DropdownMenuItem className="py-2 cursor-pointer hover:bg-yellow-100" asChild>
-          <Link
-            to="/questions"
-            className="py-2 cursor-pointer hover:bg-yellow-100 w-full"
-          >
-            Gestion des Questions
+            Enseignants
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem className="py-2 cursor-pointer hover:bg-yellow-100" asChild>
           <Link
-            to="/rubriques"
+            to="/etudiants"
             className="py-2 cursor-pointer hover:bg-yellow-100 w-full"
           >
-            Gestion des Rubriques
+            Etudiants
           </Link>
-        </DropdownMenuItem> 
-        <DropdownMenuItem className="py-2 cursor-pointer hover:bg-yellow-100" asChild>
-          <Link
-            to="/questionnaires"
-            className="py-2 cursor-pointer hover:bg-yellow-100 w-full"
-          >
-            Gestion des Questionnaires
-          </Link>
-        </DropdownMenuItem> 
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   )

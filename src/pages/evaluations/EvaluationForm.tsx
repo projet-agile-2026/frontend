@@ -53,6 +53,9 @@ export const EvaluationForm: FC<EvaluationFormProps> = ({ readOnly = false }) =>
     id ? Number(id) : undefined
   )
 
+  // ranya - bloquer le bouton Enregistrer pendant une édition inline
+  const [isEditingRubrique, setIsEditingRubrique] = useState(false)
+
   const handleSaveHeader = async () => {
 
     try {
@@ -76,15 +79,13 @@ export const EvaluationForm: FC<EvaluationFormProps> = ({ readOnly = false }) =>
         await updateEvaluation(evaluationId, payload)
 
         setSuccessMessage(
-          `L’évaluation "${headerValues.designation}" a bien été mise à jour.`
+          `L'évaluation "${headerValues.designation}" a bien été mise à jour.`
         )
       } else {
         const created = await createEvaluation(payload)
-
         setEvaluationId(created.idEvaluation)
-
         setSuccessMessage(
-          `L’évaluation "${headerValues.designation}" a bien été enregistrée. Vous pouvez maintenant ajouter les rubriques.`
+          `L'évaluation "${headerValues.designation}" a bien été enregistrée. Vous pouvez maintenant ajouter les rubriques.`
         )
       }
 
@@ -114,14 +115,12 @@ export const EvaluationForm: FC<EvaluationFormProps> = ({ readOnly = false }) =>
   const [etat, setEtat] = useState<EvaluationStatus>("ELA")
   const [rubriques, setRubriques] = useState<EvaluationWithRubriquesDTO["rubriques"]>([])
 
-
   const [annees, setAnnees] = useState<string[]>([])
   const [successDialogOpen, setSuccessDialogOpen] = useState(false)
   const [successMessage, setSuccessMessage] = useState("")
 
   const reloadEvaluation = async (evaluationId: number) => {
     const data = await getEvaluationFull(evaluationId)
-    
     setRubriques(data.rubriques || [])
   }
 
@@ -152,40 +151,39 @@ export const EvaluationForm: FC<EvaluationFormProps> = ({ readOnly = false }) =>
                   noEvaluation: evaluation.noEvaluation,
               })
 
-              const [anneesData, uesData, ecsData] = await Promise.all([
-                  getAnneesUniversitaires(evaluation.codeFormation),
-                  getUes(evaluation.codeFormation),
-                  getEcs(evaluation.codeFormation, evaluation.codeUe),
-              ])
-              setAnnees(anneesData)
-              setUes(uesData)
-              setEcs(ecsData)
+          const [anneesData, uesData, ecsData] = await Promise.all([
+            getAnneesUniversitaires(evaluation.codeFormation),
+            getUes(evaluation.codeFormation),
+            getEcs(evaluation.codeFormation, evaluation.codeUe),
+          ])
+          setAnnees(anneesData)
+          setUes(uesData)
+          setEcs(ecsData)
 
-          } else if (prefill) {
+        } else if (prefill) {
+          setEtat("ELA")
+          setHeaderValues({
+            codeFormation: prefill.codeFormation ?? "",
+            anneeUniversitaire: prefill.anneeUniversitaire ?? "",
+            codeUe: prefill.codeUe ?? "",
+            codeEc: prefill.codeEc ?? "",
+            designation: prefill.designation ?? "",
+            debutReponse: prefill.debutReponse?.slice(0, 10) ?? "",
+            finReponse: prefill.finReponse?.slice(0, 10) ?? "",
+            etat: "ELA",
+            periode: prefill.periode ?? "",
+            noEvaluation: "",
+          })
 
-              setEtat("ELA")
-              setHeaderValues({
-                  codeFormation: prefill.codeFormation ?? "",
-                  anneeUniversitaire: prefill.anneeUniversitaire ?? "",
-                  codeUe: prefill.codeUe ?? "",
-                  codeEc: prefill.codeEc ?? "",
-                  designation: prefill.designation ?? "",
-                  debutReponse: prefill.debutReponse?.slice(0, 10) ?? "",
-                  finReponse: prefill.finReponse?.slice(0, 10) ?? "",
-                  etat: "ELA",
-                  periode: prefill.periode ?? "",
-                  noEvaluation: "",
-              })
-
-              const [anneesData, uesData, ecsData] = await Promise.all([
-                  getAnneesUniversitaires(prefill.codeFormation),
-                  getUes(prefill.codeFormation),
-                  getEcs(prefill.codeFormation, prefill.codeUe),
-              ])
-              setAnnees(anneesData)
-              setUes(uesData)
-              setEcs(ecsData)
-          }
+          const [anneesData, uesData, ecsData] = await Promise.all([
+            getAnneesUniversitaires(prefill.codeFormation),
+            getUes(prefill.codeFormation),
+            getEcs(prefill.codeFormation, prefill.codeUe),
+          ])
+          setAnnees(anneesData)
+          setUes(uesData)
+          setEcs(ecsData)
+        }
       } catch (e: any) {
         setError(
           e.message || "Erreur lors du chargement du formulaire d'évaluation.",

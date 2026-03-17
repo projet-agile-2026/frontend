@@ -7,6 +7,8 @@ import { Promotion } from "./Promotion"
 import { useEffect, useState } from "react"
 import { getCurrentUser } from "@/services/authService"
 import type { UserInfo } from "@/services/authService"
+import { Authentification } from "./Authentification"
+import { QuestionnaireButton } from "./QuestionnaireButton"
 
 const APP_TITLE = "Plateforme d'évaluation"
 
@@ -51,6 +53,12 @@ export function Topbar() {
           
           {/* ADMIN uniquement */}
           {role === "ADM" && <Promotion />}
+
+          {role === "ADM" && <Authentification />}
+
+          {/* ENSEIGNANT uniquement */}
+          {role === "ENS" && <QuestionnaireButton />}
+          
           {/* ENSEIGNANT uniquement */}
           {role === "ENS" && <EvaluationsButton />}
 

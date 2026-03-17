@@ -37,8 +37,10 @@ export interface EvaluationWithRubriquesDTO {
 
 export interface EvaluationListItem {
   idEvaluation: number
-    noEnseignant: number
-    anneeUniversitaire: string
+  noEnseignant: number
+  noEvaluation: number
+  designation: string
+  anneeUniversitaire: string
   codeFormation: string
   libelleFormation?: string
   codeUe: string
@@ -47,6 +49,8 @@ export interface EvaluationListItem {
   periode: string
   debutReponse: string
   finReponse: string
+    consultation?: "O" | "N"
+    duplication?: "O" | "N"
 }
 
 export interface EvaluationFilters {
@@ -125,6 +129,67 @@ export interface DroitTousRequestDTO {
   duplication: boolean
 }
 
+export interface QuestionQuestionnaireTemplateDTO {
+  idQuestion: number
+  intitule: string
+  ordre: number
+  idQuestionQuestionnaire?: number
+  idQualificatif?: number
+  maximal?: string
+  minimal?: string
+}
+
+export interface RubriqueQuestionnaireTemplateDTO {
+  idRubriqueQuestionnaire: number
+  idQuestionnaire: number
+  idRubrique: number
+  ordre: number
+  designation: string
+  type?: string
+  questions: QuestionQuestionnaireTemplateDTO[]
+}
+
+export interface QuestionnaireTemplateListItemDTO {
+  idQuestionnaire: number
+  designation: string
+}
+
+export interface QuestionnaireTemplateDetailDTO {
+  idQuestionnaire: number
+  designation: string
+  rubriques: RubriqueQuestionnaireTemplateDTO[]
+}
+
+export interface CreateEvaluationFromQuestionnairePayload {
+  idQuestionnaire: number
+  codeFormation: string
+  anneeUniversitaire: string
+  codeUe: string
+  codeEc?: string
+  designation: string
+  periode?: string
+  debutReponse: string
+  finReponse: string
+}
+
+export interface EvaluationResponseDTO {
+  idEvaluation: number
+  noEnseignant: number
+  nomEnseignant?: string | null
+  prenomEnseignant?: string | null
+  codeFormation: string
+  anneeUniversitaire: string
+  codeUe: string
+  codeEc?: string | null
+  noEvaluation?: number | null
+  designation: string
+  etat: "ELA" | "DIS" | "CLO"
+  periode?: string | null
+  debutReponse: string
+  finReponse: string
+  dejaRepondu?: boolean | null
+}
+
 export async function getEvaluations(
   filters?: EvaluationFilters,
 ): Promise<EvaluationListItem[]> {
@@ -132,7 +197,7 @@ export async function getEvaluations(
     "/api/enseignant/evaluations",
     {
       params: filters,
-    },  
+    },
   )
   return data
 }
@@ -202,12 +267,13 @@ export async function addRubriqueToEvaluation(
     { idRubrique }
   )
   return data
-} 
+}
 
 export async function addQuestionToRubriqueEvaluation(
   evaluationId: number,
   rubriqueEvaluationId: number,
-  idQuestion: number
+  idQuestion: number,
+
 ): Promise<RubriqueEvaluationDTO> {
   const { data } = await api.post(
     `/api/enseignant/evaluations/${evaluationId}/rubriques/${rubriqueEvaluationId}/questions`,
@@ -341,6 +407,146 @@ export async function updateEvaluationEtat(
   )
   return data
 }
+
+// ── Types Statistiques ────────────────────────────────────────────────────────
+
+export interface QuestionStatDTO {
+  idQuestionEvaluation: number
+  ordre: number
+  intitule: string
+  minimal: string
+  maximal: string
+  nbRepondants: number
+  moyenne: number | null
+  minimum: number | null
+  maximum: number | null
+  ecartType: number | null
+  mediane: number | null
+  nb1: number
+  nb2: number
+  nb3: number
+  nb4: number
+  nb5: number
+}
+
+export interface RubriqueStatDTO {
+  idRubriqueEvaluation: number
+  ordre: number
+  designation: string
+  questions: QuestionStatDTO[]
+}
+
+export interface StatistiquesEvaluationDTO {
+  idEvaluation: number
+  designation: string
+  codeFormation: string
+  anneeUniversitaire: string
+  codeUe: string
+  codeEc: string | null
+  noEvaluation: number
+  etat: string
+  periode: string
+  debutReponse: string
+  finReponse: string
+  totalRepondants: number
+  rubriques: RubriqueStatDTO[]
+}
+
+export async function getStatistiques(id: number): Promise<StatistiquesEvaluationDTO> {
+  const response = await api.get(`api/enseignant/evaluations/${id}/statistiques`)
+  return response.data
+
+
+
+
+
+}
+export async function exportStatistiquesPdf(id: number): Promise<void> {
+  const response = await api.get(`/api/enseignant/evaluations/${id}/export-pdf`, {
+    responseType: "blob",
+  })
+  const url = window.URL.createObjectURL(new Blob([response.data], { type: "application/pdf" }))
+  const link = document.createElement("a")
+  link.href = url
+  link.setAttribute("download", `statistiques-${id}.pdf`)
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+  window.URL.revokeObjectURL(url)
+}
+
+//ranya
+export async function updateDesignationRubriqueEvaluation(
+  evaluationId: number,
+  rubriqueEvaluationId: number,
+  designation: string
+): Promise<RubriqueEvaluationDTO> {
+  const { data } = await api.put(
+    `/api/enseignant/evaluations/${evaluationId}/rubriques/${rubriqueEvaluationId}/designation`,
+    { designation }
+  )
+  return data
+}
+
+export async function getQuestionnaireTemplates(): Promise<QuestionnaireTemplateListItemDTO[]> {
+  const { data } = await api.get<QuestionnaireTemplateListItemDTO[]>(
+    "/api/admin/questionnaires"
+  )
+    return data
+}
+
+export async function updateIntituleQuestionEvaluation(
+  evaluationId: number,
+  rubriqueEvaluationId: number,
+  questionEvaluationId: number,
+  intitule: string
+): Promise<QuestionEvaluationDTO> {
+  const { data } = await api.put(
+    `/api/enseignant/evaluations/${evaluationId}/rubriques/${rubriqueEvaluationId}/questions/${questionEvaluationId}/intitule`,
+    { intitule }
+  )
+  return data
+}
+
+export async function getQuestionnaireTemplateById(
+  idQuestionnaire: number
+): Promise<QuestionnaireTemplateDetailDTO> {
+  const { data } = await api.get<QuestionnaireTemplateDetailDTO>(
+    `/api/admin/questionnaires/${idQuestionnaire}`
+  )
+  return data
+}
+
+export async function createEvaluationFromQuestionnaire(
+  payload: CreateEvaluationFromQuestionnairePayload,
+  noEnseignant: number
+): Promise<EvaluationResponseDTO> {
+
+  const { data } = await api.post<EvaluationResponseDTO>(
+    "/api/enseignant/evaluations/from-questionnaire",
+    payload,
+    {
+      params: { noEnseignant }
+    }
+  )
+
+  return data
+}
+
+export async function updateQualificatifQuestionEvaluation(
+  evaluationId: number,
+  rubriqueEvaluationId: number,
+  questionEvaluationId: number,
+  idQualificatif: number
+): Promise<QuestionEvaluationDTO> {
+  const { data } = await api.put(
+    `/api/enseignant/evaluations/${evaluationId}/rubriques/${rubriqueEvaluationId}/questions/${questionEvaluationId}/qualificatif`,
+    { idQualificatif }
+  )
+  return data
+}
+
+
 
 
 

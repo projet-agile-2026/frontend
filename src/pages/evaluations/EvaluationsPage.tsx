@@ -41,8 +41,6 @@ export function EvaluationsPage() {
     const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  console.log("Evaluations:", evaluations)
-
   const [search, setSearch] = useState("")
   const [viewMode, setViewMode] = useState<"mine" | "partagees">("mine")
   const [academicYearFilter, setAcademicYearFilter] = useState<string | null>(
@@ -160,20 +158,19 @@ export function EvaluationsPage() {
 
 
     const handleDuplicate = async (evaluation: EvaluationListItem) => {
+        // Bloquer si consultation seulement
+        if (evaluation.duplication === "N") {
+            toast.error("Duplication non autorisée", {
+                description: "Vous n'avez que le droit de consultation sur cette évaluation."
+            })
+            return
+        }
         setDuplicatingId(evaluation.idEvaluation)
         try {
-            const source = await getEvaluation(evaluation.idEvaluation)
-            navigate("/evaluations/new", {
-                state: {
-                    prefill: {
-                        ...source,
-                        idEvaluation: undefined,
-                        id: undefined,
-                        etat: "ELA",          // toujours ELA à la duplication
-                        noEvaluation: "",      // sera recalculé à la sauvegarde
-                    }
-                }
-            })
+            const duplicated = await dupliquerEvaluation(evaluation.idEvaluation)
+            toast.success("Évaluation dupliquée avec succès")
+            await loadEvaluations()
+            navigate(`/evaluations/${duplicated.idEvaluation}/edit`)
         } catch (e: any) {
             toast.error("Erreur", {
                 description: e.message || "Impossible de dupliquer l'évaluation.",
@@ -260,6 +257,7 @@ export function EvaluationsPage() {
           }
           onClearStates={() => setSelectedStates([])}
           onNewEvaluation={() => navigate("/evaluations/new")}
+          onNewFromTemplate={!isAdmin ? () => navigate("/evaluations/templates") : undefined}
           showTeacherActions={!isAdmin}
         />
       </div>
@@ -324,8 +322,7 @@ export function EvaluationsPage() {
             <AlertDialogDescription>
               Êtes-vous sûr de vouloir supprimer l’évaluation{" "}
               <strong>
-                {deleteTarget?.anneeUniversitaire} (
-                {deleteTarget?.codeFormation} - {deleteTarget?.codeUe})
+                {deleteTarget?.designation}
               </strong>{" "}
               ?
               <br />

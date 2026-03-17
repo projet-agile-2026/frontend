@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { useNavigate, useParams } from "react-router-dom"
-import { Loader2 } from "lucide-react"
+import { Loader2, BarChart2 } from "lucide-react"
 
 import { Button } from "../../components/ui/button"
 
@@ -13,6 +13,8 @@ import {
   type EvaluationDetailDTO,
   type RubriqueEvaluationDTO
 } from "../../services/EvaluationService"
+
+
 
 export function EvaluationDetailPage() {
 
@@ -41,13 +43,10 @@ export function EvaluationDetailPage() {
 
       setLoading(true)
 
-      const evalData = await getEvaluation(evaluationId)
+      const data = await getEvaluationFull(evaluationId)
 
-      const rubriquesData = await getEvaluationFull(evaluationId)
-
-      setEvaluation(evalData)
-
-      setRubriques(rubriquesData.rubriques)
+setEvaluation(data)
+setRubriques(data.rubriques)
 
     } catch (error) {
 
@@ -79,7 +78,7 @@ export function EvaluationDetailPage() {
     )
   }
 
-
+const isClosed = evaluation?.etat === "CLO"
   return (
 
     <div className="mx-auto max-w-7xl px-6 py-6 space-y-6">
@@ -90,12 +89,28 @@ export function EvaluationDetailPage() {
           {`${evaluation.designation}`}
         </h1>
 
-        <Button
-          variant="outline"
-          onClick={() => navigate("/evaluations")}
-        >
+      <div className="flex items-center gap-3">
+        <div className="relative group">
+          <Button
+            variant="default"
+            disabled={!isClosed}
+            onClick={() => navigate(`/evaluations/${id}/statistiques`)}
+            className="flex items-center gap-2 bg-black hover:bg-gray-800 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <BarChart2 className="h-4 w-4" />
+            Consulter les statistiques
+          </Button>
+          {!isClosed && (
+            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 rounded-md bg-gray-900 text-white text-xs text-center px-3 py-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+              Les statistiques sont disponibles uniquement lorsque l'évaluation est clôturée.
+              <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900" />
+            </div>
+          )}
+        </div>
+        <Button variant="outline" onClick={() => navigate("/evaluations")}>
           Retour
         </Button>
+      </div>
 
       </div>
 

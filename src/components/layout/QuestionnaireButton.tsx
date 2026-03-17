@@ -1,8 +1,8 @@
 import { Button } from "@/components/ui/button"
-import { Users } from "lucide-react";
 import { Link } from "react-router-dom"
+import { ClipboardList } from "lucide-react"
 
-export function Promotion() {
+export function QuestionnaireButton() {
   return (
     <Button
       asChild
@@ -15,9 +15,9 @@ export function Promotion() {
       variant="outline"
       size="lg"
     >
-      <Link to="/promotions">
-        <Users size={20} />
-        Promotions
+      <Link to="/evaluations/templates">
+        <ClipboardList className="size-5" />
+        Questionnaires
       </Link>
     </Button>
   )

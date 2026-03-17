@@ -7,7 +7,6 @@ import { RubriquesPage } from "@/pages/RubriquesPage"
 import { QuestionsPage } from "@/pages/QuestionsPage"
 import { PageCouples } from "@/pages/PageCouples"
 import { EvaluationsPage } from "@/pages/evaluations/EvaluationsPage"
-import { EvaluationForm } from "@/pages/evaluations/EvaluationForm"
 import { EtudiantEvaluationsPage } from "@/pages/evaluations/EtudiantEvaluationsPage"
 import { RepondreEvaluationPage } from "@/pages/evaluations/RepondreEvaluationPage"
 import VoirResultatPage from "@/pages/evaluations/VoirResultatPage"
@@ -17,6 +16,13 @@ import UnauthorizedPage from "@/pages/UnauthorizedPage"
 import { EvaluationCreatePage } from "@/pages/evaluations/EvaluationCreatePage"
 import { EvaluationEditPage } from "@/pages/evaluations/EvaluationEditPage"
 import { EvaluationDetailPage } from "@/pages/evaluations/EvaluationDetailPage"
+import { QuestionnaireTemplatesPage } from "@/pages/evaluations/QuestionnaireTemplatesPage"
+import { EnseignantsAuthPage } from "./pages/auth/EnseignantsAuthPage"
+import { EtudiantAuthPage } from "./pages/auth/EtudiantsAuthPage"
+import { StatistiquesPage } from "@/pages/evaluations/StatistiquesPage"
+import { QuestionnairesPage } from "./pages/Questionnaire/QuestionnairesPage"
+import { QuestionnaireForm } from "./pages/Questionnaire/QuestionnaireForm"
+
 
 export const router = createBrowserRouter([
   {
@@ -60,6 +66,10 @@ export const router = createBrowserRouter([
         element: <EvaluationCreatePage />,
       },
       {
+        path: "evaluations/templates",
+        element: <QuestionnaireTemplatesPage />,
+      },
+      {
         path: "evaluations/:id/edit",
         element: <EvaluationEditPage />,
       },
@@ -75,6 +85,21 @@ export const router = createBrowserRouter([
         path: "promotions/:codeFormation/:anneeUniversitaire",
         element: <PromotionDetailPage />,
       },
+      {
+        path: "enseignants",
+        element: <EnseignantsAuthPage />,
+      },
+
+      {
+        path: "etudiants",
+        element: <EtudiantAuthPage />,
+      },
+      // dans le tableau children, après evaluations/:id :
+      {
+        path: "evaluations/:id/statistiques",
+        element: <StatistiquesPage />,
+      },
+
       {
         path: "mes-evaluations",
         element: (
@@ -98,6 +123,22 @@ export const router = createBrowserRouter([
             <VoirResultatPage />
           </ProtectedRoute>
         ),
+      },
+      {
+        path: "questionnaires",
+        element: <QuestionnairesPage />,
+      },
+      {
+        path: "questionnaires/new",
+        element: <QuestionnaireForm />,
+      },
+      {
+        path: "questionnaires/:id/edit",
+        element: <QuestionnaireForm />,
+      },
+      {
+        path: "questionnaires/:id",
+        element: <QuestionnaireForm readOnly/>,
       },
     ],
   },

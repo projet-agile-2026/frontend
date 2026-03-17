@@ -1,4 +1,4 @@
-import { Pencil, Trash2, Copy, Shield, Share2, Loader2, Eye } from "lucide-react"
+import { Pencil, Trash2, Copy, Shield, Loader2, Eye, Share2 } from "lucide-react"
 import { Badge } from "../../components/ui/badge"
 import { Button } from "../../components/ui/button"
 import {
@@ -25,7 +25,7 @@ interface EvaluationsTableProps {
   onView?: (evaluation: EvaluationListItem) => void
   duplicatingId?: number | null
 
-    isOwnEvaluations?: boolean
+  isOwnEvaluations?: boolean
 }
 
 function getStatusLabel(status: EvaluationStatus) {
@@ -64,8 +64,6 @@ function EvaluationCard({
   getStatusBadgeVariant: (s: EvaluationStatus) => "default" | "outline" | "secondary"
 }) {
   const isDuplicating = duplicatingId === evaluation.idEvaluation
-  const isLocked =
-  evaluation.etat === "DIS" || evaluation.etat === "CLO"
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -183,10 +181,10 @@ export function EvaluationsTable({
   onOpenDroits,
   onView,
   duplicatingId,
-                                     isOwnEvaluations = false,
-                                 }: EvaluationsTableProps) {
+  isOwnEvaluations = false,
+}: EvaluationsTableProps) {
   const totalPages = Math.max(1, Math.ceil(total / pageSize))
-  console.log("asssss",evaluations[1])
+  console.log("asssss", evaluations[1])
 
   return (
     <div className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
@@ -220,17 +218,19 @@ export function EvaluationsTable({
       <div className="hidden md:block overflow-x-auto -webkit-overflow-scrolling-touch">
         <table className="min-w-[48rem] w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
-  <tr className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-    <th className="px-3 lg:px-4 py-3 text-left">N°</th>
-    <th className="px-3 lg:px-4 py-3 text-left">Année universitaire</th>
-    <th className="px-3 lg:px-4 py-3 text-left">Désignation</th>
-    <th className="px-3 lg:px-4 py-3 text-left">Formation</th>
-    <th className="px-3 lg:px-4 py-3 text-left">État</th>
-    <th className="px-3 lg:px-4 py-3 text-left">Date fin</th>
-    <th className="px-3 lg:px-4 py-3 text-left">Partage</th>
-    <th className="px-3 lg:px-4 py-3 text-right">Actions</th>
-  </tr>
-</thead>
+            <tr className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+              {/* <th className="px-3 lg:px-4 py-3 text-left">N°</th> */}
+              <th className="px-3 lg:px-4 py-3 text-left">Année universitaire</th>
+              <th className="px-3 lg:px-4 py-3 text-left">Désignation</th>
+              <th className="px-3 lg:px-4 py-3 text-left">Formation</th>
+              <th className="px-3 lg:px-4 py-3 text-left">État</th>
+              <th className="px-3 lg:px-4 py-3 text-left">Date fin</th>
+                <th className="px-3 lg:px-4 py-3 text-left">
+                    {isOwnEvaluations ? "Partage" : "Partagé par"}
+                </th>
+              <th className="px-3 lg:px-4 py-3 text-right">Actions</th>
+            </tr>
+          </thead>
           <tbody className="divide-y divide-gray-100 bg-white text-sm text-gray-700">
             {evaluations.length === 0 ? (
               <tr>
@@ -242,134 +242,166 @@ export function EvaluationsTable({
                 </td>
               </tr>
             ) : (
-              evaluations.map((evaluation) => (
+              evaluations.map((evaluation) => {
+
+                const isLocked =
+                  evaluation.etat === "DIS" || evaluation.etat === "CLO"
+
+                return (
+
                 <tr key={evaluation.idEvaluation} className="hover:bg-gray-50/60">
                   {/* numéro evaluation */}
-        <td className="px-3 lg:px-4 py-3 font-medium">
-          {evaluation.noEvaluation}
-        </td>
+                  {/* <td className="px-3 lg:px-4 py-3 font-medium">
+                    {evaluation.noEvaluation}
+                  </td> */}
 
-        {/* année universitaire */}
-        <td className="whitespace-nowrap px-3 lg:px-4 py-3">
-          {evaluation.anneeUniversitaire}
-        </td>
+                  {/* année universitaire */}
+                  <td className="whitespace-nowrap px-3 lg:px-4 py-3">
+                    {evaluation.anneeUniversitaire}
+                  </td>
 
-        {/* designation */}
-        <td className="px-3 lg:px-4 py-3">
-          {evaluation.designation}
-        </td>
+                  {/* designation */}
+                  <td className="px-3 lg:px-4 py-3">
+                    {evaluation.designation}
+                  </td>
 
-        {/* formation */}
-        <td className="px-3 lg:px-4 py-3">
-          <div className="flex flex-col min-w-0">
-            <span className="font-medium truncate">
-              {evaluation.libelleFormation || evaluation.codeFormation}
-            </span>
-            {evaluation.libelleFormation && (
-              <span className="text-xs text-gray-500">
-                {evaluation.codeFormation}
-              </span>
-            )}
-          </div>
-        </td>
+                  {/* formation */}
+                  <td className="px-3 lg:px-4 py-3">
+                    <div className="flex flex-col min-w-0">
+                      <span className="font-medium truncate">
+                        {evaluation.libelleFormation || evaluation.codeFormation}
+                      </span>
+                      {evaluation.libelleFormation && (
+                        <span className="text-xs text-gray-500">
+                          {evaluation.codeFormation}
+                        </span>
+                      )}
+                    </div>
+                  </td>
 
-        {/* etat */}
-        <td className="px-3 lg:px-4 py-3">
-          <Badge
-            variant={getStatusBadgeVariant(evaluation.etat)}
-            className="rounded-full px-2.5 py-0.5 text-xs"
-          >
-            {getStatusLabel(evaluation.etat)}
-          </Badge>
-        </td>
+                  {/* etat */}
+                  <td className="px-3 lg:px-4 py-3">
+                    <Badge
+                      variant={getStatusBadgeVariant(evaluation.etat)}
+                      className="rounded-full px-2.5 py-0.5 text-xs"
+                    >
+                      {getStatusLabel(evaluation.etat)}
+                    </Badge>
+                  </td>
 
-        {/* date fin format FR */}
-        <td className="whitespace-nowrap px-3 lg:px-4 py-3">
-          {new Date(evaluation.finReponse).toLocaleDateString("fr-FR")}
-        </td>
+                  {/* date fin format FR */}
+                  <td className="whitespace-nowrap px-3 lg:px-4 py-3">
+                    {new Date(evaluation.finReponse).toLocaleDateString("fr-FR")}
+                  </td>
 
                     {/* partage */}
+                    {/* partage */}
                     <td className="px-3 lg:px-4 py-3">
-                        {onOpenDroits ? (() => {
-                            const isOwner = isOwnEvaluations === true
-                            return (
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className={`h-8 w-8 ${!isOwner ? "cursor-not-allowed opacity-30" : ""}`}
-                                    onClick={() => isOwner && onOpenDroits(evaluation)}
-                                    disabled={!isOwner}
-                                    title={isOwner ? "Gestion des droits" : "Vous n'êtes pas propriétaire"}
-                                >
-                                    <Share2 className="h-4 w-4" />
-                                </Button>
+                        {!isOwnEvaluations ? (
+                            <span className="text-sm text-gray-700">
+            {[evaluation.prenomEnseignant, evaluation.nomEnseignant]
+                .filter(Boolean)
+                .join(" ") || "—"}
+        </span>
+                        ) : (
+                            onOpenDroits ? (() => {
+                                const isOwner = isOwnEvaluations === true
+                                return (
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className={`h-8 w-8 ${!isOwner ? "cursor-not-allowed opacity-30" : ""}`}
+                                        onClick={() => isOwner && onOpenDroits(evaluation)}
+                                        disabled={!isOwner}
+                                        title={isOwner ? "Gestion des droits" : "Vous n'êtes pas propriétaire"}
+                                    >
+                                        <Share2 className="h-4 w-4" />
+                                    </Button>
+                                )
+                            })() : (
+                                <span className="text-xs text-gray-400">—</span>
                             )
-                        })() : (
-                            <span className="text-xs text-gray-400">—</span>
                         )}
                     </td>
 
         {/* actions */}
-        <td className="whitespace-nowrap px-3 lg:px-4 py-3 text-right">
-          <div className="flex items-center justify-end gap-1">
+                    <td className="whitespace-nowrap px-3 lg:px-4 py-3 text-right">
+                        <div className="flex items-center justify-end gap-1">
 
-            {onDuplicate && (
-              <Button
-                variant="outline"
-                size="icon"
-                className="h-8 w-8"
-                onClick={() => onDuplicate(evaluation)}
-                disabled={duplicatingId === evaluation.idEvaluation}
-                title="Dupliquer"
-              >
-                {duplicatingId === evaluation.idEvaluation ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Copy className="h-4 w-4" />
-                )}
-              </Button>
-            )}
+                            {/* Dupliquer — masqué si consultation only */}
+                            {onDuplicate && (isOwnEvaluations || evaluation.duplication === "O") && (
+                                <Button
+                                    variant="outline"
+                                    size="icon"
+                                    className="h-8 w-8"
+                                    onClick={() => onDuplicate(evaluation)}
+                                    disabled={duplicatingId === evaluation.idEvaluation}
+                                    title="Dupliquer"
+                                >
+                                    {duplicatingId === evaluation.idEvaluation
+                                        ? <Loader2 className="h-4 w-4 animate-spin" />
+                                        : <Copy className="h-4 w-4" />
+                                    }
+                                </Button>
+                            )}
 
-            {onView && (
-              <Button
-                variant="outline"
-                size="icon"
-                className="h-8 w-8"
-                onClick={() => onView(evaluation)}
-                title="Voir"
-              >
-                <Eye className="h-4 w-4" />
-              </Button>
-            )}
+                            {/* Voir — toujours visible */}
+                            {onView && (
+                                <Button variant="outline" size="icon" className="h-8 w-8"
+                                        onClick={() => onView(evaluation)} title="Voir">
+                                    <Eye className="h-4 w-4" />
+                                </Button>
+                            )}
 
-            {onEdit && (
-              <Button
-                variant="outline"
-                size="icon"
-                className="h-8 w-8"
-                onClick={() => onEdit(evaluation)}
-                title="Modifier"
-              >
+                            {/* Modifier — masqué pour les évals partagées */}
+                            {onEdit && isOwnEvaluations && (
+                                <TooltipProvider>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+            <span>
+              <Button variant="outline" size="icon" className="h-8 w-8"
+                      onClick={() => onEdit(evaluation)} disabled={isLocked}>
                 <Pencil className="h-4 w-4" />
               </Button>
-            )}
+            </span>
+                                        </TooltipTrigger>
+                                        {isLocked && (
+                                            <TooltipContent>
+                                                Impossible de modifier une évaluation mise à disposition ou clôturée
+                                            </TooltipContent>
+                                        )}
+                                    </Tooltip>
+                                </TooltipProvider>
+                            )}
 
-            {onDelete && (
-              <Button
-                variant="outline"
-                size="icon"
-                className="h-8 w-8 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
-                onClick={() => onDelete(evaluation)}
-                title="Supprimer"
-              >
+                            {/* Supprimer — masqué pour les évals partagées */}
+                            {onDelete && isOwnEvaluations && (
+                                <TooltipProvider>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+            <span>
+              <Button variant="outline" size="icon"
+                      className="h-8 w-8 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+                      onClick={() => onDelete(evaluation)} disabled={isLocked}>
                 <Trash2 className="h-4 w-4" />
               </Button>
-            )}
+            </span>
+                                        </TooltipTrigger>
+                                        {isLocked && (
+                                            <TooltipContent>
+                                                Impossible de supprimer une évaluation mise à disposition ou clôturée
+                                            </TooltipContent>
+                                        )}
+                                    </Tooltip>
+                                </TooltipProvider>
+                            )}
 
-          </div>
-        </td>
+                        </div>
+                    </td>
                 </tr>
-              ))
+              )
+              }
+            )
             )}
           </tbody>
         </table>

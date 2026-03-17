@@ -88,6 +88,11 @@ export async function submitReponses(request: ReponseEvaluationRequestDTO): Prom
  * Récupère les résultats d'une évaluation avec les réponses de l'étudiant
  */
 export async function getEvaluationResult(idEvaluation: number): Promise<ReponseEvaluationResultDTO> {
-  const response = await api.get<ReponseEvaluationResultDTO>(`/api/evaluation-reponses/evaluations/${idEvaluation}/resultat`)
+  const response = await api.get<ReponseEvaluationResultDTO>(
+    `/api/evaluation-reponses/evaluations/${idEvaluation}/resultat`,
+    {
+      skipGlobalError: true,
+    } as any,
+  )
   return response.data
 }
