@@ -8,6 +8,7 @@ export interface QuestionEvaluationDTO {
   intitule: string
   maximal?: string
   minimal?: string
+  idQualificatif?: number | null
 }
 
 export interface RubriqueEvaluationDTO {
@@ -269,7 +270,8 @@ export async function addRubriqueToEvaluation(
 export async function addQuestionToRubriqueEvaluation(
   evaluationId: number,
   rubriqueEvaluationId: number,
-  idQuestion: number
+  idQuestion: number,
+  
 ): Promise<RubriqueEvaluationDTO> {
   const { data } = await api.post(
     `/api/enseignant/evaluations/${evaluationId}/rubriques/${rubriqueEvaluationId}/questions`,
@@ -470,6 +472,7 @@ export async function exportStatistiquesPdf(id: number): Promise<void> {
   link.remove()
   window.URL.revokeObjectURL(url)
 }
+
 //ranya
 export async function updateDesignationRubriqueEvaluation(
   evaluationId: number,
@@ -486,6 +489,19 @@ export async function updateDesignationRubriqueEvaluation(
 export async function getQuestionnaireTemplates(): Promise<QuestionnaireTemplateListItemDTO[]> {
   const { data } = await api.get<QuestionnaireTemplateListItemDTO[]>(
     "/api/admin/questionnaires"
+  )
+    return data
+}
+
+export async function updateIntituleQuestionEvaluation(
+  evaluationId: number,
+  rubriqueEvaluationId: number,
+  questionEvaluationId: number,
+  intitule: string
+): Promise<QuestionEvaluationDTO> {
+  const { data } = await api.put(
+    `/api/enseignant/evaluations/${evaluationId}/rubriques/${rubriqueEvaluationId}/questions/${questionEvaluationId}/intitule`,
+    { intitule }
   )
   return data
 }
@@ -514,3 +530,17 @@ export async function createEvaluationFromQuestionnaire(
 
   return data
 }
+
+export async function updateQualificatifQuestionEvaluation(
+  evaluationId: number,
+  rubriqueEvaluationId: number,
+  questionEvaluationId: number,
+  idQualificatif: number
+): Promise<QuestionEvaluationDTO> {
+  const { data } = await api.put(
+    `/api/enseignant/evaluations/${evaluationId}/rubriques/${rubriqueEvaluationId}/questions/${questionEvaluationId}/qualificatif`,
+    { idQualificatif }
+  )
+  return data
+}
+

@@ -40,6 +40,8 @@ import {
   reorderRubriquesInEvaluation,
   reorderQuestionsInRubriqueEvaluation,
   updateDesignationRubriqueEvaluation,
+  updateIntituleQuestionEvaluation,
+  updateQualificatifQuestionEvaluation,
   type EvaluationWithRubriquesDTO,
   type RubriqueEvaluationDTO,
   type QuestionEvaluationDTO,
@@ -63,24 +65,39 @@ interface RubriquesSectionProps {
   evaluationId?: number
   onReload?: () => void
   readOnly?: boolean
+  onEditingChange?: (isEditing: boolean) => void
 }
 
-/* Sortable question row inside a rubrique */
+/* ── Sortable question row ─────────────────────────────────────────────────── */
 function SortableQuestionRow({
   question,
   rubriqueEvaluationId,
   evaluationId,
   onRemove,
   readOnly,
+  isEditing,
+  editingIntitule,
+  onStartEdit,
+  onConfirmEdit,
+  onCancelEdit,
+  onIntituleChange,
+  onOpenQualificatif,
 }: {
   question: QuestionEvaluationDTO
   rubriqueEvaluationId: number
   evaluationId?: number
   onRemove: (rubriqueEvaluationId: number, questionEvaluationId: number) => void
   readOnly: boolean
+  isEditing: boolean
+  editingIntitule: string
+  onStartEdit: (intitule: string) => void
+  onConfirmEdit: () => void
+  onCancelEdit: () => void
+  onIntituleChange: (value: string) => void
+  onOpenQualificatif: () => void
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-    id: question.idQuestionEvaluation.toString(),
+    id: question.idQuestion.toString(),
     disabled: readOnly,
   })
   const style = {
@@ -105,23 +122,71 @@ function SortableQuestionRow({
       >
         <GripVertical className="h-4 w-4" />
       </div>
-      <div className="flex-1 grid grid-cols-12 items-center gap-2 min-w-0">
-        <span className="col-span-7 text-gray-800 truncate">
-          {question.intitule}
-        </span>
-        <span className="col-span-4 text-xs text-gray-500 truncate">
-          {question.maximal && question.minimal
-            ? `${question.maximal} ↔ ${question.minimal}`
-            : "Échelle non définie"}
-        </span>
-      </div>
+
+      {isEditing ? (
+        <div className="flex flex-1 items-center gap-2 min-w-0">
+          <Input
+            value={editingIntitule}
+            onChange={(e) => onIntituleChange(e.target.value)}
+            className="h-7 text-sm flex-1"
+            autoFocus
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") onConfirmEdit()
+              if (e.key === "Escape") onCancelEdit()
+            }}
+          />
+          <Button
+            type="button" variant="ghost" size="icon"
+            className="h-7 w-7 shrink-0 text-green-600 hover:text-green-700"
+            onClick={(e) => { e.stopPropagation(); onConfirmEdit() }}
+          >
+            <Check className="h-4 w-4" />
+          </Button>
+          <Button
+            type="button" variant="ghost" size="icon"
+            className="h-7 w-7 shrink-0 text-gray-400 hover:text-gray-600"
+            onClick={(e) => { e.stopPropagation(); onCancelEdit() }}
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+      ) : (
+        <div className="flex-1 grid grid-cols-12 items-center gap-2 min-w-0">
+          <span className="col-span-7 text-gray-800 truncate">{question.intitule}</span>
+          <span className="col-span-4 text-xs text-gray-500 truncate">
+            {question.maximal && question.minimal
+              ? `${question.maximal} ↔ ${question.minimal}`
+              : "Échelle non définie"}
+          </span>
+        </div>
+      )}
+
+      {!readOnly && !isEditing && (
+        <>
+          <Button
+            type="button" variant="ghost" size="icon"
+            className="h-7 w-7 shrink-0 text-gray-400 hover:text-blue-600"
+            onClick={(e) => { e.stopPropagation(); onStartEdit(question.intitule) }}
+          >
+            <Pencil className="h-3.5 w-3.5" />
+          </Button>
+          <Button
+            type="button" variant="ghost" size="icon"
+            className="h-7 w-7 shrink-0 text-gray-400 hover:text-purple-600"
+            title="Modifier le qualificatif"
+            onClick={(e) => { e.stopPropagation(); onOpenQualificatif() }}
+          >
+            <LayoutList className="h-3.5 w-3.5" />
+          </Button>
+        </>
+      )}
+
       <Button
-        type="button"
-        variant="ghost"
-        size="icon"
+        type="button" variant="ghost" size="icon"
         className="h-7 w-7 shrink-0 text-gray-400 hover:text-red-600"
         disabled={!evaluationId}
-        onClick={() => onRemove(rubriqueEvaluationId, question.idQuestionEvaluation)}
+        onClick={() => onRemove(rubriqueEvaluationId, question.idQuestion)}
       >
         <Trash2 className="h-4 w-4" />
       </Button>
@@ -129,7 +194,7 @@ function SortableQuestionRow({
   )
 }
 
-/* Sortable rubrique card with accordion (expand/collapse) and sortable questions */
+/* ── Sortable rubrique card ────────────────────────────────────────────────── */
 function SortableRubriqueCard({
   rubrique,
   isExpanded,
@@ -146,6 +211,14 @@ function SortableRubriqueCard({
   onConfirmEdit,
   onCancelEdit,
   onEditDesignationChange,
+  editingQuestionId,
+  editingQuestionIntitule,
+  editingQuestionRubriqueId,
+  onStartEditQuestion,
+  onConfirmEditQuestion,
+  onCancelEditQuestion,
+  onEditQuestionIntituleChange,
+  onOpenQualificatifDialog,
 }: {
   rubrique: RubriqueEvaluationDTO
   isExpanded: boolean
@@ -162,6 +235,14 @@ function SortableRubriqueCard({
   onConfirmEdit: (id: number) => void
   onCancelEdit: () => void
   onEditDesignationChange: (value: string) => void
+  editingQuestionId: number | null
+  editingQuestionIntitule: string
+  editingQuestionRubriqueId: number | null
+  onStartEditQuestion: (rubriqueId: number, questionId: number, intitule: string) => void
+  onConfirmEditQuestion: (rubriqueId: number, questionId: number) => void
+  onCancelEditQuestion: () => void
+  onEditQuestionIntituleChange: (value: string) => void
+  onOpenQualificatifDialog: (rubriqueId: number, questionId: number) => void
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: rubrique.idRubriqueEvaluation.toString(),
@@ -186,7 +267,6 @@ function SortableRubriqueCard({
       style={style}
       className={`rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden ${isDragging ? "shadow-lg ring-2 ring-gray-200" : ""}`}
     >
-      {/* Accordion header */}
       <div className="flex items-center gap-2 border-b border-gray-100 bg-gray-50/50 px-3 py-2.5 sm:px-4 sm:py-3 min-w-0">
         <div
           {...(!readOnly ? attributes : {})}
@@ -207,7 +287,6 @@ function SortableRubriqueCard({
           {isExpanded ? <ChevronDown className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
         </button>
 
-        {/* ← MODIFIÉ : titre sans crayon */}
         <div className="flex-1 min-w-0">
           {isEditing ? (
             <div className="flex items-center gap-2">
@@ -222,18 +301,14 @@ function SortableRubriqueCard({
                 }}
               />
               <Button
-                type="button"
-                variant="ghost"
-                size="icon"
+                type="button" variant="ghost" size="icon"
                 className="h-7 w-7 shrink-0 text-green-600 hover:text-green-700"
                 onClick={() => onConfirmEdit(rubrique.idRubriqueEvaluation)}
               >
                 <Check className="h-4 w-4" />
               </Button>
               <Button
-                type="button"
-                variant="ghost"
-                size="icon"
+                type="button" variant="ghost" size="icon"
                 className="h-7 w-7 shrink-0 text-gray-400 hover:text-gray-600"
                 onClick={onCancelEdit}
               >
@@ -243,26 +318,21 @@ function SortableRubriqueCard({
           ) : (
             <div>
               <h3 className="text-base font-semibold text-gray-900 truncate">{rubrique.designation}</h3>
-              {!isEditing && (
-                <div className="flex flex-wrap items-center gap-2 mt-0.5 text-xs text-gray-500">
-                  {rubrique.type && (
-                    <span className={`rounded-full border px-2 py-0.5 text-xs ${getRubriqueTypeStyle(rubrique.type)}`}>
-                      {getRubriqueTypeLabel(rubrique.type)}
-                    </span>
-                  )}
-                  <span>{questions.length} question{questions.length !== 1 ? "s" : ""}</span>
-                </div>
-              )}
+              <div className="flex flex-wrap items-center gap-2 mt-0.5 text-xs text-gray-500">
+                {rubrique.type && (
+                  <span className={`rounded-full border px-2 py-0.5 text-xs ${getRubriqueTypeStyle(rubrique.type)}`}>
+                    {getRubriqueTypeLabel(rubrique.type)}
+                  </span>
+                )}
+                <span>{questions.length} question{questions.length !== 1 ? "s" : ""}</span>
+              </div>
             </div>
           )}
         </div>
 
-        {/* ← MODIFIÉ : crayon déplacé ici, à gauche de la poubelle */}
         {!readOnly && !isEditing && (
           <Button
-            type="button"
-            variant="ghost"
-            size="icon"
+            type="button" variant="ghost" size="icon"
             className="shrink-0 text-gray-400 hover:text-blue-600"
             onClick={(e) => {
               e.stopPropagation()
@@ -273,11 +343,8 @@ function SortableRubriqueCard({
           </Button>
         )}
 
-        {/* Bouton supprimer */}
         <Button
-          type="button"
-          variant="ghost"
-          size="icon"
+          type="button" variant="ghost" size="icon"
           className="shrink-0 text-gray-400 hover:text-red-600"
           disabled={!evaluationId}
           onClick={() => onRemoveRubrique(rubrique.idRubriqueEvaluation)}
@@ -286,15 +353,12 @@ function SortableRubriqueCard({
         </Button>
       </div>
 
-      {/* Accordion body: questions (collapsible) */}
       {isExpanded && (
         <div className="px-3 py-3 sm:px-4 sm:py-4 space-y-3 bg-white">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <span className="text-xs font-semibold uppercase tracking-wide text-gray-400">Questions</span>
             <Button
-              type="button"
-              variant="outline"
-              size="sm"
+              type="button" variant="outline" size="sm"
               className="h-8 rounded-full border-dashed text-xs w-full sm:w-auto"
               disabled={!evaluationId || readOnly}
               onClick={() => openQuestionDialog(rubrique.idRubriqueEvaluation)}
@@ -315,21 +379,37 @@ function SortableRubriqueCard({
             >
               <SortableContext
                 items={questions
-                  .filter((q) => q && q.idQuestionEvaluation != null)
-                  .map((q) => q.idQuestionEvaluation.toString())}
+                  .filter((q) => q && q.idQuestion != null)
+                  .map((q) => q.idQuestion.toString())}
                 strategy={verticalListSortingStrategy}
               >
                 <div className="space-y-2">
                   {questions
-                    .filter((q) => q && q.idQuestionEvaluation != null)
+                    .filter((q) => q && q.idQuestion != null)
                     .map((q) => (
                       <SortableQuestionRow
-                        key={q.idQuestionEvaluation}
+                        key={q.idQuestion}
                         question={q}
                         rubriqueEvaluationId={rubrique.idRubriqueEvaluation}
                         evaluationId={evaluationId}
                         onRemove={onRemoveQuestion}
                         readOnly={readOnly}
+                        isEditing={
+                          editingQuestionId === q.idQuestion &&
+                          editingQuestionRubriqueId === rubrique.idRubriqueEvaluation
+                        }
+                        editingIntitule={editingQuestionIntitule}
+                        onStartEdit={(intitule) =>
+                          onStartEditQuestion(rubrique.idRubriqueEvaluation, q.idQuestion, intitule)
+                        }
+                        onConfirmEdit={() =>
+                          onConfirmEditQuestion(rubrique.idRubriqueEvaluation, q.idQuestion)
+                        }
+                        onCancelEdit={onCancelEditQuestion}
+                        onIntituleChange={onEditQuestionIntituleChange}
+                        onOpenQualificatif={() =>
+                          onOpenQualificatifDialog(rubrique.idRubriqueEvaluation, q.idQuestion)
+                        }
                       />
                     ))}
                 </div>
@@ -342,12 +422,14 @@ function SortableRubriqueCard({
   )
 }
 
+/* ── RubriquesSection ──────────────────────────────────────────────────────── */
 export function RubriquesSection({
   rubriques,
   onChange,
   evaluationId,
   onReload,
   readOnly = false,
+  onEditingChange,
 }: RubriquesSectionProps) {
   const [availableRubriques, setAvailableRubriques] = useState<Rubrique[]>([])
   const [availableQuestions, setAvailableQuestions] = useState<Question[]>([])
@@ -361,6 +443,7 @@ export function RubriquesSection({
   const [questionSearch, setQuestionSearch] = useState("")
   const [isQuestionDialogOpen, setIsQuestionDialogOpen] = useState(false)
 
+  // édition désignation rubrique
   const [editingRubriqueId, setEditingRubriqueId] = useState<number | null>(null)
   const [editingDesignation, setEditingDesignation] = useState("")
 
@@ -370,6 +453,18 @@ export function RubriquesSection({
     const data = await getQualificatifs()
     setQualificatifs(data)
   }
+
+  // ranya - édition intitulé question
+  const [editingQuestionId, setEditingQuestionId] = useState<number | null>(null)
+  const [editingQuestionIntitule, setEditingQuestionIntitule] = useState("")
+  const [editingQuestionRubriqueId, setEditingQuestionRubriqueId] = useState<number | null>(null)
+
+  // ranya - édition qualificatif question
+  const [qualificatifDialogQuestionId, setQualificatifDialogQuestionId] = useState<number | null>(null)
+  const [qualificatifDialogRubriqueId, setQualificatifDialogRubriqueId] = useState<number | null>(null)
+  const [availableQualificatifs, setAvailableQualificatifs] = useState<any[]>([])
+  const [selectedQualificatifId, setSelectedQualificatifId] = useState<number | null>(null)
+  const [isQualificatifDialogOpen, setIsQualificatifDialogOpen] = useState(false)
 
   useEffect(() => {
     void loadRubriques()
@@ -383,6 +478,7 @@ export function RubriquesSection({
 
   const loadRubriques = async () => {
     const data = await getRubriques()
+    console.log("data", data)
     setAvailableRubriques(data)
   }
 
@@ -395,9 +491,7 @@ export function RubriquesSection({
     if (!selectedRubriqueIds || !evaluationId || readOnly) return
     try {
       await Promise.all(
-        selectedRubriqueIds.map((id) =>
-          addRubriqueToEvaluation(evaluationId, id)
-        )
+        selectedRubriqueIds.map((id) => addRubriqueToEvaluation(evaluationId, id))
       )
       if (onReload) await onReload()
       setSelectedRubriqueIds(null)
@@ -417,7 +511,10 @@ export function RubriquesSection({
     }
   }
 
+ 
+
   const openQuestionDialog = (rubriqueEvaluationId: number) => {
+
     if (!evaluationId || readOnly) return
     setActiveRubriqueEvaluationId(rubriqueEvaluationId)
     setSelectedQuestionIds([])
@@ -444,31 +541,28 @@ export function RubriquesSection({
     }
   }
 
-  const handleRemoveQuestion = async (
-    rubriqueEvaluationId: number,
-    questionEvaluationId: number,
-  ) => {
+
+  const handleRemoveQuestion = async (rubriqueEvaluationId: number, questionEvaluationId: number) => {
     if (!evaluationId || readOnly) return
     try {
-      await removeQuestionFromRubriqueEvaluation(
-        evaluationId,
-        rubriqueEvaluationId,
-        questionEvaluationId,
-      )
+      await removeQuestionFromRubriqueEvaluation(evaluationId, rubriqueEvaluationId, questionEvaluationId)
       if (onReload) await onReload()
     } catch (error) {
       console.error("Erreur lors de la suppression de la question :", error)
     }
   }
 
+  // ── Désignation rubrique ────────────────────────────────────────────────────
   const handleStartEdit = (id: number, currentDesignation: string) => {
     setEditingRubriqueId(id)
     setEditingDesignation(currentDesignation)
+    onEditingChange?.(true)
   }
 
   const handleCancelEdit = () => {
     setEditingRubriqueId(null)
     setEditingDesignation("")
+    onEditingChange?.(false)
   }
 
   const handleConfirmEdit = async (rubriqueEvaluationId: number) => {
@@ -480,6 +574,14 @@ export function RubriquesSection({
       })
       return
     }
+    const currentRubrique = rubriques.find(r => r.idRubriqueEvaluation === rubriqueEvaluationId)
+    if (currentRubrique && currentRubrique.designation === editingDesignation.trim()) {
+      setEditingRubriqueId(null)
+      setEditingDesignation("")
+      onEditingChange?.(false)
+      return
+    }
+
     try {
       await updateDesignationRubriqueEvaluation(evaluationId, rubriqueEvaluationId, editingDesignation.trim())
       toast.success("Désignation de rubrique mise à jour", {
@@ -489,15 +591,112 @@ export function RubriquesSection({
       if (onReload) await onReload()
       setEditingRubriqueId(null)
       setEditingDesignation("")
+      onEditingChange?.(false)
     } catch (error) {
       toast.error("Erreur", {
         description: "Impossible de modifier la désignation de la rubrique.",
         style: { background: "#991b1b", color: "#fff", border: "none" },
       })
+      onEditingChange?.(false)
       console.error("Erreur lors de la modification de la désignation :", error)
     }
   }
 
+  // ── Intitulé question — ranya ───────────────────────────────────────────────
+  const handleStartEditQuestion = (rubriqueId: number, questionId: number, currentIntitule: string) => {
+    setEditingQuestionRubriqueId(rubriqueId)
+    setEditingQuestionId(questionId)
+    setEditingQuestionIntitule(currentIntitule)
+    onEditingChange?.(true)
+  }
+
+  const handleCancelEditQuestion = () => {
+    setEditingQuestionId(null)
+    setEditingQuestionIntitule("")
+    setEditingQuestionRubriqueId(null)
+    onEditingChange?.(false)
+  }
+
+  const handleConfirmEditQuestion = async (rubriqueEvaluationId: number, questionEvaluationId: number) => {
+    if (!evaluationId) return
+    if (!editingQuestionIntitule.trim()) {
+      toast.error("Champ obligatoire", {
+        description: "Veuillez insérer un intitulé pour la question.",
+        style: { background: "#991b1b", color: "#fff", border: "none" },
+      })
+      return
+    }
+    const rubrique = rubriques.find(r => r.idRubriqueEvaluation === rubriqueEvaluationId)
+    const currentQuestion = rubrique?.questions.find(q => q.idQuestion === questionEvaluationId)
+    if (currentQuestion && currentQuestion.intitule === editingQuestionIntitule.trim()) {
+      handleCancelEditQuestion()
+      return
+    }
+    try {
+      await updateIntituleQuestionEvaluation(
+        evaluationId, rubriqueEvaluationId, questionEvaluationId, editingQuestionIntitule.trim()
+      )
+      toast.success("Intitulé mis à jour", {
+        description: `"${editingQuestionIntitule.trim()}" a été sauvegardé.`,
+        style: { background: "#166534", color: "#fff", border: "none" },
+      })
+      if (onReload) await onReload()
+      handleCancelEditQuestion()
+    } catch {
+      toast.error("Erreur", {
+        description: "Impossible de modifier l'intitulé.",
+        style: { background: "#991b1b", color: "#fff", border: "none" },
+      })
+      onEditingChange?.(false)
+    }
+  }
+
+  // ── Qualificatif question — ranya ───────────────────────────────────────────
+  const openQualificatifDialog = async (rubriqueId: number, questionId: number) => {
+    const data = await getQualificatifs()
+
+    const rubrique = rubriques.find(r => r.idRubriqueEvaluation === rubriqueId)
+    const question = rubrique?.questions.find(q => q.idQuestion === questionId)
+    const rawId = question?.idQualificatif
+    const currentId = rawId != null ? Number(rawId) : null
+
+    setAvailableQualificatifs(data)
+    setQualificatifDialogRubriqueId(rubriqueId)
+    setQualificatifDialogQuestionId(questionId)
+    setSelectedQualificatifId(currentId && !isNaN(currentId) ? currentId : null)
+    setIsQualificatifDialogOpen(true)
+  }
+
+  const handleConfirmQualificatif = async () => {
+    const evalId = evaluationId
+    const rubriqueId = qualificatifDialogRubriqueId
+    const questionId = qualificatifDialogQuestionId
+    const qualifId = selectedQualificatifId
+
+    if (!evalId || !rubriqueId || !questionId || !qualifId) {
+      console.warn("Guard failed:", { evalId, rubriqueId, questionId, qualifId })
+      return
+    }
+    try {
+      await updateQualificatifQuestionEvaluation(evalId, rubriqueId, questionId, qualifId)
+      toast.success("Qualificatif mis à jour", {
+        style: { background: "#166534", color: "#fff", border: "none" },
+      })
+      setIsQualificatifDialogOpen(false)
+      setQualificatifDialogRubriqueId(null)
+      setQualificatifDialogQuestionId(null)
+      setSelectedQualificatifId(null)
+      if (onReload) await onReload()
+    } catch (err: any) {
+      console.error("Erreur updateQualificatif:", err?.response?.status, err?.response?.data)
+      toast.error("Erreur", {
+        description: `Impossible de modifier le qualificatif. (${err?.response?.status ?? "réseau"})`,
+        style: { background: "#991b1b", color: "#fff", border: "none" },
+      })
+    }
+  }
+
+  // ── Accordion ───────────────────────────────────────────────────────────────
   const toggleRubriqueExpanded = useCallback((id: number) => {
     setExpandedRubriqueIds((prev) => {
       const next = new Set(prev)
@@ -510,12 +709,11 @@ export function RubriquesSection({
   const toggleRubriqueSelection = (id: number) => {
     setSelectedRubriqueIds((prev) => {
       const list = prev ?? []
-      return list.includes(id)
-        ? list.filter((r) => r !== id)
-        : [...list, id]
+      return list.includes(id) ? list.filter((r) => r !== id) : [...list, id]
     })
   }
 
+  // ── Drag & drop ─────────────────────────────────────────────────────────────
   const rubriqueSensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
@@ -526,19 +724,12 @@ export function RubriquesSection({
       if (readOnly) return
       const { active, over } = event
       if (!over || active.id === over.id || !evaluationId || !rubriques?.length) return
-      const oldIndex = rubriques.findIndex(
-        (r) => r.idRubriqueEvaluation.toString() === active.id
-      )
-      const newIndex = rubriques.findIndex(
-        (r) => r.idRubriqueEvaluation.toString() === over.id
-      )
+      const oldIndex = rubriques.findIndex((r) => r.idRubriqueEvaluation.toString() === active.id)
+      const newIndex = rubriques.findIndex((r) => r.idRubriqueEvaluation.toString() === over.id)
       if (oldIndex === -1 || newIndex === -1) return
       const reordered = arrayMove(rubriques, oldIndex, newIndex)
       onChange(reordered)
-      const rubriqueOrders = reordered.map((r, i) => ({
-        idRubriqueEvaluation: r.idRubriqueEvaluation,
-        ordre: i + 1,
-      }))
+      const rubriqueOrders = reordered.map((r, i) => ({ idRubriqueEvaluation: r.idRubriqueEvaluation, ordre: i + 1 }))
       try {
         await reorderRubriquesInEvaluation(evaluationId, { rubriqueOrders })
         if (onReload) await onReload()
@@ -554,35 +745,20 @@ export function RubriquesSection({
       if (readOnly) return
       const { active, over } = event
       if (!over || active.id === over.id || !evaluationId) return
-      const rubrique = rubriques?.find(
-        (r) => r.idRubriqueEvaluation === rubriqueEvaluationId
-      )
+      const rubrique = rubriques?.find((r) => r.idRubriqueEvaluation === rubriqueEvaluationId)
       if (!rubrique?.questions?.length) return
       const questions = rubrique.questions
-      const oldIndex = questions.findIndex(
-        (q) => q.idQuestionEvaluation.toString() === active.id
-      )
-      const newIndex = questions.findIndex(
-        (q) => q.idQuestionEvaluation.toString() === over.id
-      )
+      const oldIndex = questions.findIndex((q) => q.idQuestion.toString() === active.id)
+      const newIndex = questions.findIndex((q) => q.idQuestion.toString() === over.id)
       if (oldIndex === -1 || newIndex === -1) return
       const reordered = arrayMove(questions, oldIndex, newIndex)
       const updatedRubriques = rubriques.map((r) =>
-        r.idRubriqueEvaluation === rubriqueEvaluationId
-          ? { ...r, questions: reordered }
-          : r
+        r.idRubriqueEvaluation === rubriqueEvaluationId ? { ...r, questions: reordered } : r
       )
       onChange(updatedRubriques)
-      const questionOrders = reordered.map((q, i) => ({
-        idQuestionEvaluation: q.idQuestionEvaluation,
-        ordre: i + 1,
-      }))
+      const questionOrders = reordered.map((q, i) => ({ idQuestion: q.idQuestion, ordre: i + 1 }))
       try {
-        await reorderQuestionsInRubriqueEvaluation(
-          evaluationId,
-          rubriqueEvaluationId,
-          { questionOrders }
-        )
+        await reorderQuestionsInRubriqueEvaluation(evaluationId, rubriqueEvaluationId, { questionOrders })
         if (onReload) await onReload()
       } catch (err) {
         console.error("Erreur réordonnancement questions :", err)
@@ -591,32 +767,20 @@ export function RubriquesSection({
     [evaluationId, rubriques, onReload, readOnly]
   )
 
+  // ── Filtres ─────────────────────────────────────────────────────────────────
   const filteredQuestions = availableQuestions.filter((q) => {
     if (!activeRubriqueEvaluationId) return false
-    const rubrique = rubriques.find(
-      (r) => r.idRubriqueEvaluation === activeRubriqueEvaluationId,
-    )
-    const alreadyUsedIds = new Set(
-      (rubrique?.questions || []).map((qq) => qq.idQuestion),
-    )
-    const matchesSearch = q.intitule
-      .toLowerCase()
-      .includes(questionSearch.toLowerCase())
+    const rubrique = rubriques.find((r) => r.idRubriqueEvaluation === activeRubriqueEvaluationId)
+    const alreadyUsedIds = new Set((rubrique?.questions || []).map((qq) => qq.idQuestion))
+    const matchesSearch = q.intitule.toLowerCase().includes(questionSearch.toLowerCase())
     return !alreadyUsedIds.has(q.idQuestion) && matchesSearch
   })
 
-  const usedRubriqueIds = new Set(
-    (rubriques ?? []).map((r) => r.idRubrique)
-  )
+  const usedRubriqueIds = new Set((rubriques ?? []).map((r) => r.idRubrique))
+  const filteredRubriques = availableRubriques.filter((r) => !usedRubriqueIds.has(r.idRubrique))
+  const sortedRubriques = filteredRubriques.sort((a, b) => a.designation.localeCompare(b.designation))
 
-  const filteredRubriques = availableRubriques.filter(
-    (r) => !usedRubriqueIds.has(r.idRubrique)
-  )
-
-  const sortedRubriques = filteredRubriques.sort((a, b) =>
-    a.designation.localeCompare(b.designation)
-  )
-
+  // ── Render ──────────────────────────────────────────────────────────────────
   return (
     <div className="space-y-4 rounded-lg border border-gray-200 bg-white p-4 sm:p-6 min-w-0">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -631,9 +795,7 @@ export function RubriquesSection({
                 <div className="w-full sm:w-auto">
                   <DialogTrigger asChild>
                     <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
+                      type="button" variant="outline" size="sm"
                       disabled={!evaluationId || readOnly}
                       className="rounded-full w-full sm:w-auto shrink-0"
                     >
@@ -643,7 +805,6 @@ export function RubriquesSection({
                   </DialogTrigger>
                 </div>
               </TooltipTrigger>
-
               {!evaluationId && (
                 <TooltipContent>
                   Enregistrez d'abord les informations de l'évaluation.
@@ -690,7 +851,7 @@ export function RubriquesSection({
                           {r.designation}
                         </div>
                         <div className="mt-1 flex items-center gap-2 text-xs text-gray-500">
-                          <span className={`rounded-md bg-gray-100 px-2 py-0.5 font-medium text-gray-600  ${getRubriqueTypeStyle(r.type)}`}>
+                          <span className={`rounded-md bg-gray-100 px-2 py-0.5 font-medium text-gray-600 ${getRubriqueTypeStyle(r.type)}`}>
                             {questionCount} question{questionCount !== 1 ? "s" : ""}
                           </span>
                           {r.type && (
@@ -703,11 +864,9 @@ export function RubriquesSection({
                 })}
               </div>
             </div>
-
-            <DialogFooter className="border-t border-gray-100 pt-4 mt-2">
+           <DialogFooter className="border-t border-gray-100 pt-4 mt-2">
               <Button
-                type="button"
-                variant="outline"
+                type="button" variant="outline"
                 onClick={() => setIsRubriqueDialogOpen(false)}
                 className="order-2 sm:order-1"
               >
@@ -764,6 +923,14 @@ export function RubriquesSection({
                 onConfirmEdit={handleConfirmEdit}
                 onCancelEdit={handleCancelEdit}
                 onEditDesignationChange={setEditingDesignation}
+                editingQuestionId={editingQuestionId}
+                editingQuestionIntitule={editingQuestionIntitule}
+                editingQuestionRubriqueId={editingQuestionRubriqueId}
+                onStartEditQuestion={handleStartEditQuestion}
+                onConfirmEditQuestion={handleConfirmEditQuestion}
+                onCancelEditQuestion={handleCancelEditQuestion}
+                onEditQuestionIntituleChange={setEditingQuestionIntitule}
+                onOpenQualificatifDialog={openQualificatifDialog}
               />
             ))}
           </div>

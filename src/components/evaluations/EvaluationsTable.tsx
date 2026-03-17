@@ -64,6 +64,7 @@ function EvaluationCard({
   getStatusBadgeVariant: (s: EvaluationStatus) => "default" | "outline" | "secondary"
 }) {
   const isDuplicating = duplicatingId === evaluation.idEvaluation
+  console.log("Evaluation", evaluation)
   const isLocked =
     evaluation.etat === "DIS" || evaluation.etat === "CLO"
     
