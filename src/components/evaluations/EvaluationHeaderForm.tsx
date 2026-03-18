@@ -46,6 +46,7 @@ interface EvaluationHeaderFormProps {
   onUeChange: (codeUe: string) => void
   onSaveHeader?: () => void
   isHeaderSaved?: boolean
+  isFormValid?: boolean
 }
 
 function SectionLabel({
@@ -78,8 +79,11 @@ export function EvaluationHeaderForm({
   onUeChange,
   onSaveHeader,
   isHeaderSaved,
+  isFormValid
 }: EvaluationHeaderFormProps) {
   const [errors, setErrors] = useState<Record<string, string>>({})
+
+  const [isEditing, setIsEditing] = useState(!isHeaderSaved)
   useEffect(() => {
 
     if (!values.codeFormation && (values.codeUe || values.codeEc)) {
@@ -105,6 +109,29 @@ export function EvaluationHeaderForm({
     )
   }
 
+  if (!isEditing && isHeaderSaved) {
+    return (
+      <Card className="border border-gray-200 shadow-sm">
+        <CardHeader className="flex justify-between items-center">
+
+          <div>
+            <CardTitle>Informations de l'évaluation</CardTitle>
+            <p className="text-sm text-gray-500 mt-1">
+              {values.designation}
+            </p>
+          </div>
+
+          {!disabled && (
+            <Button onClick={() => setIsEditing(true)}>
+              Modifier
+            </Button>
+          )}
+
+        </CardHeader>
+      </Card>
+    )
+  }
+
   return (
     <Card className="overflow-hidden rounded-xl border border-gray-200/90 bg-white shadow-sm py-0 gap-0">
       <CardHeader className="border-b border-gray-200/80 bg-gradient-to-b from-gray-50/80 to-white px-5 sm:px-6 pt-5 sm:pt-6 pb-5">
@@ -121,14 +148,33 @@ export function EvaluationHeaderForm({
             </p>
           </div>
 
-          <Button
-            type="button"
-            onClick={onSaveHeader}
-            disabled={disabled}
-            className="shrink-0"
-          >
-            Enregistrer
-          </Button>
+          <TooltipProvider>
+            <Tooltip>
+
+              <TooltipTrigger asChild>
+                <span>
+                  <Button
+                    type="button"
+                    onClick={async () => {
+                      await onSaveHeader?.()
+                      setIsEditing(false)
+                    }}
+                    disabled={disabled || !isFormValid}
+                  >
+                    Enregistrer
+                  </Button>
+                </span>
+              </TooltipTrigger>
+
+              {!isFormValid && (
+                <TooltipContent>
+                  Remplissez tous les champs obligatoires
+                </TooltipContent>
+              )}
+
+            </Tooltip>
+
+          </TooltipProvider>
 
         </div>
 
@@ -203,9 +249,7 @@ export function EvaluationHeaderForm({
             </div>
 
             <div className="space-y-2">
-              <Label className="text-gray-600 text-sm font-medium">
-                Période
-              </Label>
+              <RequiredLabel>Période</RequiredLabel>
               <Input
                 disabled={disabled}
                 placeholder="Ex: S1 2024"

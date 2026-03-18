@@ -756,7 +756,7 @@ export function RubriquesSection({
         r.idRubriqueEvaluation === rubriqueEvaluationId ? { ...r, questions: reordered } : r
       )
       onChange(updatedRubriques)
-      const questionOrders = reordered.map((q, i) => ({ idQuestion: q.idQuestion, ordre: i + 1 }))
+      const questionOrders = reordered.map((q, i) => ({ idQuestionEvaluation: q.idQuestion, ordre: i + 1 }))
       try {
         await reorderQuestionsInRubriqueEvaluation(evaluationId, rubriqueEvaluationId, { questionOrders })
         if (onReload) await onReload()

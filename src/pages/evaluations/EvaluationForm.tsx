@@ -26,6 +26,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "../../components/ui/dialog"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../../components/ui/tooltip";
 
 export type EvaluationFormProps = {
   readOnly?: boolean
@@ -107,6 +108,14 @@ export const EvaluationForm: FC<EvaluationFormProps> = ({ readOnly = false }) =>
     periode: "",
     noEvaluation: "",
   })
+
+  const isHeaderValid =
+    headerValues.codeFormation &&
+    headerValues.anneeUniversitaire &&
+    headerValues.codeUe &&
+    headerValues.designation &&
+    headerValues.debutReponse &&
+    headerValues.finReponse
 
   const [etat, setEtat] = useState<EvaluationStatus>("ELA")
   const [rubriques, setRubriques] = useState<EvaluationWithRubriquesDTO["rubriques"]>([])
@@ -321,6 +330,8 @@ export const EvaluationForm: FC<EvaluationFormProps> = ({ readOnly = false }) =>
         onFormationChange={handleFormationChange}
         onUeChange={handleUeChange}
         onSaveHeader={handleSaveHeader}
+        isHeaderSaved={!!evaluationId}
+        isFormValid={isHeaderValid}
       />
 
       <RubriquesSection
@@ -346,20 +357,36 @@ export const EvaluationForm: FC<EvaluationFormProps> = ({ readOnly = false }) =>
           >
             Annuler
           </Button>
-          <Button
-            type="submit"
-            disabled={saving || isEditingRubrique}
-            className="w-full sm:w-auto"
-          >
-            {saving ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Enregistrement...
-              </>
-            ) : (
-              "Enregistrer"
-            )}
-          </Button>
+          <TooltipProvider>
+            <Tooltip>
+
+              <TooltipTrigger asChild>
+                <span className="w-full sm:w-auto">
+                  <Button
+                    type="submit"
+                    disabled={saving || isEditingRubrique || !isHeaderValid}
+                    className="w-full sm:w-auto"
+                  >
+                    {saving ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Enregistrement...
+                      </>
+                    ) : (
+                      "Enregistrer"
+                    )}
+                  </Button>
+                </span>
+              </TooltipTrigger>
+
+              {!isHeaderValid && (
+                <TooltipContent>
+                  Complétez les informations de l’évaluation
+                </TooltipContent>
+              )}
+
+            </Tooltip>
+          </TooltipProvider>
         </div>
       )}
 

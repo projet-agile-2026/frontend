@@ -138,8 +138,8 @@ export function EvaluationHeaderView({ evaluation, onReload }: Props) {
                 <>
                   Cette action mettra l'évaluation à disposition des étudiants.
                   <br />
-                  <span className="text-red-600 font-medium">
-                    ⚠ Cette action est irréversible : vous ne pourrez plus revenir à
+                  <span className="text-blue-600 font-medium">
+                    Cette action est irréversible : vous ne pourrez plus revenir à
                     l'état "En cours d'élaboration".
                   </span>
                 </>
@@ -149,8 +149,8 @@ export function EvaluationHeaderView({ evaluation, onReload }: Props) {
                 <>
                   Cette action clôturera définitivement l'évaluation.
                   <br />
-                  <span className="text-red-600 font-medium">
-                    ⚠ Cette action est irréversible : l'évaluation ne pourra plus être modifiée.
+                  <span className="text-blue-600 font-medium">
+                    Cette action est irréversible : l'évaluation ne pourra plus être modifiée.
                   </span>
                 </>
               )}

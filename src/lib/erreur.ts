@@ -13,5 +13,5 @@ export function extraireMessageErreur(error: unknown): string {
             return "Impossible de contacter le serveur.";
         }
     }
-    return "Une erreur inattendue s'est produite.";
+    return "";
 }
