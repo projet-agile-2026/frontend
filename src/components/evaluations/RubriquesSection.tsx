@@ -88,7 +88,7 @@ const getQualificatifId = (q: QualificatifDTO): number =>
     Number((q as QualificatifDTO & { id?: number }).idQualificatif ?? (q as QualificatifDTO & { id?: number }).id)
 
 const getQuestionEvalId = (question: QuestionEvaluationDTO): number =>
-    Number(question.idQuestionEvaluation)
+    Number(question.idQuestion)
 
 const getQuestionCatalogId = (question: QuestionEvaluationDTO): number =>
     Number(question.idQuestion)
@@ -453,13 +453,13 @@ function SortableRubriqueCard({
                         >
                             <SortableContext
                                 items={questions
-                                    .filter((q) => q && q.idQuestionEvaluation != null)
+                                    .filter((q) => q && q.idQuestion != null)
                                     .map((q) => getQuestionEvalId(q).toString())}
                                 strategy={verticalListSortingStrategy}
                             >
                                 <div className="space-y-2">
                                     {questions
-                                        .filter((q) => q && q.idQuestionEvaluation != null)
+                                        .filter((q) => q && q.idQuestion != null)
                                         .map((q) => {
                                             const questionEvaluationId = getQuestionEvalId(q)
 
@@ -983,7 +983,7 @@ export function RubriquesSection({
             onChange(updatedRubriques)
 
             const questionOrders = reordered.map((q, i) => ({
-                idQuestionEvaluation: getQuestionEvalId(q),
+                idQuestion: getQuestionEvalId(q),
                 ordre: i + 1,
             }))
 
