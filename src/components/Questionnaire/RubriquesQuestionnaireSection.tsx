@@ -209,24 +209,24 @@ export function RubriquesQuestionnaireSection({
                 <TooltipTrigger asChild>
                   <span>
 
-                    <Dialog open={rubriqueDialogOpen} onOpenChange={setRubriqueDialogOpen}>
+                    {!readOnly && (
+                      <Dialog open={rubriqueDialogOpen} onOpenChange={setRubriqueDialogOpen}>
+                        <DialogTrigger asChild>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={!questionnaireId}
+                          >
+                            <Plus className="h-4 w-4 mr-1" />
+                            Ajouter une rubrique
+                          </Button>
+                        </DialogTrigger>
 
-                      <DialogTrigger asChild>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          disabled={!questionnaireId || readOnly}
-                        >
-                          <Plus className="h-4 w-4 mr-1" />
-                          Ajouter une rubrique
-                        </Button>
-                      </DialogTrigger>
-
-                      <DialogContent className="max-w-3xl">
-                        ...
-                      </DialogContent>
-
-                    </Dialog>
+                        <DialogContent className="max-w-3xl">
+                          ...
+                        </DialogContent>
+                      </Dialog>
+                    )}
 
                   </span>
                 </TooltipTrigger>

@@ -1,3 +1,4 @@
+import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card"
 import { Input } from "../ui/input"
 import { Button } from "../ui/button"
@@ -10,6 +11,7 @@ export interface QuestionnaireHeaderValues {
 interface Props {
   values: QuestionnaireHeaderValues
   disabled?: boolean
+  questionnaireId?: number
   isEdit?: boolean
   onChange: (values: QuestionnaireHeaderValues) => void
   onSave?: () => void
@@ -18,16 +20,48 @@ interface Props {
 export function QuestionnaireHeaderForm({
   values,
   disabled,
+  questionnaireId,
   onChange,
   onSave,
   isEdit,
 }: Props) {
 
-  if (isEdit) return null
+  const [isEditing, setIsEditing] = useState(!questionnaireId)
 
+  if (!isEditing && questionnaireId) {
   return (
     <Card className="border border-gray-200 shadow-sm">
       <CardHeader className="flex flex-row items-center justify-between">
+
+        <div>
+          <CardTitle>
+            Informations du questionnaire
+          </CardTitle>
+          <p className="text-sm text-gray-500 mt-1">
+            Désignation du questionnaire
+          </p>
+        </div>
+
+        {!disabled && (
+          <Button onClick={() => setIsEditing(true)}>
+            Modifier
+          </Button>
+        )}
+
+      </CardHeader>
+
+      <CardContent>
+        <p className="text-gray-900 font-medium">
+          {values.designation || "—"}
+        </p>
+      </CardContent>
+    </Card>
+  )
+}
+  return (
+    <Card className="border border-gray-200 shadow-sm">
+      <CardHeader className="flex flex-row items-center justify-between">
+
         <div>
           <CardTitle>
             Informations du questionnaire
@@ -40,12 +74,15 @@ export function QuestionnaireHeaderForm({
         {!disabled && (
           <Button
             type="button"
-            onClick={onSave}
-            disabled={disabled}
+            onClick={async () => {
+              await onSave?.()
+              setIsEditing(false)
+            }}
           >
             Enregistrer
           </Button>
         )}
+
       </CardHeader>
 
       <CardContent className="space-y-4">
