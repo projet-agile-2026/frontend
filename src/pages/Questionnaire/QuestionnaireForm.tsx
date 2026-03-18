@@ -42,6 +42,8 @@ export function QuestionnaireForm({ readOnly = false }: QuestionnaireFormProps) 
     id ? Number(id) : undefined
   )
 
+  const isSaved = !!questionnaireId
+
   const [headerValues, setHeaderValues] = useState<QuestionnaireHeaderValues>({
     designation: ""
   })
@@ -148,6 +150,7 @@ export function QuestionnaireForm({ readOnly = false }: QuestionnaireFormProps) 
         onChange={setHeaderValues}
         onSave={handleSaveHeader}
         disabled={isViewMode}
+        questionnaireId={questionnaireId}
         isEdit={isEdit}
       />
 
@@ -172,6 +175,7 @@ export function QuestionnaireForm({ readOnly = false }: QuestionnaireFormProps) 
         </Button>
 
         <Button
+          disabled={!isSaved}
           onClick={() => navigate("/questionnaires")}
         >
           Terminer

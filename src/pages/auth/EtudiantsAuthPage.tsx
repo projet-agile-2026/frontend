@@ -100,7 +100,7 @@ export function EtudiantAuthPage() {
         <div>
           <h1 className="flex items-center gap-2 text-3xl font-bold">
             <UserCheck className="h-6 w-6" />
-            Gestion des connexions enseignants
+            Gestion des connexions etudiants
           </h1>
           <p className="text-sm text-gray-500">
             Autoriser ou refuser l'accès à la plateforme.
@@ -117,7 +117,7 @@ export function EtudiantAuthPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Enseignants ({filteredUsers.length})</CardTitle>
+          <CardTitle>Etudiants ({filteredUsers.length})</CardTitle>
         </CardHeader>
 
         <CardContent className="p-0">

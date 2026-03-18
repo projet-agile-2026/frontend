@@ -30,6 +30,12 @@ import {
 } from "@/services/EvaluationService"
 import { getCurrentUser } from "@/services/authService"
 import { toast } from "sonner"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 
 export interface CreateEvaluationFromTemplateFormValues {
   codeFormation: string
@@ -211,6 +217,15 @@ export function CreateEvaluationFromTemplateDialog({
     handleClose()
   }
 
+  const isFormValid =
+    formValues.codeFormation &&
+    formValues.anneeUniversitaire &&
+    formValues.codeUe &&
+    formValues.designation &&
+    formValues.periode &&
+    formValues.debutReponse &&
+    formValues.finReponse
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
@@ -229,42 +244,42 @@ export function CreateEvaluationFromTemplateDialog({
         {isSuccessState ? (
           <div className="space-y-5 py-4 text-center">
 
-  <p className="text-sm text-gray-600">
-    L'évaluation a été créée avec les rubriques et questions du questionnaire template.
-  </p>
+            <p className="text-sm text-gray-600">
+              L'évaluation a été créée avec les rubriques et questions du questionnaire template.
+            </p>
 
-  <div className="flex flex-wrap justify-center gap-3">
+            <div className="flex flex-wrap justify-center gap-3">
 
-    {/* VOIR (primary) */}
-    <Button
-      type="button"
-      onClick={handleGoToEvaluation}
-      className="bg-black text-white hover:bg-black/90"
-    >
-      Voir l'évaluation
-    </Button>
+              {/* VOIR (primary) */}
+              <Button
+                type="button"
+                onClick={handleGoToEvaluation}
+                className="bg-black text-white hover:bg-black/90"
+              >
+                Voir l'évaluation
+              </Button>
 
-    {/* MODIFIER (secondary important) */}
-    <Button
-      type="button"
-      onClick={handleModifyEvaluation}
-      className="bg-blue-600 text-white hover:bg-blue-700"
-    >
-      Modifier l'évaluation
-    </Button>
+              {/* MODIFIER (secondary important) */}
+              <Button
+                type="button"
+                onClick={handleModifyEvaluation}
+                className="bg-blue-600 text-white hover:bg-blue-700"
+              >
+                Modifier l'évaluation
+              </Button>
 
-    {/* RETOUR (secondary light) */}
-    <Button
-      type="button"
-      variant="outline"
-      onClick={handleGoToList}
-      className="border-gray-300"
-    >
-      Retour à la liste des évaluations
-    </Button>
+              {/* RETOUR (secondary light) */}
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleGoToList}
+                className="border-gray-300"
+              >
+                Retour à la liste des évaluations
+              </Button>
 
-  </div>
-</div>
+            </div>
+          </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
@@ -384,7 +399,7 @@ export function CreateEvaluationFromTemplateDialog({
             </div>
 
             <div className="space-y-2">
-              <Label className="text-gray-600 text-sm font-medium">Période</Label>
+              <Label className="text-gray-600 text-sm font-medium">Période <span className="text-red-500">*</span></Label>
               <Input
                 required
                 placeholder="Ex: S1 2024"
@@ -410,6 +425,14 @@ export function CreateEvaluationFromTemplateDialog({
                     }
                     placeholder="Sélectionner une date"
                   />
+                  <input
+                    type="text"
+                    required
+                    value={formValues.debutReponse}
+                    onChange={() => { }}
+                    className="hidden"
+                  />
+
                 </div>
                 <div className="space-y-2">
                   <Label className="text-gray-600 text-sm font-medium">
@@ -424,6 +447,13 @@ export function CreateEvaluationFromTemplateDialog({
                     }
                     placeholder={"Sélectionner une date"}
                   />
+                  <input
+                    type="text"
+                    required
+                    value={formValues.finReponse}
+                    onChange={() => { }}
+                    className="hidden"
+                  />
                 </div>
               </div>
             </div>
@@ -437,16 +467,35 @@ export function CreateEvaluationFromTemplateDialog({
               >
                 Annuler
               </Button>
-              <Button type="submit" disabled={submitting}>
-                {submitting ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Création...
-                  </>
-                ) : (
-                  "Créer l'évaluation"
-                )}
-              </Button>
+              <TooltipProvider>
+                <Tooltip>
+
+                  <TooltipTrigger asChild>
+                    <span>
+                      <Button
+                        type="submit"
+                        disabled={submitting || !isFormValid}
+                      >
+                        {submitting ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Création...
+                          </>
+                        ) : (
+                          "Créer l'évaluation"
+                        )}
+                      </Button>
+                    </span>
+                  </TooltipTrigger>
+
+                  {!isFormValid && (
+                    <TooltipContent>
+                      Remplissez d’abord tous les champs obligatoires
+                    </TooltipContent>
+                  )}
+
+                </Tooltip>
+              </TooltipProvider>
             </DialogFooter>
           </form>
         )}
