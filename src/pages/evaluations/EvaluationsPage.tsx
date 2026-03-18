@@ -158,7 +158,6 @@ export function EvaluationsPage() {
 
 
     const handleDuplicate = async (evaluation: EvaluationListItem) => {
-        // Bloquer si consultation seulement
         if (evaluation.duplication === "N") {
             toast.error("Duplication non autorisée", {
                 description: "Vous n'avez que le droit de consultation sur cette évaluation."
@@ -167,10 +166,17 @@ export function EvaluationsPage() {
         }
         setDuplicatingId(evaluation.idEvaluation)
         try {
-            const duplicated = await dupliquerEvaluation(evaluation.idEvaluation)
-            toast.success("Évaluation dupliquée avec succès")
-            await loadEvaluations()
-            navigate(`/evaluations/${duplicated.idEvaluation}/edit`)
+            const source = await getEvaluation(evaluation.idEvaluation)
+            navigate("/evaluations/new", {
+                state: {
+                    prefill: {
+                        ...source,
+                        idEvaluation: source.idEvaluation, // ← garder l'id source pour dupliquer
+                        etat: "ELA",
+                        noEvaluation: "",
+                    }
+                }
+            })
         } catch (e: any) {
             toast.error("Erreur", {
                 description: e.message || "Impossible de dupliquer l'évaluation.",

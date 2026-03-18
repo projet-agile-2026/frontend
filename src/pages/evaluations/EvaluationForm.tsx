@@ -9,6 +9,7 @@ import {
   getUes,
   createEvaluation,
   updateEvaluation,
+    dupliquerEvaluation,
   getEvaluationFull,
   getAnneesUniversitaires
 } from "../../services/EvaluationService"
@@ -82,11 +83,22 @@ export const EvaluationForm: FC<EvaluationFormProps> = ({ readOnly = false }) =>
           `L'évaluation "${headerValues.designation}" a bien été mise à jour.`
         )
       } else {
-        const created = await createEvaluation(payload)
-        setEvaluationId(created.idEvaluation)
-        setSuccessMessage(
-          `L'évaluation "${headerValues.designation}" a bien été enregistrée. Vous pouvez maintenant ajouter les rubriques.`
-        )
+          let created
+          if (prefill?.idEvaluation) {
+              // Duplication : copie header + rubriques côté backend
+              created = await dupliquerEvaluation(prefill.idEvaluation)
+              // Mettre à jour le header si modifié
+              await updateEvaluation(created.idEvaluation!, {
+                  ...payload,
+                  noEvaluation: created.noEvaluation ?? 0,
+              })
+          } else {
+              created = await createEvaluation(payload)
+          }
+          setEvaluationId(created.idEvaluation)
+          setSuccessMessage(
+              `L'évaluation "${headerValues.designation}" a bien été enregistrée. Vous pouvez maintenant ajouter les rubriques.`
+          )
       }
 
       setSuccessDialogOpen(true)
@@ -266,8 +278,17 @@ export const EvaluationForm: FC<EvaluationFormProps> = ({ readOnly = false }) =>
       if (evaluationId) {
         await updateEvaluation(evaluationId, payload)
       } else {
-        const created = await createEvaluation(payload)
-        setEvaluationId(created.idEvaluation)
+          let created
+          if (prefill?.idEvaluation) {
+              created = await dupliquerEvaluation(prefill.idEvaluation)
+              await updateEvaluation(created.idEvaluation!, {
+                  ...payload,
+                  noEvaluation: created.noEvaluation ?? 0,
+              })
+          } else {
+              created = await createEvaluation(payload)
+          }
+          setEvaluationId(created.idEvaluation)
       }
       navigate("/evaluations")
     } catch (e: any) {
