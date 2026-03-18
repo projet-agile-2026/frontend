@@ -1,8 +1,8 @@
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card"
-import { Calendar, GraduationCap, FileText } from "lucide-react"
+import { Calendar, GraduationCap, FileText, FileDown, Loader2  } from "lucide-react"
 import { getStatusLabel } from "../../utils/rubriqueType"
 import { Button } from "../ui/button"
-import { updateEvaluationEtat } from "../../services/EvaluationService"
+import { updateEvaluationEtat, downloadEvaluationPdf } from "../../services/EvaluationService"
 import { useState } from "react"
 import {
   Dialog,
@@ -12,6 +12,7 @@ import {
   DialogDescription,
   DialogFooter
 } from "../ui/dialog"
+import {toast} from "sonner";
 
 interface Props {
   evaluation: any
@@ -48,6 +49,7 @@ function Field({ label, value }: { label: string; value?: any }) {
 export function EvaluationHeaderView({ evaluation, onReload }: Props) {
 
   const [confirmOpen, setConfirmOpen] = useState(false)
+    const [pdfLoading, setPdfLoading] = useState(false)
 
   const handleAdvanceEtat = async () => {
 
@@ -58,63 +60,76 @@ export function EvaluationHeaderView({ evaluation, onReload }: Props) {
 
     if (!nextEtat) return
 
-    try {
-
-      await updateEvaluationEtat(evaluation.idEvaluation, nextEtat)
-
-      setConfirmOpen(false)
-
-      if (onReload) {
-        await onReload()
+      try {
+          await updateEvaluationEtat(evaluation.idEvaluation, nextEtat)
+          setConfirmOpen(false)
+          toast.success(
+              nextEtat === "DIS"
+                  ? "Évaluation mise à disposition"
+                  : "Évaluation clôturée",
+              { description: `"${evaluation.designation}" a changé d'état avec succès.` }
+          )
+          if (onReload) await onReload()
+      } catch (error: any) {
+          setConfirmOpen(false)
+          toast.error("Erreur", {
+              description: error?.message || "Impossible de changer l'état de l'évaluation."
+          })
       }
-
-    } catch (error) {
-
-      console.error(error)
-    }
   }
 
-  console.log("evaluation", evaluation)
+    // ← NOUVEAU : télécharger le PDF
+    const handleDownloadPdf = async () => {
+        setPdfLoading(true)
+        try {
+            await downloadEvaluationPdf(evaluation.idEvaluation)
+            toast.success("PDF téléchargé", {
+                description: `Le PDF de "${evaluation.designation}" a été généré.`
+            })
+        } catch (e: any) {
+            toast.error("Erreur PDF", {
+                description: e?.message || "Impossible de générer le PDF."
+            })
+        }
+    }
 
-  return (
-    <Card className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm py-0 gap-0">
+    return (
+        <Card className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm py-0 gap-0">
 
       <CardHeader className="border-b border-gray-200 bg-gray-50 px-6 py-5">
 
-        <div className="flex items-start justify-between gap-4">
+          <div className="flex items-center gap-2 shrink-0">
 
-          <div>
-            <CardTitle className="text-lg font-semibold text-gray-900">
-              {`Informations de l'évaluation : ${evaluation.designation}`}
-            </CardTitle>
+              {/* bouton PDF */}
+              <Button
+                  variant="outline"
+                  onClick={handleDownloadPdf}
+                  disabled={pdfLoading}
+                  className="flex items-center gap-2"
+              >
+                  {pdfLoading
+                      ? <Loader2 className="h-4 w-4 animate-spin" />
+                      : <FileDown className="h-4 w-4" />
+                  }
+                  Télécharger PDF
+              </Button>
 
-            <p className="text-sm text-gray-500 mt-1">
-              Contexte académique, unité d’enseignement et période de réponses
-            </p>
+
+              {evaluation.etat !== "CLO" && (
+                  <Button
+                      onClick={() => setConfirmOpen(true)}
+                      className={
+                          evaluation.etat === "ELA"
+                              ? "bg-orange-500 hover:bg-orange-600 text-white"
+                              : "bg-green-600 hover:bg-green-700 text-white"
+                      }
+                  >
+                      {evaluation.etat === "ELA" && "Mettre l'évaluation à disposition des étudiants"}
+                      {evaluation.etat === "DIS" && "Clôturer l'évaluation"}
+                  </Button>
+              )}
+
           </div>
-
-          {evaluation.etat !== "CLO" && (
-
-            <Button
-              onClick={() => setConfirmOpen(true)}
-              className={
-                evaluation.etat === "ELA"
-                  ? "bg-orange-500 hover:bg-orange-600 text-white"
-                  : "bg-green-600 hover:bg-green-700 text-white"
-              }
-            >
-
-              {evaluation.etat === "ELA" &&
-                "Mettre l'évaluation à disposition des étudiants"}
-
-              {evaluation.etat === "DIS" &&
-                "Clôturer l'évaluation"}
-
-            </Button>
-
-          )}
-
-        </div>
 
       </CardHeader>
 

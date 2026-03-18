@@ -9,6 +9,7 @@ import {
   getUes,
   createEvaluation,
   updateEvaluation,
+    dupliquerEvaluation,
   getEvaluationFull,
   getAnneesUniversitaires
 } from "../../services/EvaluationService"
@@ -36,8 +37,8 @@ export const EvaluationForm: FC<EvaluationFormProps> = ({ readOnly = false }) =>
   const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
 
-  const location = useLocation()
-  const prefill = (location.state as any)?.prefill ?? null
+    const location = useLocation()
+    const prefill = (location.state as any)?.prefill ?? null
 
   const isEdit = !!id
   const isViewMode = readOnly === true
@@ -58,6 +59,7 @@ export const EvaluationForm: FC<EvaluationFormProps> = ({ readOnly = false }) =>
   const [isEditingRubrique, setIsEditingRubrique] = useState(false)
 
   const handleSaveHeader = async () => {
+
     try {
       setSaving(true)
 
@@ -71,20 +73,33 @@ export const EvaluationForm: FC<EvaluationFormProps> = ({ readOnly = false }) =>
         periode: headerValues.periode,
         debutReponse: headerValues.debutReponse,
         finReponse: headerValues.finReponse,
+        noEvaluation: Number(headerValues.noEvaluation),
         rubriques: []
       }
 
       if (evaluationId) {
         await updateEvaluation(evaluationId, payload)
+
         setSuccessMessage(
           `L'évaluation "${headerValues.designation}" a bien été mise à jour.`
         )
       } else {
-        const created = await createEvaluation(payload)
-        setEvaluationId(created.idEvaluation)
-        setSuccessMessage(
-          `L'évaluation "${headerValues.designation}" a bien été enregistrée. Vous pouvez maintenant ajouter les rubriques.`
-        )
+          let created
+          if (prefill?.idEvaluation) {
+              // Duplication : copie header + rubriques côté backend
+              created = await dupliquerEvaluation(prefill.idEvaluation)
+              // Mettre à jour le header si modifié
+              await updateEvaluation(created.idEvaluation!, {
+                  ...payload,
+                  noEvaluation: created.noEvaluation ?? 0,
+              })
+          } else {
+              created = await createEvaluation(payload)
+          }
+          setEvaluationId(created.idEvaluation)
+          setSuccessMessage(
+              `L'évaluation "${headerValues.designation}" a bien été enregistrée. Vous pouvez maintenant ajouter les rubriques.`
+          )
       }
 
       setSuccessDialogOpen(true)
@@ -95,6 +110,7 @@ export const EvaluationForm: FC<EvaluationFormProps> = ({ readOnly = false }) =>
       setSaving(false)
     }
   }
+
 
   const [headerValues, setHeaderValues] = useState<EvaluationHeaderFormValues>({
     codeFormation: "",
@@ -138,23 +154,23 @@ export const EvaluationForm: FC<EvaluationFormProps> = ({ readOnly = false }) =>
         const formationsData = await getFormations()
         setFormations(formationsData)
 
-        if (isEdit && id) {
-          const evaluation = await getEvaluationFull(Number(id))
-          setEtat(evaluation.etat as EvaluationStatus)
-          setRubriques(evaluation.rubriques || [])
+          if (isEdit && id) {
+              const evaluation = await getEvaluationFull(Number(id))
+              setEtat(evaluation.etat as EvaluationStatus)
+              setRubriques(evaluation.rubriques || [])
 
-          setHeaderValues({
-            codeFormation: evaluation.codeFormation,
-            anneeUniversitaire: evaluation.anneeUniversitaire,
-            codeUe: evaluation.codeUe,
-            codeEc: evaluation.codeEc,
-            designation: evaluation.designation,
-            debutReponse: evaluation.debutReponse.slice(0, 10),
-            finReponse: evaluation.finReponse.slice(0, 10),
-            etat: evaluation.etat,
-            periode: evaluation.periode,
-            noEvaluation: evaluation.noEvaluation,
-          })
+              setHeaderValues({
+                  codeFormation: evaluation.codeFormation,
+                  anneeUniversitaire: evaluation.anneeUniversitaire,
+                  codeUe: evaluation.codeUe,
+                  codeEc: evaluation.codeEc,
+                  designation: evaluation.designation,
+                  debutReponse: evaluation.debutReponse.slice(0, 10),
+                  finReponse: evaluation.finReponse.slice(0, 10),
+                  etat: evaluation.etat,
+                  periode: evaluation.periode,
+                  noEvaluation: evaluation.noEvaluation,
+              })
 
           const [anneesData, uesData, ecsData] = await Promise.all([
             getAnneesUniversitaires(evaluation.codeFormation),
@@ -263,6 +279,7 @@ export const EvaluationForm: FC<EvaluationFormProps> = ({ readOnly = false }) =>
       periode: headerValues.periode,
       debutReponse: headerValues.debutReponse,
       finReponse: headerValues.finReponse,
+      noEvaluation: Number(headerValues.noEvaluation),
       rubriques: [],
     }
 
@@ -270,8 +287,17 @@ export const EvaluationForm: FC<EvaluationFormProps> = ({ readOnly = false }) =>
       if (evaluationId) {
         await updateEvaluation(evaluationId, payload)
       } else {
-        const created = await createEvaluation(payload)
-        setEvaluationId(created.idEvaluation)
+          let created
+          if (prefill?.idEvaluation) {
+              created = await dupliquerEvaluation(prefill.idEvaluation)
+              await updateEvaluation(created.idEvaluation!, {
+                  ...payload,
+                  noEvaluation: created.noEvaluation ?? 0,
+              })
+          } else {
+              created = await createEvaluation(payload)
+          }
+          setEvaluationId(created.idEvaluation)
       }
       navigate("/evaluations")
     } catch (e: any) {
@@ -291,6 +317,7 @@ export const EvaluationForm: FC<EvaluationFormProps> = ({ readOnly = false }) =>
       </div>
     )
   }
+
 
   return (
     <form
@@ -325,7 +352,6 @@ export const EvaluationForm: FC<EvaluationFormProps> = ({ readOnly = false }) =>
         ecs={ecs}
         annees={annees}
         disabled={isViewMode}
-        isEdit={isEdit}
         onChange={setHeaderValues}
         onFormationChange={handleFormationChange}
         onUeChange={handleUeChange}
@@ -333,6 +359,8 @@ export const EvaluationForm: FC<EvaluationFormProps> = ({ readOnly = false }) =>
         isHeaderSaved={!!evaluationId}
         isFormValid={isHeaderValid}
       />
+
+
 
       <RubriquesSection
         rubriques={rubriques}
@@ -344,7 +372,6 @@ export const EvaluationForm: FC<EvaluationFormProps> = ({ readOnly = false }) =>
             : () => evaluationId && reloadEvaluation(evaluationId)
         }
         readOnly={isViewMode}
-        onEditingChange={setIsEditingRubrique}
       />
 
       {!isViewMode && (
@@ -357,6 +384,7 @@ export const EvaluationForm: FC<EvaluationFormProps> = ({ readOnly = false }) =>
           >
             Annuler
           </Button>
+
           <TooltipProvider>
             <Tooltip>
 
@@ -410,3 +438,4 @@ export const EvaluationForm: FC<EvaluationFormProps> = ({ readOnly = false }) =>
     </form>
   )
 }
+

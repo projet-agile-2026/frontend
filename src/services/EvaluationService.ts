@@ -8,7 +8,6 @@ export interface QuestionEvaluationDTO {
   intitule: string
   maximal?: string
   minimal?: string
-  idQualificatif?: number | null
 }
 
 export interface RubriqueEvaluationDTO {
@@ -50,6 +49,8 @@ export interface EvaluationListItem {
   periode: string
   debutReponse: string
   finReponse: string
+    consultation?: "O" | "N"
+    duplication?: "O" | "N"
 }
 
 export interface EvaluationFilters {
@@ -74,7 +75,7 @@ export interface EvaluationRubriquePayload {
 export interface EvaluationDetailDTO {
   id?: number
 
-  idEvaluation?: number
+    idEvaluation?: number
 
   anneeUniversitaire: string
   codeFormation: string
@@ -86,6 +87,7 @@ export interface EvaluationDetailDTO {
   etat: "ELA" | "DIS" | "CLO"
   periode: string
   rubriques: EvaluationRubriquePayload[]
+  noEvaluation: number
 }
 
 export interface RubriqueEvaluationOrder {
@@ -111,9 +113,9 @@ export interface DroitResponseDTO {
   noEnseignant: number
   consultation: "O" | "N"
   duplication: "O" | "N"
-  nom?: string
-  prenom?: string
-  emailUbo?: string
+    nom?: string
+    prenom?: string
+    emailUbo?: string
 }
 
 export interface DroitRequestDTO {
@@ -271,7 +273,7 @@ export async function addQuestionToRubriqueEvaluation(
   evaluationId: number,
   rubriqueEvaluationId: number,
   idQuestion: number,
-  
+
 ): Promise<RubriqueEvaluationDTO> {
   const { data } = await api.post(
     `/api/enseignant/evaluations/${evaluationId}/rubriques/${rubriqueEvaluationId}/questions`,
@@ -544,3 +546,48 @@ export async function updateQualificatifQuestionEvaluation(
   return data
 }
 
+
+
+
+
+export async function addRubriqueSpecifiqueToEvaluation(
+    evaluationId: number,
+    designation: string
+): Promise<RubriqueEvaluationDTO> {
+    const { data } = await api.post(
+        `/api/enseignant/evaluations/${evaluationId}/rubriques/specifique`,
+        { designation }
+    )
+    return data
+}
+
+
+
+export async function updateRubriqueSpecifique(
+    evaluationId: number,
+    rubriqueEvaluationId: number,
+    designation: string
+): Promise<RubriqueEvaluationDTO> {
+    const { data } = await api.put(
+        `/api/enseignant/evaluations/${evaluationId}/rubriques/${rubriqueEvaluationId}/specifique`,
+        { designation }
+    )
+    return data
+}
+
+
+
+export async function downloadEvaluationPdf(evaluationId: number): Promise<void> {
+    const response = await api.get(
+        `/api/enseignant/evaluations/${evaluationId}/pdf`,
+        { responseType: "blob" }
+    )
+    const url = window.URL.createObjectURL(new Blob([response.data]))
+    const link = document.createElement("a")
+    link.href = url
+    link.setAttribute("download", `evaluation-${evaluationId}.pdf`)
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    window.URL.revokeObjectURL(url)
+}

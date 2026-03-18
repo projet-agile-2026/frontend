@@ -1,4 +1,4 @@
-import { Pencil, Trash2, Copy, Shield, Share2, Loader2, Eye } from "lucide-react"
+import { Pencil, Trash2, Copy, Shield, Loader2, Eye, Share2 } from "lucide-react"
 import { Badge } from "../../components/ui/badge"
 import { Button } from "../../components/ui/button"
 import {
@@ -64,10 +64,6 @@ function EvaluationCard({
   getStatusBadgeVariant: (s: EvaluationStatus) => "default" | "outline" | "secondary"
 }) {
   const isDuplicating = duplicatingId === evaluation.idEvaluation
-  console.log("Evaluation", evaluation)
-  const isLocked =
-    evaluation.etat === "DIS" || evaluation.etat === "CLO"
-    
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -188,6 +184,7 @@ export function EvaluationsTable({
   isOwnEvaluations = false,
 }: EvaluationsTableProps) {
   const totalPages = Math.max(1, Math.ceil(total / pageSize))
+  console.log("asssss", evaluations[1])
 
   return (
     <div className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
@@ -228,7 +225,9 @@ export function EvaluationsTable({
               <th className="px-3 lg:px-4 py-3 text-left">Formation</th>
               <th className="px-3 lg:px-4 py-3 text-left">État</th>
               <th className="px-3 lg:px-4 py-3 text-left">Date fin</th>
-              <th className="px-3 lg:px-4 py-3 text-left">Partage</th>
+                <th className="px-3 lg:px-4 py-3 text-left">
+                    {isOwnEvaluations ? "Partage" : "Partagé par"}
+                </th>
               <th className="px-3 lg:px-4 py-3 text-right">Actions</th>
             </tr>
           </thead>
@@ -295,115 +294,110 @@ export function EvaluationsTable({
                     {new Date(evaluation.finReponse).toLocaleDateString("fr-FR")}
                   </td>
 
-                  {/* partage */}
-                  <td className="px-3 lg:px-4 py-3">
-                    {onOpenDroits ? (() => {
-                      const isOwner = isOwnEvaluations === true
-                      return (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className={`h-8 w-8 ${!isOwner ? "cursor-not-allowed opacity-30" : ""}`}
-                          onClick={() => isOwner && onOpenDroits(evaluation)}
-                          disabled={!isOwner}
-                          title={isOwner ? "Gestion des droits" : "Vous n'êtes pas propriétaire"}
-                        >
-                          <Share2 className="h-4 w-4" />
-                        </Button>
-                      )
-                    })() : (
-                      <span className="text-xs text-gray-400">—</span>
-                    )}
-                  </td>
+                    {/* partage */}
+                    {/* partage */}
+                    <td className="px-3 lg:px-4 py-3">
+                        {!isOwnEvaluations ? (
+                            <span className="text-sm text-gray-700">
+            {[evaluation.prenomEnseignant, evaluation.nomEnseignant]
+                .filter(Boolean)
+                .join(" ") || "—"}
+        </span>
+                        ) : (
+                            onOpenDroits ? (() => {
+                                const isOwner = isOwnEvaluations === true
+                                return (
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className={`h-8 w-8 ${!isOwner ? "cursor-not-allowed opacity-30" : ""}`}
+                                        onClick={() => isOwner && onOpenDroits(evaluation)}
+                                        disabled={!isOwner}
+                                        title={isOwner ? "Gestion des droits" : "Vous n'êtes pas propriétaire"}
+                                    >
+                                        <Share2 className="h-4 w-4" />
+                                    </Button>
+                                )
+                            })() : (
+                                <span className="text-xs text-gray-400">—</span>
+                            )
+                        )}
+                    </td>
 
-                  {/* actions */}
-                  <td className="whitespace-nowrap px-3 lg:px-4 py-3 text-right">
-                    <div className="flex items-center justify-end gap-1">
+        {/* actions */}
+                    <td className="whitespace-nowrap px-3 lg:px-4 py-3 text-right">
+                        <div className="flex items-center justify-end gap-1">
 
-                      {onDuplicate && (
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={() => onDuplicate(evaluation)}
-                          disabled={duplicatingId === evaluation.idEvaluation}
-                          title="Dupliquer"
-                        >
-                          {duplicatingId === evaluation.idEvaluation ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <Copy className="h-4 w-4" />
-                          )}
-                        </Button>
-                      )}
-
-                      {onView && (
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={() => onView(evaluation)}
-                          title="Voir"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                      )}
-
-                      {onEdit && (
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <span>
+                            {/* Dupliquer — masqué si consultation only */}
+                            {onDuplicate && (isOwnEvaluations || evaluation.duplication === "O") && (
                                 <Button
-                                  variant="outline"
-                                  size="icon"
-                                  className="h-8 w-8"
-                                  onClick={() => onEdit(evaluation)}
-                                  disabled={isLocked} 
+                                    variant="outline"
+                                    size="icon"
+                                    className="h-8 w-8"
+                                    onClick={() => onDuplicate(evaluation)}
+                                    disabled={duplicatingId === evaluation.idEvaluation}
+                                    title="Dupliquer"
                                 >
-                                  <Pencil className="h-4 w-4" />
+                                    {duplicatingId === evaluation.idEvaluation
+                                        ? <Loader2 className="h-4 w-4 animate-spin" />
+                                        : <Copy className="h-4 w-4" />
+                                    }
                                 </Button>
-                              </span>
-                            </TooltipTrigger>
-
-                            {isLocked && (
-                              <TooltipContent>
-                                Impossible de modifier une évaluation mise à disposition ou clôturée
-                              </TooltipContent>
                             )}
-                          </Tooltip>
-                        </TooltipProvider>
-                      )}
 
-                      {onDelete && (
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <span>
-                                <Button
-                                  variant="outline"
-                                  size="icon"
-                                  className="h-8 w-8 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
-                                  onClick={() => onDelete(evaluation)}
-                                  disabled={isLocked}
-                                >
-                                  <Trash2 className="h-4 w-4" />
+                            {/* Voir — toujours visible */}
+                            {onView && (
+                                <Button variant="outline" size="icon" className="h-8 w-8"
+                                        onClick={() => onView(evaluation)} title="Voir">
+                                    <Eye className="h-4 w-4" />
                                 </Button>
-                              </span>
-                            </TooltipTrigger>
-
-                            {isLocked && (
-                              <TooltipContent>
-                                Impossible de supprimer une évaluation mise à disposition ou clôturée
-                              </TooltipContent>
                             )}
-                          </Tooltip>
-                        </TooltipProvider>
-                      )}
 
+                            {/* Modifier — masqué pour les évals partagées */}
+                            {onEdit && isOwnEvaluations && (
+                                <TooltipProvider>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+            <span>
+              <Button variant="outline" size="icon" className="h-8 w-8"
+                      onClick={() => onEdit(evaluation)} disabled={isLocked}>
+                <Pencil className="h-4 w-4" />
+              </Button>
+            </span>
+                                        </TooltipTrigger>
+                                        {isLocked && (
+                                            <TooltipContent>
+                                                Impossible de modifier une évaluation mise à disposition ou clôturée
+                                            </TooltipContent>
+                                        )}
+                                    </Tooltip>
+                                </TooltipProvider>
+                            )}
 
-                    </div>
-                  </td>
+                            {/* Supprimer — masqué pour les évals partagées */}
+                            {onDelete && isOwnEvaluations && (
+                                <TooltipProvider>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+            <span>
+              <Button variant="outline" size="icon"
+                      className="h-8 w-8 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+                      onClick={() => onDelete(evaluation)} disabled={isLocked}>
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </span>
+                                        </TooltipTrigger>
+                                        {isLocked && (
+                                            <TooltipContent>
+                                                Impossible de supprimer une évaluation mise à disposition ou clôturée
+                                            </TooltipContent>
+                                        )}
+                                    </Tooltip>
+                                </TooltipProvider>
+                            )}
+
+                        </div>
+                    </td>
                 </tr>
               )
               }

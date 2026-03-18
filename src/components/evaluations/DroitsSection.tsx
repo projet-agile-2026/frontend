@@ -86,13 +86,20 @@ export function DroitsSection({ evaluationId, evaluationDesignation }: DroitsSec
                     .then((data) => {
                         const list = Array.isArray(data) ? data : []
                         setEnseignants(list)
-                        console.log("LISTE ENSEIGNANTS API:", list)
                         const found = list.find(e => e.emailUbo === u?.email)
                         if (found) setCurrentUserId(found.noEnseignant)
                     })
-                    .catch(() => {})
+                    .catch(() => {
+                        toast.error("Erreur", {
+                            description: "Impossible de charger la liste des enseignants."
+                        })
+                    })
             })
-            .catch(() => {})
+            .catch(() => {
+                toast.error("Erreur", {
+                    description: "Impossible de récupérer l'utilisateur connecté."
+                })
+            })
     }, [evaluationId])
 
     // Fermer le dropdown si on clique en dehors
@@ -165,7 +172,6 @@ export function DroitsSection({ evaluationId, evaluationDesignation }: DroitsSec
 
     const editingTeacherName = getTeacherFullName(editingDroit)
     const deleteTeacherName = getTeacherFullName(deleteTarget)
-    console.log("enseignant", enseignants)
 
     // Liste triée alphabétiquement par NOM, filtrée par recherche,
     // en excluant ceux qui ont déjà un droit et l'enseignant connecté
@@ -181,11 +187,6 @@ export function DroitsSection({ evaluationId, evaluationDesignation }: DroitsSec
             `${e.nom} ${e.prenom}`.toLowerCase().includes(searchEnseignant.toLowerCase())
         )
 
-
-        console.log("droits:", droits)
-console.log("enseignants:", enseignants)
-console.log("currentUserId:", currentUserId)
-console.log("filteredEnseignants:", filteredEnseignants)
     return (
         <Card className="border-none shadow-none">
             <CardHeader className="flex flex-row items-center justify-between px-0 pb-4">

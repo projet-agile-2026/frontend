@@ -6,7 +6,9 @@ export function getRubriqueTypeLabel(type?: string) {
       return "Rubrique standard"
     case "RBP":
       return "Rubrique personnalisée"
-    default:
+      case "SPECIFIQUE":
+          return "Spécifique"
+      default:
       return type ?? ""
   }
 }
@@ -17,6 +19,9 @@ export function getRubriqueTypeStyle(type?: string) {
       return "bg-blue-50 text-blue-700 border-blue-200"
     case "RBP":
       return "bg-purple-50 text-purple-700 border-purple-200"
+
+      case "SPECIFIQUE":
+          return "bg-orange-50 text-orange-700 border-orange-200"
     default:
       return "bg-gray-100 text-gray-600 border-gray-200"
   }
