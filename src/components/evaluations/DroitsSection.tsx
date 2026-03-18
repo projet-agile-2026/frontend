@@ -89,9 +89,17 @@ export function DroitsSection({ evaluationId, evaluationDesignation }: DroitsSec
                         const found = list.find(e => e.emailUbo === u?.email)
                         if (found) setCurrentUserId(found.noEnseignant)
                     })
-                    .catch(() => {})
+                    .catch(() => {
+                        toast.error("Erreur", {
+                            description: "Impossible de charger la liste des enseignants."
+                        })
+                    })
             })
-            .catch(() => {})
+            .catch(() => {
+                toast.error("Erreur", {
+                    description: "Impossible de récupérer l'utilisateur connecté."
+                })
+            })
     }, [evaluationId])
 
     // Fermer le dropdown si on clique en dehors

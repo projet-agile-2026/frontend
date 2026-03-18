@@ -548,6 +548,10 @@ export function RubriquesSection({
     const [selectedQualificatifId, setSelectedQualificatifId] = useState<number | null>(null)
     const [isQualificatifDialogOpen, setIsQualificatifDialogOpen] = useState(false)
 
+
+    const [deleteRubriqueTarget, setDeleteRubriqueTarget] = useState<number | null>(null)
+    const [deleteQuestionTarget, setDeleteQuestionTarget] = useState<{rubriqueId: number, questionId: number} | null>(null)
+
     useEffect(() => {
         void loadRubriques()
         void loadQuestions()
@@ -643,12 +647,16 @@ export function RubriquesSection({
             if (onReload) await onReload()
 
             setIsSpecifiqueDialogOpen(false)
+            toast.success("Rubrique créée", {
+                description: `"${specifiqueDesignation.trim()}" a été ajoutée à l'évaluation.`
+            })
             setSpecifiqueDesignation("")
             setSpecifiqueSelectedQuestions([])
             setSpecifiqueQuestionSearch("")
         } catch (error) {
-            setSpecifiqueError("Erreur lors de la création de la rubrique.")
-            console.error(error)
+            toast.error("Erreur", {
+                description: "Impossible de créer la rubrique spécifique."
+            })
         } finally {
             setSpecifiqueLoading(false)
         }

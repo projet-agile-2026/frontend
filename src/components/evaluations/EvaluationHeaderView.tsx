@@ -12,6 +12,7 @@ import {
   DialogDescription,
   DialogFooter
 } from "../ui/dialog"
+import {toast} from "sonner";
 
 interface Props {
   evaluation: any
@@ -59,20 +60,22 @@ export function EvaluationHeaderView({ evaluation, onReload }: Props) {
 
     if (!nextEtat) return
 
-    try {
-
-      await updateEvaluationEtat(evaluation.idEvaluation, nextEtat)
-
-      setConfirmOpen(false)
-
-      if (onReload) {
-        await onReload()
+      try {
+          await updateEvaluationEtat(evaluation.idEvaluation, nextEtat)
+          setConfirmOpen(false)
+          toast.success(
+              nextEtat === "DIS"
+                  ? "Évaluation mise à disposition"
+                  : "Évaluation clôturée",
+              { description: `"${evaluation.designation}" a changé d'état avec succès.` }
+          )
+          if (onReload) await onReload()
+      } catch (error: any) {
+          setConfirmOpen(false)
+          toast.error("Erreur", {
+              description: error?.message || "Impossible de changer l'état de l'évaluation."
+          })
       }
-
-    } catch (error) {
-
-      console.error(error)
-    }
   }
 
     // ← NOUVEAU : télécharger le PDF
@@ -80,10 +83,13 @@ export function EvaluationHeaderView({ evaluation, onReload }: Props) {
         setPdfLoading(true)
         try {
             await downloadEvaluationPdf(evaluation.idEvaluation)
-        } catch (e) {
-            console.error("Erreur téléchargement PDF", e)
-        } finally {
-            setPdfLoading(false)
+            toast.success("PDF téléchargé", {
+                description: `Le PDF de "${evaluation.designation}" a été généré.`
+            })
+        } catch (e: any) {
+            toast.error("Erreur PDF", {
+                description: e?.message || "Impossible de générer le PDF."
+            })
         }
     }
 
