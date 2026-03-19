@@ -1,5 +1,5 @@
 import  React, { useState, useMemo, useEffect } from 'react';
-import { Search, Plus, Trash2, Edit3, ChevronLeft, ChevronRight, Inbox, Loader2 } from 'lucide-react';
+import { Search, Plus, Trash2, Edit3, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { Input } from "../components/ui/input";
 import { Button } from "../components/ui/button";
 import {
@@ -13,15 +13,12 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter,
 } from "../components/ui/dialog";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "../components/ui/select";
-import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "../components/ui/alert-dialog";
 import { getQualificatifs, type QualificatifDTO } from "../services/Qualificatifservice";
 import { getCurrentUser, type UserInfo } from "@/services/authService"
 
-
+const MAX_INTITULE = 64;
 
 export function QuestionsPage() {
   const [questions, setQuestions] = useState<Question[]>([])
@@ -43,7 +40,6 @@ export function QuestionsPage() {
     };
     init();
   }, []);
-
 
   const loadData = async () => {
     try {
@@ -79,10 +75,7 @@ export function QuestionsPage() {
 
   const handleAdd = async (intitule: string, idQualif: string) => {
     try {
-      const newQ = await createQuestion({
-        intitule,
-        idQualificatif: Number(idQualif)
-      });
+      const newQ = await createQuestion({ intitule, idQualificatif: Number(idQualif) });
       setQuestions(prev => [...prev, newQ].sort((a, b) => a.intitule.localeCompare(b.intitule)));
       showToast(`Question « ${newQ.intitule} » ajoutée avec succès.`, "success");
     } catch (err) { showToast("Impossible d'ajouter la question.", "error"); }
@@ -121,34 +114,26 @@ export function QuestionsPage() {
   return (
     <div className="w-full min-h-screen bg-white font-sans text-slate-900 py-12">
       <div className="max-w-[70%] mx-auto">
-        
+
         {/* HEADER */}
         <div className="flex justify-between items-center mb-10">
           <h1 className="text-3xl font-bold tracking-tight uppercase italic">Gestion des Questions</h1>
-          <AddQuestionDialog onAdd={handleAdd} qualificatifs={qualificatifs} role={role}/>
+          <AddQuestionDialog onAdd={handleAdd} qualificatifs={qualificatifs} role={role} />
         </div>
 
-        {/* TYPE TABS - affiché uniquement pour ENS */}
+        {/* TYPE TABS */}
         {role === "ENS" && (
           <div className="bg-white p-2 rounded-lg shadow-sm border border-gray-200 mb-4">
             <div className="flex gap-2">
               <button
                 onClick={() => { setActiveTab("QUS"); setCurrentPage(1); }}
-                className={`flex-1 px-4 py-2.5 rounded-md text-sm font-medium transition-all ${
-                  activeTab === "QUS"
-                    ? "bg-blue-600 text-white shadow-sm"
-                    : "bg-gray-50 text-gray-600 hover:bg-gray-100"
-                }`}
+                className={`flex-1 px-4 py-2.5 rounded-md text-sm font-medium transition-all ${activeTab === "QUS" ? "bg-blue-600 text-white shadow-sm" : "bg-gray-50 text-gray-600 hover:bg-gray-100"}`}
               >
                 Questions Standard
               </button>
               <button
                 onClick={() => { setActiveTab("QUP"); setCurrentPage(1); }}
-                className={`flex-1 px-4 py-2.5 rounded-md text-sm font-medium transition-all ${
-                  activeTab === "QUP"
-                    ? "bg-purple-600 text-white shadow-sm"
-                    : "bg-gray-50 text-gray-600 hover:bg-gray-100"
-                }`}
+                className={`flex-1 px-4 py-2.5 rounded-md text-sm font-medium transition-all ${activeTab === "QUP" ? "bg-purple-600 text-white shadow-sm" : "bg-gray-50 text-gray-600 hover:bg-gray-100"}`}
               >
                 Questions Personnelles
               </button>
@@ -160,8 +145,8 @@ export function QuestionsPage() {
         <div className="bg-white border rounded-2xl p-6 mb-8 shadow-sm">
           <div className="relative">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
-            <Input 
-              placeholder="Filtrer les questions..." 
+            <Input
+              placeholder="Filtrer les questions..."
               className="pl-12 h-12 bg-white border-slate-200 rounded-xl font-medium text-sm focus-visible:ring-1 focus-visible:ring-black"
               value={search}
               onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
@@ -176,7 +161,6 @@ export function QuestionsPage() {
             <div className="col-span-3 text-center italic">Couple Qualificatif</div>
             <div className="col-span-1 text-right italic">Actions</div>
           </div>
-
           <div className="divide-y divide-slate-100">
             {currentData.length > 0 ? (
               currentData.map(q => (
@@ -209,8 +193,7 @@ export function QuestionsPage() {
       </div>
 
       {toast && (
-        <div className={`fixed bottom-6 right-6 z-50 px-6 py-4 rounded-2xl shadow-2xl font-bold text-sm uppercase tracking-wide transition-all
-          ${toast.type === "success" ? "bg-black text-[#FFD700]" : "bg-red-500 text-white"}`}>
+        <div className={`fixed bottom-6 right-6 z-50 px-6 py-4 rounded-2xl shadow-2xl font-bold text-sm uppercase tracking-wide transition-all ${toast.type === "success" ? "bg-black text-[#FFD700]" : "bg-red-500 text-white"}`}>
           {toast.message}
         </div>
       )}
@@ -233,22 +216,13 @@ function QuestionRow({ question, onDelete, qualificatifs, onUpdate, role }: any)
   const isAdmin = role === "ADM"
   const isTeacher = role === "ENS"
 
-  const canEdit =
-    !isUsed && (
-      (isAdmin && isStandard) ||
-      (isTeacher && isPersonal)
-    )
-
-  const canDelete =
-    !isUsed && (
-      (isAdmin && isStandard) ||
-      (isTeacher && isPersonal)
-    )
+  const canEdit = !isUsed && ((isAdmin && isStandard) || (isTeacher && isPersonal))
+  const canDelete = !isUsed && ((isAdmin && isStandard) || (isTeacher && isPersonal))
 
   return (
     <div className="grid grid-cols-12 items-center py-5 px-8 transition-colors bg-white border-l-4 border-l-transparent hover:border-l-[#FFD700]">
       <div className="col-span-8">
-        <span className="text-sm font-bold text-slate-800 leading-tight uppercase">
+        <span className="text-sm font-bold text-slate-800 leading-tight uppercase break-all">
           {question.intitule}
         </span>
       </div>
@@ -256,21 +230,14 @@ function QuestionRow({ question, onDelete, qualificatifs, onUpdate, role }: any)
       <div className="col-span-3 flex justify-center">
         {qualif && (
           <div className="inline-flex items-center gap-3">
-            <span className="text-[11px] font-bold text-slate-400 uppercase italic tracking-wider">
-              {qualif.mot2}
-            </span>
+            <span className="text-[11px] font-bold text-slate-400 uppercase italic tracking-wider">{qualif.mot2}</span>
             <div className="h-1 w-3 bg-slate-200 rounded-full"></div>
-            <span className="text-[11px] font-bold text-slate-900 uppercase italic tracking-wider">
-              {qualif.mot1}
-            </span>
+            <span className="text-[11px] font-bold text-slate-900 uppercase italic tracking-wider">{qualif.mot1}</span>
           </div>
         )}
       </div>
 
-      {/* ACTIONS */}
       <div className="col-span-1 flex justify-end gap-2 relative">
-
-        {/* Bulle flottante */}
         {tooltip && (
           <div className="absolute bottom-10 right-0 z-50 bg-slate-800 text-white text-[10px] font-bold rounded-xl px-3 py-2 shadow-xl w-52 text-center leading-tight">
             {tooltip}
@@ -281,19 +248,15 @@ function QuestionRow({ question, onDelete, qualificatifs, onUpdate, role }: any)
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
           <DialogTrigger asChild>
             <Button
-              variant="ghost"
-              disabled={!canEdit}
-              size="icon"
+              variant="ghost" disabled={!canEdit} size="icon"
               className="h-8 w-8 text-slate-500 hover:text-blue-600 rounded-lg border border-slate-200 shadow-sm"
-              onMouseEnter={() => {
-                if (isStandard && isTeacher) setTooltip("Les questions standards ne peuvent pas être modifiées ou supprimées.");
-              }}
+              onMouseEnter={() => { if (isStandard && isTeacher) setTooltip("Les questions standards ne peuvent pas être modifiées ou supprimées."); }}
               onMouseLeave={() => setTooltip(null)}
             >
               <Edit3 size={14} />
             </Button>
           </DialogTrigger>
-          <DialogContent className="rounded-3xl border-t-[10px] border-t-blue-500 p-10 bg-white">
+          <DialogContent aria-describedby={undefined} className="rounded-3xl border-t-[10px] border-t-blue-500 p-10 bg-white">
             <DialogHeader>
               <DialogTitle className="text-xl font-bold uppercase italic tracking-tighter">Modifier la question</DialogTitle>
             </DialogHeader>
@@ -302,35 +265,36 @@ function QuestionRow({ question, onDelete, qualificatifs, onUpdate, role }: any)
                 <label className="text-[10px] font-bold uppercase text-slate-400 ml-1 italic tracking-widest">Désignation</label>
                 <Input
                   value={editIntitule}
+                  maxLength={MAX_INTITULE}
                   onChange={(e) => { setEditIntitule(e.target.value); setEditError(null); }}
                   className={`h-12 border-2 rounded-xl font-bold text-sm uppercase ${editError ? "border-red-400" : ""}`}
                 />
-                {editError && (
-                  <p className="text-red-500 text-[11px] font-bold mt-1 ml-1">{editError}</p>
-                )}
+                <div className="flex justify-between items-center">
+                  <span className="text-red-500 text-[11px] font-bold ml-1">{editError ?? ""}</span>
+                  <span className={`text-[10px] font-bold ${editIntitule.length > MAX_INTITULE - 10 ? "text-red-400" : "text-slate-400"}`}>
+                    {editIntitule.length}/{MAX_INTITULE}
+                  </span>
+                </div>
               </div>
               <div className="space-y-2 text-left">
                 <label className="text-[10px] font-bold uppercase text-slate-400 ml-1 italic tracking-widest">Type Qualificatif</label>
-                <Select onValueChange={setEditIdQualif} value={editIdQualif}>
-                  <SelectTrigger className="h-12 border-2 rounded-xl font-bold text-xs uppercase text-slate-900"><SelectValue /></SelectTrigger>
-                  <SelectContent className="rounded-xl">
-                    {qualificatifs.map((c: any) => (
-                      <SelectItem key={c.id} value={String(c.id)} className="text-xs font-bold uppercase">
-                        {c.mot2} / {c.mot1}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <select
+                  value={editIdQualif}
+                  onChange={(e) => setEditIdQualif(e.target.value)}
+                  className="w-full h-12 border-2 rounded-xl font-bold text-xs uppercase text-slate-900 bg-white px-4 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  {qualificatifs.map((c: any) => (
+                    <option key={c.id} value={String(c.id)}>{c.mot2} / {c.mot1}</option>
+                  ))}
+                </select>
               </div>
             </div>
             <DialogFooter>
               <Button
                 className="w-full h-12 bg-blue-600 text-white font-bold rounded-xl text-[10px] uppercase tracking-widest shadow-lg"
                 onClick={() => {
-                  if (!editIntitule.trim()) {
-                    setEditError("La désignation ne peut pas être vide.");
-                    return;
-                  }
+                  if (!editIntitule.trim()) { setEditError("La désignation ne peut pas être vide."); return; }
+                  if (editIntitule.trim().length > MAX_INTITULE) { setEditError(`Maximum ${MAX_INTITULE} caractères.`); return; }
                   onUpdate(question.idQuestion, editIntitule.trim(), editIdQualif, question);
                   setIsEditDialogOpen(false);
                 }}
@@ -345,14 +309,9 @@ function QuestionRow({ question, onDelete, qualificatifs, onUpdate, role }: any)
         <AlertDialog>
           <AlertDialogTrigger asChild>
             <Button
-              disabled={!canDelete}
-              variant="ghost"
-              size="icon"
-              className={`h-8 w-8 rounded-lg border border-slate-200 shadow-sm
-                ${canDelete ? "text-slate-500 hover:text-red-600" : "text-slate-300 cursor-not-allowed"}`}
-              onMouseEnter={() => {
-                if (isStandard && isTeacher) setTooltip("Les questions standards ne peuvent pas être modifiées ou supprimées.");
-              }}
+              disabled={!canDelete} variant="ghost" size="icon"
+              className={`h-8 w-8 rounded-lg border border-slate-200 shadow-sm ${canDelete ? "text-slate-500 hover:text-red-600" : "text-slate-300 cursor-not-allowed"}`}
+              onMouseEnter={() => { if (isStandard && isTeacher) setTooltip("Les questions standards ne peuvent pas être modifiées ou supprimées."); }}
               onMouseLeave={() => setTooltip(null)}
             >
               <Trash2 size={14} />
@@ -361,7 +320,7 @@ function QuestionRow({ question, onDelete, qualificatifs, onUpdate, role }: any)
           <AlertDialogContent className="rounded-3xl border-t-[10px] border-t-red-500 p-10 bg-white shadow-2xl">
             <AlertDialogHeader>
               <AlertDialogTitle className="text-xl font-bold uppercase italic tracking-tighter">Confirmation</AlertDialogTitle>
-              <AlertDialogDescription className="font-bold text-slate-500 text-sm italic">
+              <AlertDialogDescription className="font-bold text-slate-500 text-sm italic break-all">
                 Voulez-vous vraiment supprimer la question « {question.intitule} » ? Cette action est définitive.
               </AlertDialogDescription>
             </AlertDialogHeader>
@@ -371,7 +330,6 @@ function QuestionRow({ question, onDelete, qualificatifs, onUpdate, role }: any)
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
-
       </div>
     </div>
   );
@@ -381,7 +339,7 @@ function AddQuestionDialog({ onAdd, qualificatifs, role }: any) {
   const [intitule, setIntitule] = useState("");
   const [idQualif, setIdQualif] = useState("");
   const [open, setOpen] = useState(false);
-  const isValid = intitule.trim() !== "" && idQualif !== "";
+  const isValid = intitule.trim() !== "" && idQualif !== "" && intitule.trim().length <= MAX_INTITULE;
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -390,27 +348,38 @@ function AddQuestionDialog({ onAdd, qualificatifs, role }: any) {
           <Plus className="mr-2 h-4 w-4" strokeWidth={3} /> Nouveau
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-xl rounded-3xl border-t-[10px] border-t-[#FFD700] p-10 bg-white shadow-2xl">
+      <DialogContent aria-describedby={undefined} className="max-w-xl rounded-3xl border-t-[10px] border-t-[#FFD700] p-10 bg-white shadow-2xl">
         <DialogTitle className="text-2xl font-bold uppercase italic tracking-tighter text-slate-900">
           {role === "ADM" ? "Nouvelle question standard" : role === "ENS" ? "Nouvelle question personnelle" : "Nouvelle question"}
         </DialogTitle>
         <div className="space-y-6 py-8 text-slate-900">
           <div className="space-y-2 text-left">
             <label className="text-[10px] font-bold uppercase text-slate-400 ml-1 italic tracking-widest">Intitulé de la question</label>
-            <Input placeholder="Saisir..." value={intitule} onChange={(e) => setIntitule(e.target.value)} className="h-12 border-2 border-slate-100 rounded-2xl font-bold text-sm uppercase" />
+            <Input
+              placeholder="Saisir..."
+              value={intitule}
+              maxLength={MAX_INTITULE}
+              onChange={(e) => setIntitule(e.target.value)}
+              className={`h-12 border-2 border-slate-100 rounded-2xl font-bold text-sm uppercase ${intitule.length >= MAX_INTITULE ? "border-red-300" : ""}`}
+            />
+            <div className="flex justify-end">
+              <span className={`text-[10px] font-bold ${intitule.length > MAX_INTITULE - 10 ? "text-red-400" : "text-slate-400"}`}>
+                {intitule.length}/{MAX_INTITULE}
+              </span>
+            </div>
           </div>
           <div className="space-y-2 text-left">
             <label className="text-[10px] font-bold uppercase text-slate-400 ml-1 italic tracking-widest">Type Qualificatif</label>
-            <Select onValueChange={setIdQualif} value={idQualif}>
-              <SelectTrigger className="h-12 border-2 border-slate-100 rounded-2xl font-bold text-xs uppercase bg-white shadow-sm"><SelectValue placeholder="Choisir dans la liste..." /></SelectTrigger>
-              <SelectContent className="rounded-xl">
-                {qualificatifs.map((c: any) => (
-                  <SelectItem key={c.id} value={String(c.id)} className="text-xs font-bold uppercase">
-                    {c.mot2} / {c.mot1}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <select
+              value={idQualif}
+              onChange={(e) => setIdQualif(e.target.value)}
+              className="w-full h-12 border-2 border-slate-100 rounded-2xl font-bold text-xs uppercase bg-white shadow-sm px-4 cursor-pointer focus:outline-none focus:ring-2 focus:ring-black"
+            >
+              <option value="">Choisir dans la liste...</option>
+              {qualificatifs.map((c: any) => (
+                <option key={c.id} value={String(c.id)}>{c.mot2} / {c.mot1}</option>
+              ))}
+            </select>
           </div>
         </div>
         <DialogFooter>
