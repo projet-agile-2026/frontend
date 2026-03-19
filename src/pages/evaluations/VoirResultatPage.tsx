@@ -18,9 +18,39 @@ export default function VoirResultatPage() {
 
       try {
         setLoading(true)
+        console.log("[DEBUG][VoirResultat] Chargement résultat", { idEvaluation })
         const data = await getEvaluationResult(Number(idEvaluation))
+        console.log("[DEBUG][VoirResultat] Données résultat reçues", {
+          idEvaluation: data.idEvaluation,
+          designation: data.designation,
+          rubriquesCount: data.rubriques?.length || 0,
+          commentaireLength: data.commentaire?.length || 0,
+        })
+
+        data.rubriques?.forEach((rubrique, index) => {
+          console.log("[DEBUG][VoirResultat] Rubrique", {
+            index,
+            idRubriqueEvaluation: rubrique.idRubriqueEvaluation,
+            designation: rubrique.designation,
+            questionsCount: rubrique.questions?.length || 0,
+          })
+
+          rubrique.questions?.forEach((question, qIndex) => {
+            console.log("[DEBUG][VoirResultat] Question", {
+              rubriqueIndex: index,
+              questionIndex: qIndex,
+              idQuestionEvaluation: question.idQuestionEvaluation,
+              intitule: question.intitule,
+              positionnement: question.positionnement,
+              minimal: question.minimal,
+              maximal: question.maximal,
+            })
+          })
+        })
+
         setResult(data)
       } catch (e: any) {
+        console.error("[DEBUG][VoirResultat] Erreur chargement résultat", e)
         setError(e.message || "Erreur lors du chargement du résultat")
         toast.error(e.message || "Erreur lors du chargement du résultat")
       } finally {
@@ -68,6 +98,33 @@ export default function VoirResultatPage() {
     return stars
   }
 
+  // Exclure les questions sans intitulé (null/vide) avant l'affichage des résultats
+  const rubriquesAvecQuestions =
+    result?.rubriques
+      ?.map((rubrique) => ({
+        ...rubrique,
+        questions: (rubrique.questions || []).filter(
+          (q) => (q?.intitule ?? "").trim().length > 0,
+        ),
+      }))
+      .filter((rubrique) => (rubrique.questions || []).length > 0) || []
+
+  useEffect(() => {
+    if (!result) return
+
+    const totalQuestions = rubriquesAvecQuestions.reduce(
+      (acc, rubrique) => acc + (rubrique.questions?.length || 0),
+      0,
+    )
+
+    console.log("[DEBUG][VoirResultat] Résumé affichage", {
+      idEvaluation: result.idEvaluation,
+      rubriquesAffichees: rubriquesAvecQuestions.length,
+      totalQuestionsAffichees: totalQuestions,
+      hasCommentaire: Boolean(result.commentaire),
+    })
+  }, [result, rubriquesAvecQuestions])
+
   if (loading) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
@@ -92,12 +149,6 @@ export default function VoirResultatPage() {
       </div>
     )
   }
-
-  // Filtrer les rubriques qui ont au moins une question
-  const rubriquesAvecQuestions = result.rubriques?.filter(rubrique => {
-    const questions = rubrique.questions || []
-    return questions.length > 0
-  }) || []
 
   if (!result || !rubriquesAvecQuestions || rubriquesAvecQuestions.length === 0) {
     return (

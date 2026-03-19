@@ -106,10 +106,16 @@ export function RepondreEvaluationPage() {
   }, [idEvaluation])
 
   // Calculer la progression (doit être avant tous les returns conditionnels)
-  const rubriquesAvecQuestions = evaluation?.rubriques?.filter(rubrique => {
-    const questions = rubrique.questions || []
-    return questions.length > 0
-  }) || []
+  // Exclure les questions sans intitulé (null/vide) de la réponse et du récapitulatif
+  const rubriquesAvecQuestions =
+    evaluation?.rubriques
+      ?.map((rubrique) => ({
+        ...rubrique,
+        questions: (rubrique.questions || []).filter(
+          (q) => (q?.intitule ?? "").trim().length > 0,
+        ),
+      }))
+      .filter((rubrique) => (rubrique.questions || []).length > 0) || []
 
   const completedRubriquesCount = rubriquesAvecQuestions.filter(rubrique => {
     const rubriqueQuestions = rubrique.questions || []
@@ -117,6 +123,34 @@ export function RepondreEvaluationPage() {
       rubriqueQuestions.every(q => reponses.has(q.idQuestionEvaluation))
   }).length
   const totalRubriques = rubriquesAvecQuestions.length
+
+  useEffect(() => {
+    if (!evaluation || rubriquesAvecQuestions.length === 0) return
+
+    const current = rubriquesAvecQuestions[currentRubriqueIndex]
+    const questions = current?.questions || []
+    const answeredInCurrent = questions.filter(q => reponses.has(q.idQuestionEvaluation)).length
+
+    console.log("[DEBUG][ReponseEvaluation] État courant", {
+      idEvaluation: evaluation.idEvaluation,
+      currentRubriqueIndex,
+      currentRubriqueDesignation: current?.designation,
+      totalRubriques,
+      completedRubriquesCount,
+      currentRubriqueQuestions: questions.length,
+      answeredInCurrent,
+      globalResponsesCount: reponses.size,
+      showRecap,
+    })
+  }, [
+    evaluation,
+    rubriquesAvecQuestions,
+    currentRubriqueIndex,
+    totalRubriques,
+    completedRubriquesCount,
+    reponses,
+    showRecap,
+  ])
 
   // Ne plus naviguer automatiquement vers le récapitulatif
   // L'utilisateur cliquera sur le bouton pour voir le récap
@@ -144,6 +178,12 @@ export function RepondreEvaluationPage() {
     return stars
   }
   const handlePositionnementChange = (idQuestionEvaluation: number, value: number) => {
+    console.log("[DEBUG][ReponseEvaluation] Changement réponse", {
+      rubriqueIndex: currentRubriqueIndex,
+      rubrique: rubriquesAvecQuestions[currentRubriqueIndex]?.designation,
+      idQuestionEvaluation,
+      positionnement: value,
+    })
     setReponses(new Map(reponses.set(idQuestionEvaluation, value)))
   }
 
@@ -151,8 +191,18 @@ export function RepondreEvaluationPage() {
     if (!evaluation) return
 
     // Vérifier que toutes les questions ont une réponse
-    const allQuestions = evaluation.rubriques.flatMap(r => r.questions)
+    const allQuestions = rubriquesAvecQuestions.flatMap(r => r.questions)
     const unansweredQuestions = allQuestions.filter(q => !reponses.has(q.idQuestionEvaluation))
+
+    console.log("[DEBUG][ReponseEvaluation] Demande affichage récap", {
+      totalQuestions: allQuestions.length,
+      answeredQuestions: reponses.size,
+      unansweredCount: unansweredQuestions.length,
+      currentRubriqueIndex,
+      currentRubriqueDesignation: rubriquesAvecQuestions[currentRubriqueIndex]?.designation,
+      completedRubriquesCount,
+      totalRubriques,
+    })
 
     if (unansweredQuestions.length > 0) {
       toast.error("Veuillez répondre à toutes les questions avant de soumettre")
@@ -268,6 +318,12 @@ export function RepondreEvaluationPage() {
 
   const goToPreviousRubrique = () => {
     if (!isFirstRubrique) {
+      console.log("[DEBUG][ReponseEvaluation] Navigation précédente", {
+        fromIndex: currentRubriqueIndex,
+        toIndex: currentRubriqueIndex - 1,
+        fromRubrique: rubriquesAvecQuestions[currentRubriqueIndex]?.designation,
+        toRubrique: rubriquesAvecQuestions[currentRubriqueIndex - 1]?.designation,
+      })
       setCurrentRubriqueIndex(currentRubriqueIndex - 1)
       window.scrollTo({ top: 0, behavior: 'smooth' })
     }
@@ -275,8 +331,22 @@ export function RepondreEvaluationPage() {
 
   const goToNextRubrique = () => {
     if (!isLastRubrique && currentRubriqueAnswered) {
+      console.log("[DEBUG][ReponseEvaluation] Navigation suivante", {
+        fromIndex: currentRubriqueIndex,
+        toIndex: currentRubriqueIndex + 1,
+        fromRubrique: rubriquesAvecQuestions[currentRubriqueIndex]?.designation,
+        toRubrique: rubriquesAvecQuestions[currentRubriqueIndex + 1]?.designation,
+        currentRubriqueAnswered,
+      })
       setCurrentRubriqueIndex(currentRubriqueIndex + 1)
       window.scrollTo({ top: 0, behavior: 'smooth' })
+    } else {
+      console.log("[DEBUG][ReponseEvaluation] Navigation suivante bloquée", {
+        isLastRubrique,
+        currentRubriqueAnswered,
+        currentRubriqueIndex,
+        currentRubrique: rubriquesAvecQuestions[currentRubriqueIndex]?.designation,
+      })
     }
   }
 
