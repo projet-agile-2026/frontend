@@ -372,6 +372,7 @@ export const EvaluationForm: FC<EvaluationFormProps> = ({ readOnly = false }) =>
             : () => evaluationId && reloadEvaluation(evaluationId)
         }
         readOnly={isViewMode}
+        onEditingChange={setIsEditingRubrique} 
       />
 
       {!isViewMode && (
