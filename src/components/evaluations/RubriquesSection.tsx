@@ -54,7 +54,6 @@ import {
     reorderQuestionsInRubriqueEvaluation,
     updateDesignationRubriqueEvaluation,
     updateIntituleQuestionEvaluation,
-    updateQualificatifQuestionEvaluation,
     type EvaluationWithRubriquesDTO,
     type RubriqueEvaluationDTO,
     type QuestionEvaluationDTO,
@@ -84,8 +83,10 @@ interface RubriquesSectionProps {
  * Helpers
  * ────────────────────────────────────────────────────────────────────────────── */
 
-const getQualificatifId = (q: QualificatifDTO): number =>
-    Number((q as QualificatifDTO & { id?: number }).idQualificatif ?? (q as QualificatifDTO & { id?: number }).id)
+const getQualificatifId = (q: QualificatifDTO): number => {
+    const qWithLegacyId = q as QualificatifDTO & { id?: number; idQualificatif?: number }
+    return Number(qWithLegacyId.idQualificatif ?? qWithLegacyId.id)
+}
 
 const getQuestionEvalId = (question: QuestionEvaluationDTO): number => {
     const id = Number(question.idQuestionEvaluation)
@@ -113,7 +114,6 @@ function SortableQuestionRow({
     onConfirmEdit,
     onCancelEdit,
     onIntituleChange,
-    onOpenQualificatif,
 }: {
     question: QuestionEvaluationDTO
     rubriqueEvaluationId: number
@@ -126,7 +126,6 @@ function SortableQuestionRow({
     onConfirmEdit: () => void
     onCancelEdit: () => void
     onIntituleChange: (value: string) => void
-    onOpenQualificatif: () => void
 }) {
     const questionEvaluationId = getQuestionEvalId(question)
 
@@ -208,34 +207,18 @@ function SortableQuestionRow({
             )}
 
             {!readOnly && !isEditing && (
-                <>
-                    <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 shrink-0 text-gray-400 hover:text-blue-600"
-                        onClick={(e) => {
-                            e.stopPropagation()
-                            onStartEdit(question.intitule)
-                        }}
-                    >
-                        <Pencil className="h-3.5 w-3.5" />
-                    </Button>
-
-                    <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 shrink-0 text-gray-400 hover:text-purple-600"
-                        title="Modifier le qualificatif"
-                        onClick={(e) => {
-                            e.stopPropagation()
-                            onOpenQualificatif()
-                        }}
-                    >
-                        <LayoutList className="h-3.5 w-3.5" />
-                    </Button>
-                </>
+                <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 shrink-0 text-gray-400 hover:text-blue-600"
+                    onClick={(e) => {
+                        e.stopPropagation()
+                        onStartEdit(question.intitule)
+                    }}
+                >
+                    <Pencil className="h-3.5 w-3.5" />
+                </Button>
             )}
 
             <Button
@@ -278,7 +261,6 @@ function SortableRubriqueCard({
     onConfirmEditQuestion,
     onCancelEditQuestion,
     onEditQuestionIntituleChange,
-    onOpenQualificatifDialog,
 }: {
     rubrique: RubriqueEvaluationDTO
     isExpanded: boolean
@@ -302,7 +284,6 @@ function SortableRubriqueCard({
     onConfirmEditQuestion: (rubriqueId: number, questionEvaluationId: number) => void
     onCancelEditQuestion: () => void
     onEditQuestionIntituleChange: (value: string) => void
-    onOpenQualificatifDialog: (rubriqueId: number, questionEvaluationId: number) => void
 }) {
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
         id: rubrique.idRubriqueEvaluation.toString(),
@@ -486,9 +467,6 @@ function SortableRubriqueCard({
                                                     }
                                                     onCancelEdit={onCancelEditQuestion}
                                                     onIntituleChange={onEditQuestionIntituleChange}
-                                                    onOpenQualificatif={() =>
-                                                        onOpenQualificatifDialog(rubrique.idRubriqueEvaluation, questionEvaluationId)
-                                                    }
                                                 />
                                             )
                                         })}
@@ -543,18 +521,6 @@ export function RubriquesSection({
     const [editingQuestionId, setEditingQuestionId] = useState<number | null>(null)
     const [editingQuestionIntitule, setEditingQuestionIntitule] = useState("")
     const [editingQuestionRubriqueId, setEditingQuestionRubriqueId] = useState<number | null>(null)
-
-    // Édition qualificatif
-    const [qualificatifDialogQuestionId, setQualificatifDialogQuestionId] = useState<number | null>(null)
-    const [qualificatifDialogRubriqueId, setQualificatifDialogRubriqueId] = useState<number | null>(null)
-    const [availableQualificatifs, setAvailableQualificatifs] = useState<QualificatifDTO[]>([])
-    const [selectedQualificatifId, setSelectedQualificatifId] = useState<number | null>(null)
-    const [isQualificatifDialogOpen, setIsQualificatifDialogOpen] = useState(false)
-
-
-    const [deleteRubriqueTarget, setDeleteRubriqueTarget] = useState<number | null>(null)
-    const [deleteQuestionTarget, setDeleteQuestionTarget] = useState<{ rubriqueId: number, questionId: number } | null>(null)
-
     const [selectedType, setSelectedType] = useState<"RBS" | "RBP">("RBS")
 
     useEffect(() => {
@@ -603,9 +569,7 @@ export function RubriquesSection({
             setIsRubriqueDialogOpen(false)
         } catch (error) {
             console.error("Erreur lors de l'ajout de la rubrique :", error)
-            toast.error("Erreur", {
-                description: "Impossible d'ajouter la ou les rubriques.",
-            })
+            toast.error("Impossible d'ajouter la ou les rubriques.")
         }
     }
 
@@ -616,9 +580,7 @@ export function RubriquesSection({
             if (onReload) await onReload()
         } catch (error) {
             console.error("Erreur lors de la suppression de la rubrique :", error)
-            toast.error("Erreur", {
-                description: "Impossible de supprimer la rubrique.",
-            })
+            toast.error("Impossible de supprimer la rubrique.")
         }
     }
 
@@ -652,16 +614,12 @@ export function RubriquesSection({
             if (onReload) await onReload()
 
             setIsSpecifiqueDialogOpen(false)
-            toast.success("Rubrique créée", {
-                description: `"${specifiqueDesignation.trim()}" a été ajoutée à l'évaluation.`
-            })
+            toast.success(`Rubrique "${specifiqueDesignation.trim()}" ajoutée à l'évaluation.`)
             setSpecifiqueDesignation("")
             setSpecifiqueSelectedQuestions([])
             setSpecifiqueQuestionSearch("")
         } catch (error) {
-            toast.error("Erreur", {
-                description: "Impossible de créer la rubrique spécifique."
-            })
+            toast.error("Impossible de créer la rubrique spécifique.")
         } finally {
             setSpecifiqueLoading(false)
         }
@@ -696,9 +654,7 @@ export function RubriquesSection({
             setSelectedQuestionIds([])
         } catch (error) {
             console.error("Erreur lors de l'ajout de la question :", error)
-            toast.error("Erreur", {
-                description: "Impossible d'ajouter la ou les questions.",
-            })
+            toast.error("Impossible d'ajouter la ou les questions.")
         }
     }
 
@@ -714,9 +670,7 @@ export function RubriquesSection({
             if (onReload) await onReload()
         } catch (error) {
             console.error("Erreur lors de la suppression de la question :", error)
-            toast.error("Erreur", {
-                description: "Impossible de supprimer la question.",
-            })
+            toast.error("Impossible de supprimer la question.")
         }
     }
 
@@ -740,10 +694,7 @@ export function RubriquesSection({
         const nextDesignation = editingDesignation.trim()
 
         if (!nextDesignation) {
-            toast.error("Champ obligatoire", {
-                description: "Veuillez insérer un nom pour la désignation.",
-                style: { background: "#991b1b", color: "#fff", border: "none" },
-            })
+            toast.error("Veuillez insérer un nom pour la désignation.")
             return
         }
 
@@ -763,18 +714,12 @@ export function RubriquesSection({
                 await updateDesignationRubriqueEvaluation(evaluationId, rubriqueEvaluationId, nextDesignation)
             }
 
-            toast.success("Désignation de rubrique mise à jour", {
-                description: `"${nextDesignation}" a été sauvegardée avec succès.`,
-                style: { background: "#166534", color: "#fff", border: "none" },
-            })
+            toast.success(`Désignation de rubrique "${nextDesignation}" mise à jour.`)
 
             if (onReload) await onReload()
             handleCancelEditRubrique()
         } catch (error) {
-            toast.error("Erreur", {
-                description: "Impossible de modifier la désignation de la rubrique.",
-                style: { background: "#991b1b", color: "#fff", border: "none" },
-            })
+            toast.error("Impossible de modifier la désignation de la rubrique.")
             onEditingChange?.(false)
             console.error("Erreur lors de la modification de la désignation :", error)
         }
@@ -809,10 +754,7 @@ export function RubriquesSection({
         const nextIntitule = editingQuestionIntitule.trim()
 
         if (!nextIntitule) {
-            toast.error("Champ obligatoire", {
-                description: "Veuillez insérer un intitulé pour la question.",
-                style: { background: "#991b1b", color: "#fff", border: "none" },
-            })
+            toast.error("Veuillez insérer un intitulé pour la question.")
             return
         }
 
@@ -834,72 +776,14 @@ export function RubriquesSection({
                 nextIntitule,
             )
 
-            toast.success("Intitulé mis à jour", {
-                description: `"${nextIntitule}" a été sauvegardé.`,
-                style: { background: "#166534", color: "#fff", border: "none" },
-            })
+            toast.success(`Intitulé "${nextIntitule}" mis à jour.`)
 
             if (onReload) await onReload()
             handleCancelEditQuestion()
         } catch (error) {
-            toast.error("Erreur", {
-                description: "Impossible de modifier l'intitulé.",
-                style: { background: "#991b1b", color: "#fff", border: "none" },
-            })
+            toast.error("Impossible de modifier l'intitulé.")
             onEditingChange?.(false)
             console.error("Erreur lors de la modification de l'intitulé :", error)
-        }
-    }
-
-    /* ── Édition qualificatif question ───────────────────────────────────────── */
-
-    const openQualificatifDialog = async (rubriqueId: number, questionEvaluationId: number) => {
-        const data = await getQualificatifs()
-
-        const rubrique = rubriques.find((r) => r.idRubriqueEvaluation === rubriqueId)
-        const question = rubrique?.questions.find(
-            (q) => getQuestionEvalId(q) === questionEvaluationId,
-        )
-        const rawId = question?.idQualificatif
-        const currentId = rawId != null ? Number(rawId) : null
-
-        setAvailableQualificatifs(data)
-        setQualificatifDialogRubriqueId(rubriqueId)
-        setQualificatifDialogQuestionId(questionEvaluationId)
-        setSelectedQualificatifId(currentId && !Number.isNaN(currentId) ? currentId : null)
-        setIsQualificatifDialogOpen(true)
-    }
-
-    const handleConfirmQualificatif = async () => {
-        const evalId = evaluationId
-        const rubriqueId = qualificatifDialogRubriqueId
-        const questionId = qualificatifDialogQuestionId
-        const qualifId = selectedQualificatifId
-
-        if (!evalId || !rubriqueId || !questionId || !qualifId) {
-            console.warn("Guard failed:", { evalId, rubriqueId, questionId, qualifId })
-            return
-        }
-
-        try {
-            await updateQualificatifQuestionEvaluation(evalId, rubriqueId, questionId, qualifId)
-
-            toast.success("Qualificatif mis à jour", {
-                style: { background: "#166534", color: "#fff", border: "none" },
-            })
-
-            setIsQualificatifDialogOpen(false)
-            setQualificatifDialogRubriqueId(null)
-            setQualificatifDialogQuestionId(null)
-            setSelectedQualificatifId(null)
-
-            if (onReload) await onReload()
-        } catch (err) {
-            console.error("Erreur updateQualificatif:", err)
-            toast.error("Erreur", {
-                description: "Impossible de modifier le qualificatif.",
-                style: { background: "#991b1b", color: "#fff", border: "none" },
-            })
         }
     }
 
@@ -1253,7 +1137,6 @@ export function RubriquesSection({
                                 onConfirmEditQuestion={handleConfirmEditQuestion}
                                 onCancelEditQuestion={handleCancelEditQuestion}
                                 onEditQuestionIntituleChange={setEditingQuestionIntitule}
-                                onOpenQualificatifDialog={openQualificatifDialog}
                             />
                         ))}
                     </div>
@@ -1401,8 +1284,8 @@ export function RubriquesSection({
                         </button>
 
                         <button
-                            onClick={() => setSelectedQuestionType("PERSONNEL")}
-                            className={`px-4 py-2 rounded-lg text-sm font-medium ${selectedQuestionType === "PERSONNEL"
+                            onClick={() => setSelectedQuestionType("SPECIFIQUE")}
+                            className={`px-4 py-2 rounded-lg text-sm font-medium ${selectedQuestionType === "SPECIFIQUE"
                                     ? "bg-purple-600 text-white"
                                     : "bg-gray-100 text-gray-600"
                                 }`}
@@ -1474,57 +1357,6 @@ export function RubriquesSection({
                 </DialogContent>
             </Dialog>
 
-            {/* Dialog qualificatif */}
-            <Dialog open={isQualificatifDialogOpen} onOpenChange={setIsQualificatifDialogOpen}>
-                <DialogContent className="w-[calc(100%-2rem)] max-w-md">
-                    <DialogHeader>
-                        <DialogTitle>Modifier le qualificatif</DialogTitle>
-                    </DialogHeader>
-
-                    <div className="space-y-3 py-2">
-                        <div className="max-h-72 overflow-y-auto rounded-md border border-gray-200">
-                            {availableQualificatifs.map((qualif) => {
-                                const qualifId = getQualificatifId(qualif)
-                                const isSelected = selectedQualificatifId === qualifId
-
-                                return (
-                                    <div
-                                        key={qualifId}
-                                        onClick={() => setSelectedQualificatifId(qualifId)}
-                                        className={`cursor-pointer border-b border-gray-100 px-3 py-2.5 text-sm transition ${isSelected ? "bg-blue-50 text-blue-800" : "bg-white hover:bg-gray-50"
-                                            }`}
-                                    >
-                                        {qualif.mot1} ↔ {qualif.mot2}
-                                    </div>
-                                )
-                            })}
-
-                            {availableQualificatifs.length === 0 && (
-                                <div className="px-4 py-6 text-center text-sm text-gray-400">
-                                    Aucun qualificatif disponible.
-                                </div>
-                            )}
-                        </div>
-                    </div>
-
-                    <DialogFooter>
-                        <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => setIsQualificatifDialogOpen(false)}
-                        >
-                            Annuler
-                        </Button>
-                        <Button
-                            type="button"
-                            onClick={handleConfirmQualificatif}
-                            disabled={!selectedQualificatifId}
-                        >
-                            Enregistrer
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
         </div>
     )
 }
