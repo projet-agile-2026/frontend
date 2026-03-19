@@ -102,19 +102,19 @@ const getQuestionCatalogId = (question: QuestionEvaluationDTO): number =>
  * Sortable question row
  * ────────────────────────────────────────────────────────────────────────────── */
 function SortableQuestionRow({
-                                 question,
-                                 rubriqueEvaluationId,
-                                 evaluationId,
-                                 onRemove,
-                                 readOnly,
-                                 isEditing,
-                                 editingIntitule,
-                                 onStartEdit,
-                                 onConfirmEdit,
-                                 onCancelEdit,
-                                 onIntituleChange,
-                                 onOpenQualificatif,
-                             }: {
+    question,
+    rubriqueEvaluationId,
+    evaluationId,
+    onRemove,
+    readOnly,
+    isEditing,
+    editingIntitule,
+    onStartEdit,
+    onConfirmEdit,
+    onCancelEdit,
+    onIntituleChange,
+    onOpenQualificatif,
+}: {
     question: QuestionEvaluationDTO
     rubriqueEvaluationId: number
     evaluationId?: number
@@ -150,11 +150,10 @@ function SortableQuestionRow({
             <div
                 {...(!readOnly ? attributes : {})}
                 {...(!readOnly ? listeners : {})}
-                className={`flex-shrink-0 touch-none ${
-                    readOnly
-                        ? "cursor-default text-gray-300"
-                        : "cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600"
-                }`}
+                className={`flex-shrink-0 touch-none ${readOnly
+                    ? "cursor-default text-gray-300"
+                    : "cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600"
+                    }`}
             >
                 <GripVertical className="h-4 w-4" />
             </div>
@@ -201,10 +200,10 @@ function SortableQuestionRow({
                 <div className="flex-1 grid grid-cols-12 items-center gap-2 min-w-0">
                     <span className="col-span-7 text-gray-800 truncate">{question.intitule}</span>
                     <span className="col-span-4 text-xs text-gray-500 truncate">
-            {question.maximal && question.minimal
-                ? `${question.maximal} ↔ ${question.minimal}`
-                : "Échelle non définie"}
-          </span>
+                        {question.maximal && question.minimal
+                            ? `${question.maximal} ↔ ${question.minimal}`
+                            : "Échelle non définie"}
+                    </span>
                 </div>
             )}
 
@@ -257,30 +256,30 @@ function SortableQuestionRow({
  * Sortable rubrique card
  * ────────────────────────────────────────────────────────────────────────────── */
 function SortableRubriqueCard({
-                                  rubrique,
-                                  isExpanded,
-                                  onToggleExpand,
-                                  evaluationId,
-                                  onRemoveRubrique,
-                                  onRemoveQuestion,
-                                  onQuestionDragEnd,
-                                  openQuestionDialog,
-                                  readOnly,
-                                  editingRubriqueId,
-                                  editingDesignation,
-                                  onStartEdit,
-                                  onConfirmEdit,
-                                  onCancelEdit,
-                                  onEditDesignationChange,
-                                  editingQuestionId,
-                                  editingQuestionIntitule,
-                                  editingQuestionRubriqueId,
-                                  onStartEditQuestion,
-                                  onConfirmEditQuestion,
-                                  onCancelEditQuestion,
-                                  onEditQuestionIntituleChange,
-                                  onOpenQualificatifDialog,
-                              }: {
+    rubrique,
+    isExpanded,
+    onToggleExpand,
+    evaluationId,
+    onRemoveRubrique,
+    onRemoveQuestion,
+    onQuestionDragEnd,
+    openQuestionDialog,
+    readOnly,
+    editingRubriqueId,
+    editingDesignation,
+    onStartEdit,
+    onConfirmEdit,
+    onCancelEdit,
+    onEditDesignationChange,
+    editingQuestionId,
+    editingQuestionIntitule,
+    editingQuestionRubriqueId,
+    onStartEditQuestion,
+    onConfirmEditQuestion,
+    onCancelEditQuestion,
+    onEditQuestionIntituleChange,
+    onOpenQualificatifDialog,
+}: {
     rubrique: RubriqueEvaluationDTO
     isExpanded: boolean
     onToggleExpand: (id: number) => void
@@ -329,19 +328,17 @@ function SortableRubriqueCard({
         <div
             ref={setNodeRef}
             style={style}
-            className={`rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden ${
-                isDragging ? "shadow-lg ring-2 ring-gray-200" : ""
-            }`}
+            className={`rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden ${isDragging ? "shadow-lg ring-2 ring-gray-200" : ""
+                }`}
         >
             <div className="flex items-center gap-2 border-b border-gray-100 bg-gray-50/50 px-3 py-2.5 sm:px-4 sm:py-3 min-w-0">
                 <div
                     {...(!readOnly ? attributes : {})}
                     {...(!readOnly ? listeners : {})}
-                    className={`flex-shrink-0 touch-none ${
-                        readOnly
-                            ? "cursor-default text-gray-300"
-                            : "cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600"
-                    }`}
+                    className={`flex-shrink-0 touch-none ${readOnly
+                        ? "cursor-default text-gray-300"
+                        : "cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600"
+                        }`}
                 >
                     <GripVertical className="h-5 w-5" />
                 </div>
@@ -393,8 +390,8 @@ function SortableRubriqueCard({
                             <div className="flex flex-wrap items-center gap-2 mt-0.5 text-xs text-gray-500">
                                 {rubrique.type && (
                                     <span className={`rounded-full border px-2 py-0.5 text-xs ${getRubriqueTypeStyle(rubrique.type)}`}>
-                    {getRubriqueTypeLabel(rubrique.type)}
-                  </span>
+                                        {getRubriqueTypeLabel(rubrique.type)}
+                                    </span>
                                 )}
                                 <span>{questions.length} question{questions.length !== 1 ? "s" : ""}</span>
                             </div>
@@ -509,13 +506,13 @@ function SortableRubriqueCard({
  * Main component
  * ────────────────────────────────────────────────────────────────────────────── */
 export function RubriquesSection({
-                                     rubriques,
-                                     onChange,
-                                     evaluationId,
-                                     onReload,
-                                     readOnly = false,
-                                     onEditingChange,
-                                 }: RubriquesSectionProps) {
+    rubriques,
+    onChange,
+    evaluationId,
+    onReload,
+    readOnly = false,
+    onEditingChange,
+}: RubriquesSectionProps) {
     const [availableRubriques, setAvailableRubriques] = useState<Rubrique[]>([])
     const [availableQuestions, setAvailableQuestions] = useState<Question[]>([])
     const [qualificatifs, setQualificatifs] = useState<QualificatifDTO[]>([])
@@ -526,6 +523,7 @@ export function RubriquesSection({
 
     const [activeRubriqueEvaluationId, setActiveRubriqueEvaluationId] = useState<number | null>(null)
     const [selectedQuestionIds, setSelectedQuestionIds] = useState<number[]>([])
+    const [selectedQuestionType, setSelectedQuestionType] = useState<"STANDARD" | "SPECIFIQUE">("STANDARD")
     const [questionSearch, setQuestionSearch] = useState("")
     const [isQuestionDialogOpen, setIsQuestionDialogOpen] = useState(false)
 
@@ -555,7 +553,7 @@ export function RubriquesSection({
 
 
     const [deleteRubriqueTarget, setDeleteRubriqueTarget] = useState<number | null>(null)
-    const [deleteQuestionTarget, setDeleteQuestionTarget] = useState<{rubriqueId: number, questionId: number} | null>(null)
+    const [deleteQuestionTarget, setDeleteQuestionTarget] = useState<{ rubriqueId: number, questionId: number } | null>(null)
 
     const [selectedType, setSelectedType] = useState<"RBS" | "RBP">("RBS")
 
@@ -676,6 +674,7 @@ export function RubriquesSection({
         setActiveRubriqueEvaluationId(rubriqueEvaluationId)
         setSelectedQuestionIds([])
         setQuestionSearch("")
+        setSelectedQuestionType("STANDARD")
         setIsQuestionDialogOpen(true)
     }
 
@@ -1007,15 +1006,33 @@ export function RubriquesSection({
     /* ── Filtres ─────────────────────────────────────────────────────────────── */
 
     const filteredQuestions = availableQuestions.filter((q) => {
-        if (!activeRubriqueEvaluationId) return false
-        const rubrique = rubriques.find((r) => r.idRubriqueEvaluation === activeRubriqueEvaluationId)
-        const alreadyUsedIds = new Set((rubrique?.questions || []).map((qq) => getQuestionCatalogId(qq)))
-        const matchesSearch = q.intitule.toLowerCase().includes(questionSearch.toLowerCase())
-        return !alreadyUsedIds.has(q.idQuestion) && matchesSearch
-    })
+  if (!activeRubriqueEvaluationId) return false
+
+  const rubrique = rubriques.find(
+    (r) => r.idRubriqueEvaluation === activeRubriqueEvaluationId
+  )
+
+  const alreadyUsedIds = new Set(
+    (rubrique?.questions || []).map((qq) => getQuestionCatalogId(qq))
+  )
+
+  const matchesSearch = q.intitule
+    .toLowerCase()
+    .includes(questionSearch.toLowerCase())
+
+  // 🔥 FILTRE TYPE
+  const matchesType =
+    selectedQuestionType === "STANDARD"
+      ? q.type !== "SPECIFIQUE"
+      : q.type === "SPECIFIQUE"
+
+  return !alreadyUsedIds.has(q.idQuestion) && matchesSearch && matchesType
+})
 
     const usedRubriqueIds = new Set((rubriques ?? []).map((r) => r.idRubrique))
-    const filteredRubriques = availableRubriques.filter((r) => !usedRubriqueIds.has(r.idRubrique))
+    const filteredRubriques = availableRubriques
+        .filter((r) => !usedRubriqueIds.has(r.idRubrique))
+        .filter((r) => r.type === selectedType)
     const sortedRubriques = [...filteredRubriques].sort((a, b) =>
         a.designation.localeCompare(b.designation),
     )
@@ -1071,6 +1088,10 @@ export function RubriquesSection({
                                         <DialogTrigger asChild>
                                             <Button
                                                 type="button"
+                                                onClick={() => {
+                                                    setSelectedType("RBS")   // 👈 AJOUTE ÇA
+                                                    setIsRubriqueDialogOpen(true)
+                                                }}
                                                 variant="outline"
                                                 size="sm"
                                                 disabled={!evaluationId || readOnly}
@@ -1090,7 +1111,7 @@ export function RubriquesSection({
                             </Tooltip>
                         </TooltipProvider>
 
-                        <DialogContent className="w-[95vw] max-w-3xl max-h-[85vh] flex flex-col">
+                        <DialogContent className="w-[98vw] max-w-4xl max-h-[90vh] flex flex-col">
                             <DialogHeader className="pb-2">
                                 <div className="flex items-center gap-2 text-gray-500">
                                     <LayoutList className="h-5 w-5 shrink-0" />
@@ -1103,8 +1124,31 @@ export function RubriquesSection({
                                 </p>
                             </DialogHeader>
 
+                            <div className="flex gap-2 mb-3">
+                                <button
+                                    onClick={() => setSelectedType("RBS")}
+                                    className={`px-4 py-2 rounded-lg text-sm font-medium transition ${selectedType === "RBS"
+                                        ? "bg-blue-600 text-white"
+                                        : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                                        }`}
+                                >
+                                    Standard
+                                </button>
+
+                                <button
+                                    onClick={() => setSelectedType("RBP")}
+                                    className={`px-4 py-2 rounded-lg text-sm font-medium transition ${selectedType === "RBP"
+                                        ? "bg-purple-600 text-white"
+                                        : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                                        }`}
+                                >
+                                    Personnel
+                                </button>
+                            </div>
+
                             <div className="flex-1 min-h-0 overflow-y-auto rounded-xl border border-gray-200/90 bg-gray-50/30 p-2 sm:p-3">
                                 <div className="grid gap-2 sm:gap-3">
+
                                     {sortedRubriques.map((r) => {
                                         const isSelected = selectedRubriqueIds.includes(r.idRubrique)
                                         const questionCount = Array.isArray(r.questions) ? r.questions.length : 0
@@ -1114,11 +1158,10 @@ export function RubriquesSection({
                                                 key={r.idRubrique}
                                                 type="button"
                                                 onClick={() => toggleRubriqueSelection(r.idRubrique)}
-                                                className={`group relative w-full text-left rounded-xl border-2 p-4 transition-all duration-200 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-gray-400 ${
-                                                    isSelected
-                                                        ? "border-blue-500 bg-blue-50/80 shadow-sm ring-0"
-                                                        : "border-transparent bg-white hover:border-gray-200 hover:bg-white hover:shadow-sm"
-                                                }`}
+                                                className={`group relative w-full text-left rounded-xl border-2 p-4 transition-all duration-200 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-gray-400 ${isSelected
+                                                    ? "border-blue-500 bg-blue-50/80 shadow-sm ring-0"
+                                                    : "border-transparent bg-white hover:border-gray-200 hover:bg-white hover:shadow-sm"
+                                                    }`}
                                             >
                                                 {isSelected && (
                                                     <div className="absolute top-3 right-3 flex h-6 w-6 items-center justify-center rounded-full bg-blue-500 text-white">
@@ -1130,9 +1173,9 @@ export function RubriquesSection({
                                                         {r.designation}
                                                     </div>
                                                     <div className="mt-1 flex items-center gap-2 text-xs text-gray-500">
-                            <span className={`rounded-md bg-gray-100 px-2 py-0.5 font-medium text-gray-600 ${getRubriqueTypeStyle(r.type)}`}>
-                              {questionCount} question{questionCount !== 1 ? "s" : ""}
-                            </span>
+                                                        <span className={`rounded-md bg-gray-100 px-2 py-0.5 font-medium text-gray-600 ${getRubriqueTypeStyle(r.type)}`}>
+                                                            {questionCount} question{questionCount !== 1 ? "s" : ""}
+                                                        </span>
                                                         {r.type && <span className="text-gray-400">{getRubriqueTypeLabel(r.type)}</span>}
                                                     </div>
                                                 </div>
@@ -1277,18 +1320,17 @@ export function RubriquesSection({
                                                             : [...prev, q.idQuestion],
                                                     )
                                                 }}
-                                                className={`cursor-pointer border-b border-gray-100 px-3 py-2.5 text-sm transition select-none ${
-                                                    isSelected ? "bg-blue-50" : "bg-white hover:bg-gray-50"
-                                                }`}
+                                                className={`cursor-pointer border-b border-gray-100 px-3 py-2.5 text-sm transition select-none ${isSelected ? "bg-blue-50" : "bg-white hover:bg-gray-50"
+                                                    }`}
                                             >
                                                 <div className="flex items-center justify-between gap-3">
-                          <span className={`truncate ${isSelected ? "font-medium text-blue-800" : "text-gray-800"}`}>
-                            {q.intitule}
-                          </span>
+                                                    <span className={`truncate ${isSelected ? "font-medium text-blue-800" : "text-gray-800"}`}>
+                                                        {q.intitule}
+                                                    </span>
                                                     {qualifLabel && (
                                                         <span className="shrink-0 text-xs text-gray-400 italic">
-                              {qualifLabel}
-                            </span>
+                                                            {qualifLabel}
+                                                        </span>
                                                     )}
                                                 </div>
                                             </div>
@@ -1298,10 +1340,10 @@ export function RubriquesSection({
                                 {availableQuestions.filter((q) =>
                                     q.intitule.toLowerCase().includes(specifiqueQuestionSearch.toLowerCase()),
                                 ).length === 0 && (
-                                    <div className="px-3 py-4 text-center text-sm text-gray-400">
-                                        Aucune question trouvée.
-                                    </div>
-                                )}
+                                        <div className="px-3 py-4 text-center text-sm text-gray-400">
+                                            Aucune question trouvée.
+                                        </div>
+                                    )}
                             </div>
 
                             {specifiqueSelectedQuestions.length > 0 && (
@@ -1347,6 +1389,28 @@ export function RubriquesSection({
                         <DialogTitle>Ajouter une question à la rubrique</DialogTitle>
                     </DialogHeader>
 
+                    <div className="flex gap-2 mb-3">
+                        <button
+                            onClick={() => setSelectedQuestionType("STANDARD")}
+                            className={`px-4 py-2 rounded-lg text-sm font-medium ${selectedQuestionType === "STANDARD"
+                                    ? "bg-blue-600 text-white"
+                                    : "bg-gray-100 text-gray-600"
+                                }`}
+                        >
+                            Standard
+                        </button>
+
+                        <button
+                            onClick={() => setSelectedQuestionType("PERSONNEL")}
+                            className={`px-4 py-2 rounded-lg text-sm font-medium ${selectedQuestionType === "PERSONNEL"
+                                    ? "bg-purple-600 text-white"
+                                    : "bg-gray-100 text-gray-600"
+                                }`}
+                        >
+                            Personnel
+                        </button>
+                    </div>
+
                     <div className="space-y-3 py-2">
                         <Input
                             placeholder="Rechercher une question..."
@@ -1380,16 +1444,15 @@ export function RubriquesSection({
                                                             : [...prev, q.idQuestion],
                                                     )
                                                 }}
-                                                className={`cursor-pointer rounded-lg border p-3 text-sm transition flex items-center justify-between ${
-                                                    isSelected
-                                                        ? "border-blue-500 bg-blue-50"
-                                                        : "border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-100"
-                                                }`}
+                                                className={`cursor-pointer rounded-lg border p-3 text-sm transition flex items-center justify-between ${isSelected
+                                                    ? "border-blue-500 bg-blue-50"
+                                                    : "border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-100"
+                                                    }`}
                                             >
                                                 <span className="text-gray-800">{q.intitule}</span>
                                                 <span className="text-xs text-gray-500 whitespace-nowrap">
-                          {scale ? `${scale.mot1} ↔ ${scale.mot2}` : "Échelle non définie"}
-                        </span>
+                                                    {scale ? `${scale.mot1} ↔ ${scale.mot2}` : "Échelle non définie"}
+                                                </span>
                                             </div>
                                         )
                                     })
@@ -1428,9 +1491,8 @@ export function RubriquesSection({
                                     <div
                                         key={qualifId}
                                         onClick={() => setSelectedQualificatifId(qualifId)}
-                                        className={`cursor-pointer border-b border-gray-100 px-3 py-2.5 text-sm transition ${
-                                            isSelected ? "bg-blue-50 text-blue-800" : "bg-white hover:bg-gray-50"
-                                        }`}
+                                        className={`cursor-pointer border-b border-gray-100 px-3 py-2.5 text-sm transition ${isSelected ? "bg-blue-50 text-blue-800" : "bg-white hover:bg-gray-50"
+                                            }`}
                                     >
                                         {qualif.mot1} ↔ {qualif.mot2}
                                     </div>
