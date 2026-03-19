@@ -22,7 +22,8 @@ export interface RubriqueEvaluationDTO {
 
 export interface EvaluationWithRubriquesDTO {
   idEvaluation: number
-  codeFormation: string
+    noEnseignant: number
+    codeFormation: string
   anneeUniversitaire: string
   codeUe: string
   codeEc: string

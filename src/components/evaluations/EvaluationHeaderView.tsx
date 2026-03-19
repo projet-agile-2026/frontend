@@ -17,6 +17,7 @@ import {toast} from "sonner";
 interface Props {
   evaluation: any
   onReload?: () => void
+    isOwner?: boolean
 }
 
 function SectionLabel({
@@ -46,8 +47,7 @@ function Field({ label, value }: { label: string; value?: any }) {
 }
 
 
-export function EvaluationHeaderView({ evaluation, onReload }: Props) {
-
+export function EvaluationHeaderView({ evaluation, onReload, isOwner = true }: Props) {
   const [confirmOpen, setConfirmOpen] = useState(false)
     const [pdfLoading, setPdfLoading] = useState(false)
 
@@ -114,8 +114,7 @@ export function EvaluationHeaderView({ evaluation, onReload }: Props) {
                   Télécharger PDF
               </Button>
 
-
-              {evaluation.etat !== "CLO" && (
+              {isOwner  && evaluation.etat !== "CLO" && (
                   <Button
                       onClick={() => setConfirmOpen(true)}
                       className={

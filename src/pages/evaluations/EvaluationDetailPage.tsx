@@ -11,9 +11,11 @@ import {
   getEvaluation,
   getEvaluationFull,
   type EvaluationDetailDTO,
+    type EvaluationWithRubriquesDTO,
   type RubriqueEvaluationDTO
 } from "../../services/EvaluationService"
 
+import { getCurrentUser, type UserInfo } from "../../services/authService"
 
 
 export function EvaluationDetailPage() {
@@ -21,8 +23,7 @@ export function EvaluationDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
 
-  const [evaluation, setEvaluation] =
-    useState<EvaluationDetailDTO | null>(null)
+    const [evaluation, setEvaluation] = useState<EvaluationWithRubriquesDTO | null>(null)
 
   const [rubriques, setRubriques] =
     useState<RubriqueEvaluationDTO[]>([])
@@ -30,11 +31,15 @@ export function EvaluationDetailPage() {
   const [loading, setLoading] = useState(true)
 
 
-  useEffect(() => {
+    const [currentUser, setCurrentUser] = useState<UserInfo | null>(null)
 
-    if (id) loadEvaluation(Number(id))
+    useEffect(() => {
+        if (id) loadEvaluation(Number(id))
+        getCurrentUser().then(setCurrentUser).catch(() => {})
+    }, [id])
 
-  }, [id])
+
+
 
 
   const loadEvaluation = async (evaluationId: number) => {
@@ -79,6 +84,8 @@ setRubriques(data.rubriques)
   }
 
 const isClosed = evaluation?.etat === "CLO"
+    const isOwner = currentUser !== null &&
+        Number(evaluation?.noEnseignant) === Number(currentUser.noEnseignant)
   return (
 
     <div className="mx-auto max-w-7xl px-6 py-6 space-y-6">
@@ -89,33 +96,43 @@ const isClosed = evaluation?.etat === "CLO"
           {`${evaluation.designation}`}
         </h1>
 
-      <div className="flex items-center gap-3">
-        <div className="relative group">
-          <Button
-            variant="default"
-            disabled={!isClosed}
-            onClick={() => navigate(`/evaluations/${id}/statistiques`)}
-            className="flex items-center gap-2 bg-black hover:bg-gray-800 text-white disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <BarChart2 className="h-4 w-4" />
-            Consulter les statistiques
-          </Button>
-          {!isClosed && (
-            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 rounded-md bg-gray-900 text-white text-xs text-center px-3 py-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
-              Les statistiques sont disponibles uniquement lorsque l'évaluation est clôturée.
-              <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900" />
-            </div>
-          )}
-        </div>
-        <Button variant="outline" onClick={() => navigate("/evaluations")}>
-          Retour
-        </Button>
-      </div>
+          <div className="flex items-center gap-3">
+
+              {/* Statistiques — visible uniquement pour le propriétaire */}
+              {isOwner && (
+                  <div className="relative group">
+                      <Button
+                          variant="default"
+                          disabled={!isClosed}
+                          onClick={() => navigate(`/evaluations/${id}/statistiques`)}
+                          className="flex items-center gap-2 bg-black hover:bg-gray-800 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                          <BarChart2 className="h-4 w-4" />
+                          Consulter les statistiques
+                      </Button>
+                      {!isClosed && (
+                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 rounded-md bg-gray-900 text-white text-xs text-center px-3 py-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+                              Les statistiques sont disponibles uniquement lorsque l'évaluation est clôturée.
+                              <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900" />
+                          </div>
+                      )}
+                  </div>
+              )}
+
+              <Button variant="outline" onClick={() => navigate("/evaluations")}>
+                  Retour
+              </Button>
+
+          </div>
 
       </div>
 
 
-      <EvaluationHeaderView evaluation={evaluation} onReload={() => loadEvaluation(Number(id))}/>
+        <EvaluationHeaderView
+            evaluation={evaluation}
+            onReload={() => loadEvaluation(Number(id))}
+            isOwner={isOwner}
+        />
 
       <RubriquesView rubriques={rubriques} />
 
