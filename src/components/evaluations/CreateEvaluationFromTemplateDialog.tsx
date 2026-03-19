@@ -230,14 +230,15 @@ export function CreateEvaluationFromTemplateDialog({
     handleClose()
   }
 
-  const isFormValid =
-    formValues.codeFormation &&
-    formValues.anneeUniversitaire &&
-    formValues.codeUe &&
-    formValues.designation &&
-    formValues.periode &&
-    formValues.debutReponse &&
-    formValues.finReponse
+  const isFormValid = !!(
+  formValues.codeFormation &&
+  formValues.anneeUniversitaire &&
+  formValues.codeUe &&
+  formValues.designation &&
+  formValues.periode &&
+  formValues.debutReponse &&
+  formValues.finReponse
+)
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -305,7 +306,7 @@ export function CreateEvaluationFromTemplateDialog({
                   <Select
                     required
                     disabled={loadingOptions}
-                    value={formValues.codeFormation || undefined}
+                    value={formValues.codeFormation}
                     onValueChange={handleFormationChange}
                   >
                     <SelectTrigger className="h-10 bg-white">
@@ -325,6 +326,7 @@ export function CreateEvaluationFromTemplateDialog({
                     Année universitaire <span className="text-red-500">*</span>
                   </Label>
                   <Select
+                    key={formValues.codeFormation} 
                     required
                     disabled={!formValues.codeFormation}
                     value={formValues.anneeUniversitaire || undefined}
@@ -348,13 +350,14 @@ export function CreateEvaluationFromTemplateDialog({
             </div>
 
             <div>
-              <SectionLabel icon={FileText}>Unité d&apos;enseignement</SectionLabel>
+              <SectionLabel icon={FileText}>Unité d'enseignement</SectionLabel>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label className="text-gray-600 text-sm font-medium">
                     Unité d’enseignement <span className="text-red-500">*</span>
                   </Label>
                   <Select
+                    key={formValues.codeFormation}
                     required
                     disabled={!formValues.codeFormation}
                     value={formValues.codeUe || undefined}
@@ -375,6 +378,7 @@ export function CreateEvaluationFromTemplateDialog({
                 <div className="space-y-2">
                   <Label className="text-gray-600 text-sm font-medium">Élément constitutif</Label>
                   <Select
+                    key={formValues.codeUe}
                     disabled={!formValues.codeUe}
                     value={formValues.codeEc || undefined}
                     onValueChange={(value) =>
