@@ -66,6 +66,8 @@ function SectionLabel({
   )
 }
 
+const today = new Date().toISOString().split("T")[0]
+
 export function EvaluationHeaderForm({
   values,
   formations,
@@ -84,23 +86,7 @@ export function EvaluationHeaderForm({
   const [errors, setErrors] = useState<Record<string, string>>({})
 
   const [isEditing, setIsEditing] = useState(!isHeaderSaved)
-  useEffect(() => {
-
-    if (!values.codeFormation && (values.codeUe || values.codeEc)) {
-      onChange({
-        ...values,
-        codeUe: "",
-        codeEc: "",
-      })
-    } else if (!values.codeUe && values.codeEc) {
-      onChange({
-        ...values,
-        codeEc: "",
-      })
-    }
-    console.log("EValuationHeader", values)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [values.codeFormation, values.codeUe])
+  
   function RequiredLabel({ children }: { children: React.ReactNode }) {
     return (
       <Label className="text-gray-600 text-sm font-medium">
@@ -108,6 +94,17 @@ export function EvaluationHeaderForm({
       </Label>
     )
   }
+
+  useEffect(() => {
+    if (values.finReponse && values.debutReponse) {
+      if (values.finReponse < values.debutReponse) {
+        onChange({
+          ...values,
+          finReponse: "",
+        })
+      }
+    }
+  }, [values.debutReponse])
 
   if (!isEditing && isHeaderSaved) {
     return (
@@ -216,6 +213,7 @@ export function EvaluationHeaderForm({
                   <TooltipTrigger asChild>
                     <div>
                       <Select
+                        key={values.codeFormation}
                         required
                         disabled={disabled || !values.codeFormation}
                         value={values.anneeUniversitaire || undefined}
@@ -292,6 +290,7 @@ export function EvaluationHeaderForm({
                   <TooltipTrigger asChild>
                     <div>
                       <Select
+                        key={values.codeFormation} 
                         required
                         disabled={disabled || !values.codeFormation}
                         value={values.codeUe || undefined}
@@ -328,6 +327,7 @@ export function EvaluationHeaderForm({
                   <TooltipTrigger asChild>
                     <div>
                       <Select
+                        key={values.codeUe}
                         disabled={disabled || !values.codeUe}
                         value={values.codeEc || undefined}
                         onValueChange={(value) =>
@@ -386,9 +386,14 @@ export function EvaluationHeaderForm({
               <DatePickerField
                 disabled={disabled}
                 value={values.debutReponse}
-                onChange={(value) =>
-                  onChange({ ...values, debutReponse: value })
-                }
+                min={today}
+                onChange={(value) => {
+                  onChange({
+                    ...values,
+                    debutReponse: value,
+                    finReponse: "", // 🔥 reset automatique
+                  })
+                }}
                 placeholder="Sélectionner une date"
               />
             </div>
@@ -396,9 +401,9 @@ export function EvaluationHeaderForm({
             <div className="space-y-2">
               <RequiredLabel>Date fin réponses</RequiredLabel>
               <DatePickerField
-                disabled={disabled}
+                disabled={disabled || !values.debutReponse} // 🔒 désactivé si pas de début
                 value={values.finReponse}
-                min={values.debutReponse}
+                min={values.debutReponse || today} // 🔥 min dynamique
                 onChange={(value) =>
                   onChange({ ...values, finReponse: value })
                 }

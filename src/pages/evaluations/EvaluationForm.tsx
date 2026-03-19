@@ -125,13 +125,14 @@ export const EvaluationForm: FC<EvaluationFormProps> = ({ readOnly = false }) =>
     noEvaluation: "",
   })
 
-  const isHeaderValid =
-    headerValues.codeFormation &&
-    headerValues.anneeUniversitaire &&
-    headerValues.codeUe &&
-    headerValues.designation &&
-    headerValues.debutReponse &&
-    headerValues.finReponse
+  const isHeaderValid = !!(
+  headerValues.codeFormation &&
+  headerValues.anneeUniversitaire &&
+  headerValues.codeUe &&
+  headerValues.designation &&
+  headerValues.debutReponse &&
+  headerValues.finReponse
+)
 
   const [etat, setEtat] = useState<EvaluationStatus>("ELA")
   const [rubriques, setRubriques] = useState<EvaluationWithRubriquesDTO["rubriques"]>([])

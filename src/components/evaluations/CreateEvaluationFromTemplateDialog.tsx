@@ -67,6 +67,8 @@ interface CreateEvaluationFromTemplateDialogProps {
   onSuccess?: (evaluation: EvaluationResponseDTO) => void
 }
 
+const today = new Date().toISOString().split("T")[0]
+
 function SectionLabel({
   icon: Icon,
   children,
@@ -123,6 +125,17 @@ export function CreateEvaluationFromTemplateDialog({
     }
     void load()
   }, [open])
+
+  useEffect(() => {
+    if (formValues.finReponse && formValues.debutReponse) {
+      if (formValues.finReponse < formValues.debutReponse) {
+        setFormValues((prev) => ({
+          ...prev,
+          finReponse: "",
+        }))
+      }
+    }
+  }, [formValues.debutReponse])
 
   const handleFormationChange = async (codeFormation: string) => {
     setFormValues((prev) => ({
@@ -420,8 +433,13 @@ export function CreateEvaluationFromTemplateDialog({
                   </Label>
                   <DatePickerField
                     value={formValues.debutReponse}
+                    min={today}
                     onChange={(value) =>
-                      setFormValues((prev) => ({ ...prev, debutReponse: value }))
+                      setFormValues((prev) => ({
+                        ...prev,
+                        debutReponse: value,
+                        finReponse: "", // 🔥 reset auto
+                      }))
                     }
                     placeholder="Sélectionner une date"
                   />
@@ -438,15 +456,29 @@ export function CreateEvaluationFromTemplateDialog({
                   <Label className="text-gray-600 text-sm font-medium">
                     Date fin réponses <span className="text-red-500">*</span>
                   </Label>
-                  <DatePickerField
-                    disabled={!formValues.debutReponse}
-                    value={formValues.finReponse}
-                    min={formValues.debutReponse}
-                    onChange={(value) =>
-                      setFormValues((prev) => ({ ...prev, finReponse: value }))
-                    }
-                    placeholder={"Sélectionner une date"}
-                  />
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div>
+                          <DatePickerField
+                            disabled={!formValues.debutReponse} // 🔒 bloque si pas début
+                            value={formValues.finReponse}
+                            min={formValues.debutReponse || today} // 🔥 min dynamique
+                            onChange={(value) =>
+                              setFormValues((prev) => ({ ...prev, finReponse: value }))
+                            }
+                            placeholder="Sélectionner une date"
+                          />
+                        </div>
+                      </TooltipTrigger>
+
+                      {!formValues.debutReponse && (
+                        <TooltipContent>
+                          Sélectionnez d’abord une date de début.
+                        </TooltipContent>
+                      )}
+                    </Tooltip>
+                  </TooltipProvider>
                   <input
                     type="text"
                     required
