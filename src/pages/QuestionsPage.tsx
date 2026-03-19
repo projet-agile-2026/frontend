@@ -1,5 +1,6 @@
-import  React, { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Search, Plus, Trash2, Edit3, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { Input } from "../components/ui/input";
 import { Button } from "../components/ui/button";
 import {
@@ -19,6 +20,14 @@ import { getQualificatifs, type QualificatifDTO } from "../services/Qualificatif
 import { getCurrentUser, type UserInfo } from "@/services/authService"
 
 const MAX_INTITULE = 64;
+
+const getErrorMessage = (err: unknown, fallback: string) => {
+  if (err && typeof err === "object") {
+    const error = err as any
+    return error?.response?.data?.message || error?.message || fallback
+  }
+  return fallback
+}
 
 export function QuestionsPage() {
   const [questions, setQuestions] = useState<Question[]>([])
@@ -50,8 +59,9 @@ export function QuestionsPage() {
       ]);
       setQuestions(questionsData.sort((a, b) => a.intitule.localeCompare(b.intitule)));
       setQualificatifs(qualifsData);
-    } catch (err) {
+    } catch (err: unknown) {
       console.error("Erreur lors du chargement des données", err);
+      toast.error(getErrorMessage(err, "Erreur lors du chargement des questions."));
     } finally {
       setLoading(false);
     }
@@ -66,19 +76,15 @@ export function QuestionsPage() {
 
   const totalPages = Math.ceil(filteredQuestions.length / itemsPerPage);
   const currentData = filteredQuestions.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
-  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
-
-  const showToast = (message: string, type: "success" | "error") => {
-    setToast({ message, type });
-    setTimeout(() => setToast(null), 4000);
-  };
 
   const handleAdd = async (intitule: string, idQualif: string) => {
     try {
       const newQ = await createQuestion({ intitule, idQualificatif: Number(idQualif) });
       setQuestions(prev => [...prev, newQ].sort((a, b) => a.intitule.localeCompare(b.intitule)));
-      showToast(`Question « ${newQ.intitule} » ajoutée avec succès.`, "success");
-    } catch (err) { showToast("Impossible d'ajouter la question.", "error"); }
+      toast.success(`Question « ${newQ.intitule} » ajoutée avec succès.`);
+    } catch (err) {
+      toast.error(getErrorMessage(err, "Impossible d'ajouter la question."));
+    }
   };
 
   const handleUpdate = async (id: any, updatedIntitule: string, updatedIdQualif: string, question: Question) => {
@@ -90,8 +96,10 @@ export function QuestionsPage() {
         noEnseignant: question.noEnseignant
       });
       setQuestions(prev => prev.map(q => q.idQuestion === id ? updated : q).sort((a, b) => a.intitule.localeCompare(b.intitule)));
-      showToast(`Question « ${updated.intitule} » mise à jour.`, "success");
-    } catch (err) { showToast("Impossible de modifier la question.", "error"); }
+      toast.success(`Question « ${updated.intitule} » mise à jour.`);
+    } catch (err) {
+      toast.error(getErrorMessage(err, "Impossible de modifier la question."));
+    }
   };
 
   const handleDelete = async (id: any) => {
@@ -99,9 +107,9 @@ export function QuestionsPage() {
       const questionToDelete = questions.find(q => q.idQuestion === id);
       await deleteQuestion(id);
       setQuestions(prev => prev.filter(q => q.idQuestion !== id));
-      showToast(`Question « ${questionToDelete?.intitule} » supprimée.`, "success");
-    } catch (err: any) {
-      showToast(err.message || "Impossible de supprimer la question.", "error");
+      toast.success(`Question « ${questionToDelete?.intitule} » supprimée.`);
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, "Impossible de supprimer la question."));
     }
   };
 
@@ -117,7 +125,7 @@ export function QuestionsPage() {
 
         {/* HEADER */}
         <div className="flex justify-between items-center mb-10">
-          <h1 className="text-3xl font-bold tracking-tight uppercase italic">Gestion des Questions</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900">Gestion des questions</h1>
           <AddQuestionDialog onAdd={handleAdd} qualificatifs={qualificatifs} role={role} />
         </div>
 
@@ -156,10 +164,10 @@ export function QuestionsPage() {
 
         {/* TABLEAU */}
         <div className="bg-white border rounded-2xl shadow-sm overflow-hidden">
-          <div className="grid grid-cols-12 bg-slate-50 border-b py-4 px-8 text-[11px] font-bold uppercase tracking-wider text-slate-500">
-            <div className="col-span-8 italic">Questions</div>
-            <div className="col-span-3 text-center italic">Couple Qualificatif</div>
-            <div className="col-span-1 text-right italic">Actions</div>
+          <div className="grid grid-cols-12 bg-slate-50 border-b py-4 px-8 text-xs font-semibold tracking-wide text-slate-500">
+            <div className="col-span-8">Questions</div>
+            <div className="col-span-3 text-center">Couple qualificatif</div>
+            <div className="col-span-1 text-right">Actions</div>
           </div>
           <div className="divide-y divide-slate-100">
             {currentData.length > 0 ? (
@@ -167,7 +175,7 @@ export function QuestionsPage() {
                 <QuestionRow key={q.idQuestion} question={q} qualificatifs={qualificatifs} onDelete={handleDelete} onUpdate={handleUpdate} role={user?.role} />
               ))
             ) : (
-              <div className="py-20 text-center text-slate-300 font-medium uppercase text-xs tracking-widest">
+              <div className="py-20 text-center text-slate-400 text-sm font-medium">
                 Aucune question trouvée
               </div>
             )}
@@ -177,26 +185,20 @@ export function QuestionsPage() {
         {/* PAGINATION */}
         {totalPages > 1 && (
           <div className="flex justify-between items-center mt-6 px-2">
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest italic opacity-60">
+            <p className="text-sm font-medium text-slate-500">
               {filteredQuestions.length} entrée(s) trouvée(s)
             </p>
             <div className="flex gap-2">
-              <Button variant="outline" onClick={() => setCurrentPage(p => Math.max(p - 1, 1))} disabled={currentPage === 1} className="h-10 rounded-xl font-bold text-xs uppercase border-slate-200 shadow-sm hover:bg-black hover:text-[#FFD700] transition-colors">
+              <Button variant="outline" onClick={() => setCurrentPage(p => Math.max(p - 1, 1))} disabled={currentPage === 1} className="h-10 rounded-xl font-semibold text-xs border-slate-200 shadow-sm hover:bg-black hover:text-[#FFD700] transition-colors">
                 <ChevronLeft className="h-4 w-4 mr-2" /> Précédent
               </Button>
-              <Button variant="outline" onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))} disabled={currentPage === totalPages} className="h-10 rounded-xl font-bold text-xs uppercase border-slate-200 shadow-sm hover:bg-black hover:text-[#FFD700] transition-colors">
+              <Button variant="outline" onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))} disabled={currentPage === totalPages} className="h-10 rounded-xl font-semibold text-xs border-slate-200 shadow-sm hover:bg-black hover:text-[#FFD700] transition-colors">
                 Suivant <ChevronRight className="h-4 w-4 ml-2" />
               </Button>
             </div>
           </div>
         )}
       </div>
-
-      {toast && (
-        <div className={`fixed bottom-6 right-6 z-50 px-6 py-4 rounded-2xl shadow-2xl font-bold text-sm uppercase tracking-wide transition-all ${toast.type === "success" ? "bg-black text-[#FFD700]" : "bg-red-500 text-white"}`}>
-          {toast.message}
-        </div>
-      )}
     </div>
   );
 }
@@ -222,7 +224,7 @@ function QuestionRow({ question, onDelete, qualificatifs, onUpdate, role }: any)
   return (
     <div className="grid grid-cols-12 items-center py-5 px-8 transition-colors bg-white border-l-4 border-l-transparent hover:border-l-[#FFD700]">
       <div className="col-span-8">
-        <span className="text-sm font-bold text-slate-800 leading-tight uppercase break-all">
+        <span className="text-sm font-medium text-slate-800 leading-tight break-words">
           {question.intitule}
         </span>
       </div>
@@ -230,16 +232,16 @@ function QuestionRow({ question, onDelete, qualificatifs, onUpdate, role }: any)
       <div className="col-span-3 flex justify-center">
         {qualif && (
           <div className="inline-flex items-center gap-3">
-            <span className="text-[11px] font-bold text-slate-400 uppercase italic tracking-wider">{qualif.mot2}</span>
+            <span className="text-xs font-medium text-slate-500">{qualif.mot2}</span>
             <div className="h-1 w-3 bg-slate-200 rounded-full"></div>
-            <span className="text-[11px] font-bold text-slate-900 uppercase italic tracking-wider">{qualif.mot1}</span>
+            <span className="text-xs font-medium text-slate-900">{qualif.mot1}</span>
           </div>
         )}
       </div>
 
       <div className="col-span-1 flex justify-end gap-2 relative">
         {tooltip && (
-          <div className="absolute bottom-10 right-0 z-50 bg-slate-800 text-white text-[10px] font-bold rounded-xl px-3 py-2 shadow-xl w-52 text-center leading-tight">
+          <div className="absolute bottom-10 right-0 z-50 bg-slate-800 text-white text-xs font-medium rounded-xl px-3 py-2 shadow-xl w-52 text-center leading-tight">
             {tooltip}
           </div>
         )}
@@ -258,30 +260,30 @@ function QuestionRow({ question, onDelete, qualificatifs, onUpdate, role }: any)
           </DialogTrigger>
           <DialogContent aria-describedby={undefined} className="rounded-3xl border-t-[10px] border-t-blue-500 p-10 bg-white">
             <DialogHeader>
-              <DialogTitle className="text-xl font-bold uppercase italic tracking-tighter">Modifier la question</DialogTitle>
+              <DialogTitle className="text-xl font-semibold tracking-tight">Modifier la question</DialogTitle>
             </DialogHeader>
             <div className="space-y-6 py-6">
               <div className="space-y-2 text-left text-slate-900">
-                <label className="text-[10px] font-bold uppercase text-slate-400 ml-1 italic tracking-widest">Désignation</label>
+                <label className="text-xs font-medium text-slate-500 ml-1">Désignation</label>
                 <Input
                   value={editIntitule}
                   maxLength={MAX_INTITULE}
                   onChange={(e) => { setEditIntitule(e.target.value); setEditError(null); }}
-                  className={`h-12 border-2 rounded-xl font-bold text-sm uppercase ${editError ? "border-red-400" : ""}`}
+                  className={`h-12 border-2 rounded-xl font-medium text-sm ${editError ? "border-red-400" : ""}`}
                 />
                 <div className="flex justify-between items-center">
-                  <span className="text-red-500 text-[11px] font-bold ml-1">{editError ?? ""}</span>
-                  <span className={`text-[10px] font-bold ${editIntitule.length > MAX_INTITULE - 10 ? "text-red-400" : "text-slate-400"}`}>
+                  <span className="text-red-500 text-xs font-medium ml-1">{editError ?? ""}</span>
+                  <span className={`text-xs font-medium ${editIntitule.length > MAX_INTITULE - 10 ? "text-red-400" : "text-slate-400"}`}>
                     {editIntitule.length}/{MAX_INTITULE}
                   </span>
                 </div>
               </div>
               <div className="space-y-2 text-left">
-                <label className="text-[10px] font-bold uppercase text-slate-400 ml-1 italic tracking-widest">Type Qualificatif</label>
+                <label className="text-xs font-medium text-slate-500 ml-1">Type qualificatif</label>
                 <select
                   value={editIdQualif}
                   onChange={(e) => setEditIdQualif(e.target.value)}
-                  className="w-full h-12 border-2 rounded-xl font-bold text-xs uppercase text-slate-900 bg-white px-4 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full h-12 border-2 rounded-xl font-medium text-sm text-slate-900 bg-white px-4 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   {qualificatifs.map((c: any) => (
                     <option key={c.id} value={String(c.id)}>{c.mot2} / {c.mot1}</option>
@@ -291,7 +293,7 @@ function QuestionRow({ question, onDelete, qualificatifs, onUpdate, role }: any)
             </div>
             <DialogFooter>
               <Button
-                className="w-full h-12 bg-blue-600 text-white font-bold rounded-xl text-[10px] uppercase tracking-widest shadow-lg"
+                className="w-full h-12 bg-blue-600 text-white font-semibold rounded-xl text-sm shadow-lg"
                 onClick={() => {
                   if (!editIntitule.trim()) { setEditError("La désignation ne peut pas être vide."); return; }
                   if (editIntitule.trim().length > MAX_INTITULE) { setEditError(`Maximum ${MAX_INTITULE} caractères.`); return; }
@@ -319,14 +321,14 @@ function QuestionRow({ question, onDelete, qualificatifs, onUpdate, role }: any)
           </AlertDialogTrigger>
           <AlertDialogContent className="rounded-3xl border-t-[10px] border-t-red-500 p-10 bg-white shadow-2xl">
             <AlertDialogHeader>
-              <AlertDialogTitle className="text-xl font-bold uppercase italic tracking-tighter">Confirmation</AlertDialogTitle>
-              <AlertDialogDescription className="font-bold text-slate-500 text-sm italic break-all">
+              <AlertDialogTitle className="text-xl font-semibold tracking-tight">Confirmation</AlertDialogTitle>
+              <AlertDialogDescription className="font-medium text-slate-500 text-sm break-words">
                 Voulez-vous vraiment supprimer la question « {question.intitule} » ? Cette action est définitive.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter className="mt-10 gap-3">
-              <AlertDialogCancel className="rounded-xl font-bold uppercase text-[9px] h-11 border-2">Annuler</AlertDialogCancel>
-              <AlertDialogAction disabled={isUsed} onClick={() => !isUsed && onDelete(question.idQuestion)} className="bg-red-500 text-white hover:bg-red-700 rounded-xl font-bold uppercase text-[9px] h-11 shadow-lg px-8 transition-colors">Supprimer</AlertDialogAction>
+              <AlertDialogCancel className="rounded-xl font-semibold text-xs h-11 border-2">Annuler</AlertDialogCancel>
+              <AlertDialogAction disabled={isUsed} onClick={() => !isUsed && onDelete(question.idQuestion)} className="bg-red-500 text-white hover:bg-red-700 rounded-xl font-semibold text-xs h-11 shadow-lg px-8 transition-colors">Supprimer</AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
@@ -344,36 +346,36 @@ function AddQuestionDialog({ onAdd, qualificatifs, role }: any) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="bg-black text-[#FFD700] hover:bg-slate-800 font-bold rounded-xl h-11 px-6 shadow-sm text-xs uppercase tracking-widest italic transition-all active:scale-95">
+        <Button className="bg-black text-[#FFD700] hover:bg-slate-800 font-semibold rounded-xl h-11 px-6 shadow-sm text-sm transition-all active:scale-95">
           <Plus className="mr-2 h-4 w-4" strokeWidth={3} /> Nouveau
         </Button>
       </DialogTrigger>
       <DialogContent aria-describedby={undefined} className="max-w-xl rounded-3xl border-t-[10px] border-t-[#FFD700] p-10 bg-white shadow-2xl">
-        <DialogTitle className="text-2xl font-bold uppercase italic tracking-tighter text-slate-900">
+        <DialogTitle className="text-2xl font-semibold tracking-tight text-slate-900">
           {role === "ADM" ? "Nouvelle question standard" : role === "ENS" ? "Nouvelle question personnelle" : "Nouvelle question"}
         </DialogTitle>
         <div className="space-y-6 py-8 text-slate-900">
           <div className="space-y-2 text-left">
-            <label className="text-[10px] font-bold uppercase text-slate-400 ml-1 italic tracking-widest">Intitulé de la question</label>
+            <label className="text-xs font-medium text-slate-500 ml-1">Intitulé de la question</label>
             <Input
               placeholder="Saisir..."
               value={intitule}
               maxLength={MAX_INTITULE}
               onChange={(e) => setIntitule(e.target.value)}
-              className={`h-12 border-2 border-slate-100 rounded-2xl font-bold text-sm uppercase ${intitule.length >= MAX_INTITULE ? "border-red-300" : ""}`}
+              className={`h-12 border-2 border-slate-100 rounded-2xl font-medium text-sm ${intitule.length >= MAX_INTITULE ? "border-red-300" : ""}`}
             />
             <div className="flex justify-end">
-              <span className={`text-[10px] font-bold ${intitule.length > MAX_INTITULE - 10 ? "text-red-400" : "text-slate-400"}`}>
+              <span className={`text-xs font-medium ${intitule.length > MAX_INTITULE - 10 ? "text-red-400" : "text-slate-400"}`}>
                 {intitule.length}/{MAX_INTITULE}
               </span>
             </div>
           </div>
           <div className="space-y-2 text-left">
-            <label className="text-[10px] font-bold uppercase text-slate-400 ml-1 italic tracking-widest">Type Qualificatif</label>
+            <label className="text-xs font-medium text-slate-500 ml-1">Type qualificatif</label>
             <select
               value={idQualif}
               onChange={(e) => setIdQualif(e.target.value)}
-              className="w-full h-12 border-2 border-slate-100 rounded-2xl font-bold text-xs uppercase bg-white shadow-sm px-4 cursor-pointer focus:outline-none focus:ring-2 focus:ring-black"
+              className="w-full h-12 border-2 border-slate-100 rounded-2xl font-medium text-sm bg-white shadow-sm px-4 cursor-pointer focus:outline-none focus:ring-2 focus:ring-black"
             >
               <option value="">Choisir dans la liste...</option>
               {qualificatifs.map((c: any) => (
@@ -385,7 +387,7 @@ function AddQuestionDialog({ onAdd, qualificatifs, role }: any) {
         <DialogFooter>
           <Button
             disabled={!isValid}
-            className={`w-full h-12 font-bold rounded-xl uppercase tracking-widest text-xs transition-all ${isValid ? "bg-black text-[#FFD700] hover:bg-slate-800 shadow-xl" : "bg-slate-50 text-slate-200 cursor-not-allowed border-none"}`}
+            className={`w-full h-12 font-semibold rounded-xl text-sm transition-all ${isValid ? "bg-black text-[#FFD700] hover:bg-slate-800 shadow-xl" : "bg-slate-50 text-slate-200 cursor-not-allowed border-none"}`}
             onClick={() => { onAdd(intitule.trim(), idQualif); setOpen(false); setIntitule(""); setIdQualif(""); }}
           >
             {role === "ADM" ? "Ajouter la question standard" : role === "ENS" ? "Ajouter la question personnelle" : "Ajouter la question"}
