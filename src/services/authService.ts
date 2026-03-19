@@ -15,6 +15,7 @@ export interface UserInfo {
   nom: string
   prenom: string
   email: string
+    noEnseignant?: number
 }
 
 export const login = async (
