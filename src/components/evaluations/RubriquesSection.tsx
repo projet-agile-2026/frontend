@@ -87,8 +87,13 @@ interface RubriquesSectionProps {
 const getQualificatifId = (q: QualificatifDTO): number =>
     Number((q as QualificatifDTO & { id?: number }).idQualificatif ?? (q as QualificatifDTO & { id?: number }).id)
 
-const getQuestionEvalId = (question: QuestionEvaluationDTO): number =>
-    Number(question.idQuestion)
+const getQuestionEvalId = (question: QuestionEvaluationDTO): number => {
+    const id = Number(question.idQuestionEvaluation)
+    if (isNaN(id)) {
+        console.error("❌ ID invalide:", question)
+    }
+    return id
+}
 
 const getQuestionCatalogId = (question: QuestionEvaluationDTO): number =>
     Number(question.idQuestion)
@@ -453,8 +458,8 @@ function SortableRubriqueCard({
                         >
                             <SortableContext
                                 items={questions
-                                    .filter((q) => q && q.idQuestion != null)
-                                    .map((q) => getQuestionEvalId(q).toString())}
+                                    .filter((q) => q && q.idQuestionEvaluation != null)
+                                    .map((q) => q.idQuestionEvaluation.toString())}
                                 strategy={verticalListSortingStrategy}
                             >
                                 <div className="space-y-2">
@@ -551,6 +556,8 @@ export function RubriquesSection({
 
     const [deleteRubriqueTarget, setDeleteRubriqueTarget] = useState<number | null>(null)
     const [deleteQuestionTarget, setDeleteQuestionTarget] = useState<{rubriqueId: number, questionId: number} | null>(null)
+
+    const [selectedType, setSelectedType] = useState<"RBS" | "RBP">("RBS")
 
     useEffect(() => {
         void loadRubriques()
@@ -964,10 +971,10 @@ export function RubriquesSection({
             const questions = rubrique.questions
 
             const oldIndex = questions.findIndex(
-                (q) => getQuestionEvalId(q).toString() === active.id,
+                (q) => q.idQuestionEvaluation.toString() === active.id,
             )
             const newIndex = questions.findIndex(
-                (q) => getQuestionEvalId(q).toString() === over.id,
+                (q) => q.idQuestionEvaluation.toString() === over.id,
             )
 
             if (oldIndex === -1 || newIndex === -1) return
@@ -983,7 +990,7 @@ export function RubriquesSection({
             onChange(updatedRubriques)
 
             const questionOrders = reordered.map((q, i) => ({
-                idQuestion: getQuestionEvalId(q),
+                idQuestionEvaluation: getQuestionEvalId(q),
                 ordre: i + 1,
             }))
 

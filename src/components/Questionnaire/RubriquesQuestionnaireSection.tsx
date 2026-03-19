@@ -27,6 +27,8 @@ import {
   TooltipTrigger,
 } from "../ui/tooltip"
 import { Input } from "../ui/input"
+import { getQualificatifs } from "../../services/Qualificatifservice"
+
 
 interface Props {
   rubriques: any[]
@@ -49,7 +51,8 @@ export function RubriquesQuestionnaireSection({
 
   const [search, setSearch] = useState("")
   const [selectedRubriques, setSelectedRubriques] = useState<number[]>([])
-  const [selectedQuestionId, setSelectedQuestionId] = useState<number | null>(null)
+  const [selectedQuestionIds, setSelectedQuestionIds] = useState<number[]>([])
+  const [questionSearch, setQuestionSearch] = useState("")
 
   const [activeRubrique, setActiveRubrique] = useState<number | null>(null)
 
@@ -58,21 +61,48 @@ export function RubriquesQuestionnaireSection({
 
   const [expandedCatalogRubriques, setExpandedCatalogRubriques] = useState<Set<number>>(new Set())
 
+  const [qualificatifs, setQualificatifs] = useState<any[]>([])
+
+  const filteredQuestions = availableQuestions.filter(q => {
+    if (!activeRubrique) return false
+
+    const rubrique = rubriques.find(r => r.idRubriqueQuestionnaire === activeRubrique)
+
+    const alreadyUsed = new Set(
+      (rubrique?.questions || []).map((qq: any) => qq.idQuestion)
+    )
+
+    return (
+      !alreadyUsed.has(q.idQuestion) &&
+      q.intitule.toLowerCase().includes(questionSearch.toLowerCase())
+    )
+  })
+
+  const getQualificatif = (idQualificatif: any) => {
+    return qualificatifs.find(
+      q => Number(q.id) === Number(idQualificatif)
+    )
+  }
+
+  console.log("qualificatifs", qualificatifs)
+
+  console.log("questions", availableQuestions)
+
   useEffect(() => {
-
     const load = async () => {
-
       const r = await getRubriques()
       const q = await getQuestions()
+      const qualifs = await getQualificatifs()
 
       setAvailableRubriques(r)
       setAvailableQuestions(q)
-
+      setQualificatifs(qualifs)
     }
 
     load()
-
   }, [])
+
+
 
   const toggleRubrique = (id: number) => {
 
@@ -150,19 +180,24 @@ export function RubriquesQuestionnaireSection({
   const openQuestionDialog = (rubriqueId: number) => {
 
     setActiveRubrique(rubriqueId)
-    setSelectedQuestionId(null)
+    setSelectedQuestionIds([])
+    setQuestionSearch("")
     setQuestionDialogOpen(true)
 
   }
 
   const handleAddQuestion = async () => {
 
-    if (!questionnaireId || !activeRubrique || !selectedQuestionId) return
+    if (!questionnaireId || !activeRubrique || selectedQuestionIds.length === 0) return
 
-    await addQuestionToRubriqueQuestionnaire(
-      questionnaireId,
-      activeRubrique,
-      selectedQuestionId
+    await Promise.all(
+      selectedQuestionIds.map((id) =>
+        addQuestionToRubriqueQuestionnaire(
+          questionnaireId,
+          activeRubrique,
+          id
+        )
+      )
     )
 
     setQuestionDialogOpen(false)
@@ -412,13 +447,34 @@ export function RubriquesQuestionnaireSection({
               </button>
 
               <div className="flex-1 font-semibold text-gray-900">
-
                 {r.designation}
-
               </div>
 
+              {/* 🔥 NOUVEAU BOUTON AJOUTER QUESTION */}
               {!readOnly && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() =>
+                          openQuestionDialog(r.idRubriqueQuestionnaire)
+                        }
+                        title="Ajouter une question"
+                      >
+                        <Plus className="h-4 w-4 text-blue-600" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      Ajouter une question
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
 
+              {/* 🗑️ SUPPRESSION */}
+              {!readOnly && (
                 <Button
                   variant="ghost"
                   size="icon"
@@ -428,7 +484,6 @@ export function RubriquesQuestionnaireSection({
                 >
                   <Trash2 className="h-4 w-4 text-red-600" />
                 </Button>
-
               )}
 
             </div>
@@ -450,11 +505,17 @@ export function RubriquesQuestionnaireSection({
                         {q.intitule ?? q.designation}
                       </span>
 
-                      <span className="col-span-4 text-xs text-gray-500 truncate">
-                        {q.maximal && q.minimal
-                          ? `${q.maximal} ↔ ${q.minimal}`
-                          : "Échelle non définie"}
-                      </span>
+                      {(() => {
+                        const qualif = getQualificatif(q.idQualificatif)
+
+                        return (
+                          <span className="text-xs text-gray-500 whitespace-nowrap">
+                            {qualif
+                              ? `${qualif.mot1} ↔ ${qualif.mot2}`
+                              : "—"}
+                          </span>
+                        )
+                      })()}
 
                     </div>
 
@@ -479,21 +540,6 @@ export function RubriquesQuestionnaireSection({
 
                 ))}
 
-                {!readOnly && (
-
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() =>
-                      openQuestionDialog(r.idRubriqueQuestionnaire)
-                    }
-                  >
-                    <Plus className="h-4 w-4 mr-1" />
-                    Ajouter une question
-                  </Button>
-
-                )}
-
               </div>
 
             )}
@@ -514,32 +560,72 @@ export function RubriquesQuestionnaireSection({
             </DialogTitle>
           </DialogHeader>
 
-          <select
-            className="w-full border rounded-md p-2"
-            onChange={(e) =>
-              setSelectedQuestionId(Number(e.target.value))
-            }
-          >
+          <Input
+            placeholder="Rechercher une question..."
+            value={questionSearch}
+            onChange={(e) => setQuestionSearch(e.target.value)}
+          />
 
-            <option>Choisir une question</option>
+          <div className="text-xs text-gray-500">
+            {selectedQuestionIds.length} question(s) sélectionnée(s)
+          </div>
 
-            {availableQuestions.map((q) => (
+          <div className="max-h-[350px] overflow-y-auto rounded-lg border bg-gray-50 p-3 space-y-2">
 
-              <option key={q.idQuestion} value={q.idQuestion}>
-                {q.intitule}
-              </option>
+            {filteredQuestions.map((q) => {
 
-            ))}
+              const isSelected = selectedQuestionIds.includes(q.idQuestion)
 
-          </select>
+              return (
+                <div
+                  key={q.idQuestion}
+                  onClick={() => {
+                    setSelectedQuestionIds(prev =>
+                      prev.includes(q.idQuestion)
+                        ? prev.filter(id => id !== q.idQuestion)
+                        : [...prev, q.idQuestion]
+                    )
+                  }}
+                  className={`cursor-pointer rounded-lg border px-3 py-2 text-sm flex justify-between items-center transition
+          ${isSelected
+                      ? "bg-blue-100 border-blue-500"
+                      : "bg-white hover:bg-gray-100"
+                    }`}
+                >
+
+                  <span className="text-gray-800">
+                    {q.intitule}
+                  </span>
+
+                  {(() => {
+                    const qualif = getQualificatif(q.idQualificatif)
+
+                    return (
+                      <span className="text-xs text-gray-500 whitespace-nowrap">
+                        {qualif ? `${qualif.mot1} ↔ ${qualif.mot2}` : "—"}
+                      </span>
+                    )
+                  })()}
+
+                </div>
+              )
+            })}
+
+            {filteredQuestions.length === 0 && (
+              <div className="text-center text-gray-400 py-4">
+                Aucune question trouvée
+              </div>
+            )}
+
+          </div>
 
           <DialogFooter>
 
             <Button
               onClick={handleAddQuestion}
-              disabled={!selectedQuestionId}
+              disabled={selectedQuestionIds.length === 0}
             >
-              Ajouter
+              Ajouter {selectedQuestionIds.length}
             </Button>
 
           </DialogFooter>

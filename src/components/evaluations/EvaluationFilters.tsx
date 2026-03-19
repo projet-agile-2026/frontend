@@ -158,7 +158,7 @@ export function EvaluationFilters({
                     onClick={onNewFromTemplate}
                     className="h-10 sm:h-11 rounded-xl px-4 sm:px-5 font-medium w-full sm:w-auto"
                   >
-                    Depuis un Questionnaire
+                    Créer à partir d’un Questionnaire
                   </Button>
                 )}
                 <Button

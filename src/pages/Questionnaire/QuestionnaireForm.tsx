@@ -167,12 +167,15 @@ export function QuestionnaireForm({ readOnly = false }: QuestionnaireFormProps) 
 
       <div className="flex justify-end gap-3 pt-6">
 
-        <Button
-          variant="outline"
-          onClick={() => navigate("/questionnaires")}
-        >
-          Annuler
-        </Button>
+        {/* 🔥 Annuler seulement en mode edit/create */}
+        {!isViewMode && (
+          <Button
+            variant="outline"
+            onClick={() => navigate("/questionnaires")}
+          >
+            Annuler
+          </Button>
+        )}
 
         <Button
           disabled={!isSaved}
