@@ -118,6 +118,7 @@ export function EtudiantEvaluationsPage() {
                 <TableRow className="bg-gray-50">
                   <TableHead className="font-semibold">Enseignant</TableHead>
                   <TableHead className="font-semibold">Unité d'enseignement</TableHead>
+                  <TableHead className="font-semibold">Désignation</TableHead>
                   <TableHead className="font-semibold">N° Évaluation</TableHead>
                   <TableHead className="font-semibold">État</TableHead>
                   <TableHead className="font-semibold">Fin de réponse</TableHead>
@@ -138,6 +139,9 @@ export function EtudiantEvaluationsPage() {
                           <span className="font-medium text-sm">{evaluation.codeUe}</span>
                           <span className="text-xs text-gray-500">{evaluation.codeEc}</span>
                         </div>
+                      </TableCell>
+                      <TableCell>
+                        {evaluation.designation || "-"}
                       </TableCell>
                       <TableCell>
                         {evaluation.noEvaluation || "-"}
